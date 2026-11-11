@@ -16,6 +16,10 @@ _Avoid_: Conta (de acesso), entidade
 Um conjunto de entidades consultado de forma consolidada.
 _Avoid_: Família (como termo técnico), carteira
 
+**Contexto financeiro**:
+A entidade ou o grupo financeiro que o usuário escolheu ver no momento. Define de quem são os números mostrados.
+_Avoid_: Perfil, modo, visão (sem qualificar)
+
 **Visão Familiar**:
 O grupo financeiro das pessoas físicas da família. A empresa não faz parte dele: ela só aparece pelos repasses às pessoas físicas e pela participação delas no patrimônio.
 _Avoid_: Visão consolidada (sem dizer qual grupo)
@@ -25,6 +29,10 @@ _Avoid_: Visão consolidada (sem dizer qual grupo)
 **Conta**:
 Um lugar onde o dinheiro de uma única entidade fica guardado: conta bancária, conta de pagamento, caixa em espécie ou cartão de crédito. Toda conta tem exatamente um dono.
 _Avoid_: Carteira, conta conjunta
+
+**Conta de reserva**:
+Uma conta marcada como lugar de guardar dinheiro, como uma caixinha que rende. Transferir para ela conta como aplicação, e tirar dela, como resgate.
+_Avoid_: Poupança (como tipo de conta), caixinha
 
 **Lançamento**:
 O registro de um fato financeiro de uma entidade, como uma despesa, uma receita ou uma transferência, previsto ou realizado. Pode se desdobrar em parcelas e ser liquidado por uma ou mais movimentações.
@@ -73,7 +81,7 @@ A classificação de uma receita ou despesa numa árvore com subcategorias. As p
 _Avoid_: Plano de contas, tag, rubrica
 
 **Finalidade**:
-Para que serve uma despesa de pessoa física: pessoal, de um dos membros, ou familiar, da casa. As duas compõem o custo mensal da família.
+Para que serve uma despesa de pessoa física: pessoal, de um dos membros, ou familiar, da casa. As duas compõem o custo de vida.
 _Avoid_: Tipo de despesa, natureza
 
 **Pagador**:
@@ -121,6 +129,18 @@ _Avoid_: Faturamento da sessão, rateio
 **Estorno**:
 A devolução de dinheiro a uma cliente, como o saldo de um pacote cancelado. Reduz o faturamento no mês em que é feita.
 _Avoid_: Reembolso (que é entre entidades), devolução (como lançamento)
+
+**Forma de pagamento**:
+O meio pelo qual a cliente paga: Pix, dinheiro, cartão de débito, crédito à vista ou crédito parcelado. Cada uma tem a taxa e o prazo de recebimento dela.
+_Avoid_: Meio de pagamento, modalidade
+
+**Taxa de recebimento**:
+O valor que a adquirente desconta de um pagamento por cartão, conforme a forma de pagamento. É despesa da empresa, e não reduz o faturamento.
+_Avoid_: Taxa da maquininha, MDR
+
+**Rentabilidade do atendimento**:
+A receita de um atendimento, ou a receita da sessão, menos o custo dos materiais baixados nele e a taxa de recebimento. Despesas fixas da clínica não entram.
+_Avoid_: Lucro do atendimento, margem (sem qualificar)
 
 **Recebível**:
 Um valor que a empresa tem a receber numa data futura, como cada parcela que a adquirente do cartão repassa, já líquido da taxa.
@@ -189,8 +209,12 @@ _Avoid_: Recebimento (que é de dinheiro), entrada
 ## Planejamento
 
 **Meta**:
-Um objetivo financeiro com valor-alvo e prazo, ligado a contas e bens. O valor acumulado é o saldo das contas mais o último valor dos bens.
+Um objetivo financeiro com valor-alvo, prazo e contribuições planejadas, ligado a contas e bens. O valor acumulado é o saldo das contas mais o último valor dos bens.
 _Avoid_: Objetivo, sonho, caixinha
+
+**Contribuição**:
+O valor que se planeja separar para uma meta a cada período, como R$ 500 por mês para a reserva de emergência.
+_Avoid_: Aporte (que é repasse à empresa), depósito
 
 **Orçamento**:
 O valor planejado para uma categoria, numa entidade e num período, comparado com o realizado.
@@ -223,9 +247,29 @@ A soma dos bens menos a soma das dívidas de uma entidade ou de um grupo finance
 _Avoid_: Patrimônio (sem qualificar), riqueza
 
 **Aplicação**:
-A passagem de dinheiro de uma conta para um investimento da mesma entidade. Não é despesa: o dinheiro só muda de forma. O caminho inverso é o resgate.
+A passagem de dinheiro de uma conta para um investimento ou para uma conta de reserva da mesma entidade. Não é despesa: o dinheiro só muda de forma. O caminho inverso é o resgate.
 _Avoid_: Investimento (como operação), aporte (que é repasse à empresa)
 
 **Bem de consumo**:
 Um bem marcado como não sendo investimento, como um veículo ou um móvel (um imóvel pode ser de um tipo ou de outro). Comprá-lo é despesa, pelo que é pago a cada mês, embora ele também apareça no patrimônio.
 _Avoid_: Bem durável, imobilizado
+
+## Indicadores
+
+**Custo de vida**:
+A soma das despesas das pessoas físicas num mês, pessoais e familiares, pelo regime de caixa. Inclui a compra de bens de consumo e as parcelas inteiras das dívidas, e não inclui aplicações, transferências nem aportes.
+_Avoid_: Custo mensal familiar, gasto do mês
+
+**Taxa de poupança**:
+As aplicações menos os resgates das pessoas físicas num mês, divididos pelas receitas delas no mesmo mês. Pode ser negativa.
+_Avoid_: Sobra, economia do mês
+
+## Sistema
+
+**Alerta**:
+Um aviso mostrado dentro do sistema sobre algo que pede atenção, como um vencimento, um estoque abaixo do mínimo ou um reembolso pendente. Não sai do sistema por e-mail ou mensagem.
+_Avoid_: Notificação, lembrete
+
+**Documento**:
+Um arquivo vinculado a um registro do sistema, como a nota fiscal de um atendimento ou o comprovante de um pagamento.
+_Avoid_: Anexo, arquivo (sem qualificar)
