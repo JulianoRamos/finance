@@ -161,10 +161,10 @@ test('a referência visual é opcional: sem o bloco, a aba diz que não há, e n
   assert.match(text(without), /Referência visual Nenhuma: o plano não cita telas de protótipo\./);
   assert.doesNotMatch(without, /Visual reference:/);
 
-  const message = 'docs: plan (PROJ-123)\n\nVisual reference: toglab/iglob-prototipo@a1b2c3d.\n\n- Cadastro-imovel: o formulário.\n';
+  const message = 'docs: plan (PROJ-123)\n\nVisual reference: JulianoRamos/finance-prototipo@a1b2c3d.\n\n- Lancamentos: o formulário.\n';
   const withRef = panel(build({ ticket: 'PROJ-123', origin: ORIGIN, message }), 'arquivos');
-  assert.match(withRef, /<h2>Referência visual<\/h2>\n<p>toglab\/iglob-prototipo@a1b2c3d\.<\/p>/);
-  assert.match(withRef, /<li>Cadastro-imovel: o formulário\.<\/li>/);
+  assert.match(withRef, /<h2>Referência visual<\/h2>\n<p>JulianoRamos\/finance-prototipo@a1b2c3d\.<\/p>/);
+  assert.match(withRef, /<li>Lancamentos: o formulário\.<\/li>/);
 });
 
 test('avisa no topo da página das mudanças fora do índice nos caminhos do plano, e não avisa sem elas', () => {

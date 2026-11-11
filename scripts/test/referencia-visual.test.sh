@@ -32,9 +32,9 @@ printf '%s\n' "\$*" >>"$tmp/calls.log"
 path=''
 for arg in "\$@"; do [[ "\$arg" == repos/* ]] && path="\$arg"; done
 case "\$path" in
-  repos/toglab/iglob-prototipo/commits/a1b2c3d | repos/toglab/iglob-prototipo/commits/$SHA) echo $SHA ;;
-  "repos/toglab/iglob-prototipo/contents/Inicio.dc.html?ref=$SHA") echo '<html>inicio</html>' ;;
-  "repos/toglab/iglob-prototipo/contents/Nav.dc.html?ref=$SHA") echo '<html>nav</html>' ;;
+  repos/JulianoRamos/finance-prototipo/commits/a1b2c3d | repos/JulianoRamos/finance-prototipo/commits/$SHA) echo $SHA ;;
+  "repos/JulianoRamos/finance-prototipo/contents/Inicio.dc.html?ref=$SHA") echo '<html>inicio</html>' ;;
+  "repos/JulianoRamos/finance-prototipo/contents/Nav.dc.html?ref=$SHA") echo '<html>nav</html>' ;;
   *) echo 'gh: Not Found (HTTP 404)' >&2; exit 1 ;;
 esac
 EOF
@@ -52,46 +52,46 @@ ref() {
   code=$?
   err="$(cat "$errfile")"
 }
-dir="$repo/docs/tickets/IGLOB-1/IGLOB-12/referencia"
+dir="$repo/docs/tickets/KAN-1/KAN-12/referencia"
 
-ref IGLOB-1 IGLOB-12 a1b2c3d
+ref KAN-1 KAN-12 a1b2c3d
 check "recusa sem tela, com código 2" test $code -eq 2
 check "mostra o comando completo" contains "$err" "<pai> <ticket> <commit> <tela>..."
 
-ref pai IGLOB-12 a1b2c3d Inicio
+ref pai KAN-12 a1b2c3d Inicio
 check "recusa um <pai> sem a forma PREFIXO-N" test $code -eq 2
 
-ref IGLOB-1 IGLOB-12 main Inicio
+ref KAN-1 KAN-12 main Inicio
 check "recusa uma branch no lugar do commit" test $code -eq 2
 check "diz que branch e tag mudam" contains "$err" "não uma branch nem uma tag"
 
-ref IGLOB-1 IGLOB-12 a1b2c3d ../segredo
+ref KAN-1 KAN-12 a1b2c3d ../segredo
 check "recusa uma tela com caminho" test $code -eq 2
 check "não chama o GitHub quando um argumento não vale" test ! -e "$tmp/calls.log"
 
-ref IGLOB-1 IGLOB-12 a1b2c3d Inicio Nav
+ref KAN-1 KAN-12 a1b2c3d Inicio Nav
 check "baixa as telas e sai com 0" test $code -eq 0
 check "grava a tela Inicio do commit" test "$(cat "$dir/Inicio.dc.html" 2>/dev/null)" = '<html>inicio</html>'
 check "grava a tela Nav do commit" test "$(cat "$dir/Nav.dc.html" 2>/dev/null)" = '<html>nav</html>'
 check "o origem.txt traz o commit completo" grep -qx "Commit: $SHA" "$dir/origem.txt"
-check "o origem.txt traz o repositório" grep -qx 'Repositório: toglab/iglob-prototipo' "$dir/origem.txt"
+check "o origem.txt traz o repositório" grep -qx 'Repositório: JulianoRamos/finance-prototipo' "$dir/origem.txt"
 check "o origem.txt lista as telas" grep -qx -- '- Nav' "$dir/origem.txt"
 check "baixa pelo commit completo, e não pelo curto" grep -q "contents/Inicio.dc.html?ref=$SHA" "$tmp/calls.log"
 check "a cópia fica fora do Git" test -z "$(git -C "$repo" status --porcelain --untracked-files=all -- docs)"
-check "diz onde gravou e de qual commit" contains "$out" "toglab/iglob-prototipo@a1b2c3d"
+check "diz onde gravou e de qual commit" contains "$out" "JulianoRamos/finance-prototipo@a1b2c3d"
 
-ref IGLOB-1 IGLOB-12 a1b2c3d Inicio
+ref KAN-1 KAN-12 a1b2c3d Inicio
 check "refaz a pasta só com as telas da chamada" test ! -e "$dir/Nav.dc.html"
 check "mantém a tela pedida de novo" test -f "$dir/Inicio.dc.html"
 
-ref IGLOB-1 IGLOB-12 a1b2c3d Inicio Inexistente
+ref KAN-1 KAN-12 a1b2c3d Inicio Inexistente
 check "uma tela que falta sai com 1" test $code -eq 1
 check "diz qual tela falta" contains "$err" "A tela Inexistente não existe"
 check "não troca a referência anterior quando uma tela falta" test -f "$dir/Inicio.dc.html"
 check "não deixa a pasta pela metade" not test -e "$dir/Inexistente.dc.html"
 
-ref IGLOB-1 IGLOB-13 fffffff Inicio
+ref KAN-1 KAN-13 fffffff Inicio
 check "um commit que o GitHub não entrega sai com 1" test $code -eq 1
-check "não cria a pasta do ticket sem o commit" test ! -e "$repo/docs/tickets/IGLOB-1/IGLOB-13/referencia"
+check "não cria a pasta do ticket sem o commit" test ! -e "$repo/docs/tickets/KAN-1/KAN-13/referencia"
 
 finish "do referencia-visual.sh"
