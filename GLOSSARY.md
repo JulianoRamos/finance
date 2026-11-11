@@ -95,7 +95,7 @@ A realização de um ou mais procedimentos para uma cliente da clínica numa dat
 _Avoid_: Consulta, venda
 
 **Pacote**:
-Um conjunto de sessões de um procedimento vendido de uma vez a uma cliente, pago na venda e realizado em atendimentos ao longo do tempo. Pode ser cancelado, com ou sem devolução do saldo.
+Um conjunto de sessões de um procedimento vendido de uma vez a uma cliente, pago na venda e realizado em atendimentos ao longo do tempo. As sessões pagas e ainda não feitas formam o saldo do pacote, contado em sessões. Pode ser cancelado, com ou sem estorno do saldo.
 _Avoid_: Combo, plano, assinatura
 
 **Sessão**:
@@ -111,12 +111,24 @@ O estado de um atendimento avulso ou de um pacote quanto à nota fiscal: pendent
 _Avoid_: Status da nota, situação (sem qualificar)
 
 **Faturamento**:
-A soma dos valores cobrados nos atendimentos de um período, na data do atendimento e antes de descontar taxas. Numa sessão de pacote, vale a fração do pacote que ela representa, e o saldo de um pacote cancelado sem devolução vira faturamento no cancelamento.
+A soma do que as clientes pagaram num período, por atendimentos avulsos e por pacotes, na data em que pagaram (o Pix, o dinheiro ou o cartão passado) e antes de descontar taxas. Um pacote fatura quando é pago, e não sessão a sessão.
 _Avoid_: Receita (sem qualificar), recebimento
+
+**Receita da sessão**:
+A fração do valor de um pacote atribuída a cada sessão, usada só na rentabilidade dos atendimentos. Não entra de novo no faturamento.
+_Avoid_: Faturamento da sessão, rateio
+
+**Estorno**:
+A devolução de dinheiro a uma cliente, como o saldo de um pacote cancelado. Reduz o faturamento no mês em que é feita.
+_Avoid_: Reembolso (que é entre entidades), devolução (como lançamento)
 
 **Recebível**:
 Um valor que a empresa tem a receber numa data futura, como cada parcela que a adquirente do cartão repassa, já líquido da taxa.
 _Avoid_: Conta a receber (para cartão), crédito
+
+**Antecipação**:
+O pedido à adquirente para repassar um recebível antes da data prevista. A taxa cobrada é despesa financeira, e não reduz o faturamento.
+_Avoid_: Adiantamento, desconto de recebíveis
 
 **Pró-labore**:
 O repasse da empresa à sócia como remuneração pelo trabalho. É despesa da empresa e receita da pessoa física.
