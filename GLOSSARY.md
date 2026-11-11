@@ -68,6 +68,10 @@ _Avoid_: Extrato do cartão
 
 ## Classificação
 
+**Categoria**:
+A classificação de uma receita ou despesa numa árvore com subcategorias. As pessoas físicas compartilham uma árvore, e a empresa tem a dela, no formato de um demonstrativo de resultado gerencial.
+_Avoid_: Plano de contas, tag, rubrica
+
 **Finalidade**:
 Para que serve uma despesa de pessoa física: pessoal, de um dos membros, ou familiar, da casa. As duas compõem o custo mensal da família.
 _Avoid_: Tipo de despesa, natureza
@@ -77,21 +81,37 @@ A entidade de cuja conta o dinheiro saiu para pagar um lançamento. Normalmente 
 _Avoid_: Responsável, titular do pagamento
 
 **Reembolso pendente**:
-O valor que uma entidade deve a outra porque a outra pagou um lançamento dela, como a pessoa física que paga com o próprio cartão uma compra da empresa. Fica em aberto até ser quitado por uma transferência ou convertido em aporte.
+O valor que uma entidade deve a outra porque a outra pagou um lançamento dela, como a pessoa física que paga com o próprio cartão uma compra da empresa. Fica em aberto até ser quitado por um repasse do tipo reembolso ou convertido em aporte.
 _Avoid_: Adiantamento, empréstimo entre entidades
 
 ## Empresa
 
 **Cliente**:
-A pessoa atendida pela clínica, guardada só com dados administrativos: nome, telefone e CPF. Não tem dado de saúde.
+A pessoa atendida pela clínica, guardada só com dados administrativos: nome, telefone e CPF. Não tem dado de saúde. A pedido dela, o cadastro é anonimizado, e os atendimentos e valores continuam ligados a uma cliente anônima.
 _Avoid_: Paciente, consumidora
 
 **Atendimento**:
 A realização de um ou mais procedimentos para uma cliente da clínica numa data, com o valor cobrado, a forma de pagamento e os materiais consumidos.
-_Avoid_: Consulta, sessão, venda
+_Avoid_: Consulta, venda
+
+**Pacote**:
+Um conjunto de sessões de um procedimento vendido de uma vez a uma cliente, pago na venda e realizado em atendimentos ao longo do tempo. Pode ser cancelado, com ou sem devolução do saldo.
+_Avoid_: Combo, plano, assinatura
+
+**Sessão**:
+Um atendimento que consome uma das sessões de um pacote.
+_Avoid_: Consulta, visita
+
+**Nota fiscal**:
+O documento fiscal emitido fora do sistema para um atendimento avulso ou para um pacote, com número, data e valor. Cada atendimento avulso e cada pacote têm no máximo uma, e as sessões de um pacote não têm nota própria.
+_Avoid_: NF (em texto para o usuário), recibo, cupom
+
+**Situação fiscal**:
+O estado de um atendimento avulso ou de um pacote quanto à nota fiscal: pendente, emitida, cancelada ou não aplicável. Não depende do recebimento.
+_Avoid_: Status da nota, situação (sem qualificar)
 
 **Faturamento**:
-A soma dos valores cobrados nos atendimentos de um período, na data do atendimento e antes de descontar taxas.
+A soma dos valores cobrados nos atendimentos de um período, na data do atendimento e antes de descontar taxas. Numa sessão de pacote, vale a fração do pacote que ela representa, e o saldo de um pacote cancelado sem devolução vira faturamento no cancelamento.
 _Avoid_: Receita (sem qualificar), recebimento
 
 **Recebível**:
@@ -157,9 +177,43 @@ _Avoid_: Recebimento (que é de dinheiro), entrada
 ## Planejamento
 
 **Meta**:
-Um objetivo financeiro com valor-alvo e prazo, ligado a uma ou mais contas. O valor acumulado é o saldo delas.
+Um objetivo financeiro com valor-alvo e prazo, ligado a contas e bens. O valor acumulado é o saldo das contas mais o último valor dos bens.
 _Avoid_: Objetivo, sonho, caixinha
 
 **Orçamento**:
 O valor planejado para uma categoria, numa entidade e num período, comparado com o realizado.
 _Avoid_: Limite, teto, previsão
+
+**Recorrência**:
+A regra que gera lançamentos previstos repetidos, como um aluguel ou uma conta de luz. Quando o valor varia, cada previsão nasce estimada e é confirmada quando a conta chega.
+_Avoid_: Assinatura, despesa fixa, lançamento recorrente
+
+**Valor estimado**:
+O valor de um lançamento previsto que ainda não é conhecido com certeza. O fluxo de caixa projetado o mostra separado do valor confirmado.
+_Avoid_: Valor provisório, previsão (como valor)
+
+## Patrimônio
+
+**Bem**:
+Algo de valor que pertence a uma única entidade: imóvel, veículo, investimento ou equipamento. Cada bem é marcado como investimento ou como bem de consumo, o que decide se comprá-lo é despesa.
+_Avoid_: Ativo (sem qualificar), propriedade
+
+**Dívida**:
+Um valor que uma entidade deve a um terceiro, como um financiamento ou um empréstimo, com o saldo devedor informado pelo credor. Pertence a uma única entidade, e cada parcela paga é despesa pelo valor inteiro.
+_Avoid_: Passivo (sem qualificar), obrigação, débito
+
+**Reavaliação**:
+Um novo valor de um bem, informado numa data. O histórico das reavaliações forma a evolução do patrimônio.
+_Avoid_: Atualização, cotação, marcação a mercado
+
+**Patrimônio líquido**:
+A soma dos bens menos a soma das dívidas de uma entidade ou de um grupo financeiro numa data.
+_Avoid_: Patrimônio (sem qualificar), riqueza
+
+**Aplicação**:
+A passagem de dinheiro de uma conta para um investimento da mesma entidade. Não é despesa: o dinheiro só muda de forma. O caminho inverso é o resgate.
+_Avoid_: Investimento (como operação), aporte (que é repasse à empresa)
+
+**Bem de consumo**:
+Um bem marcado como não sendo investimento, como um veículo ou um móvel (um imóvel pode ser de um tipo ou de outro). Comprá-lo é despesa, pelo que é pago a cada mês, embora ele também apareça no patrimônio.
+_Avoid_: Bem durável, imobilizado
