@@ -1,0 +1,5 @@
+interface:
+  display_name: "Plan Ticket"
+  short_description: "Plan a ticket's acceptance and design before coding"
+policy:
+  allow_implicit_invocation: false

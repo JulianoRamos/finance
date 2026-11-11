@@ -1,0 +1,25 @@
+services:
+  # O Node do harness: o conferidor do aceite, a página do plano, a visão do contrato e os testes do
+  # harness (scripts/node-in-harness.sh). Fica num serviço próprio, e não no de uma app, para não
+  # depender da stack de nenhuma delas.
+  harness:
+    image: node:24-slim
+    init: true
+    working_dir: /repo
+    volumes:
+      # O repositório inteiro, só para leitura, para ler os scripts, os arquivos de aceite e os
+      # relatórios das apps sem cópia.
+      - .:/repo:ro
+      # O .git do repositório fica coberto por uma pasta vazia: nada no contêiner usa o Git, e assim o
+      # histórico, os hooks e a configuração dele ficam fora do alcance do que roda aqui.
+      - type: tmpfs
+        target: /repo/.git
+        read_only: true
+      # Onde o Node grava: o relatório dos testes do harness. Um volume, e não uma pasta da máquina,
+      # para não criar arquivos de outro usuário no checkout.
+      - harness-reports:/out
+    # Fica parado. Os comandos rodam com `docker compose exec`.
+    command: ["tail", "-f", "/dev/null"]
+
+volumes:
+  harness-reports:

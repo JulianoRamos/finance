@@ -1,0 +1,75 @@
+name: CI
+
+# O veredito do projeto: reexecuta a definição de pronto inteira, no mesmo Compose do
+# desenvolvimento.
+
+on:
+  pull_request:
+    # O `edited` faz a CI rodar de novo quando o corpo do PR muda, porque a tabela de
+    # aceite mora nele.
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verdict:
+    name: Veredito
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # A varredura de segredos compara a branch com a main.
+          fetch-depth: 0
+
+      # Os contêineres rodam com o usuário 1000 e escrevem na pasta montada
+      # (dependências, .env, relatórios). O usuário do runner é outro. Antes da
+      # primeira app, não há pasta apps/.
+      - name: Liberar a escrita dos contêineres em apps/
+        run: if [ -d apps ]; then chmod -R a+rwX apps; fi
+
+      - name: Subir o ambiente
+        run: docker compose -f compose.dev.yaml up -d --build --wait
+
+      # O corpo do PR é texto de quem abriu o PR. Ele vai para um arquivo pela variável de
+      # ambiente, e nunca é interpolado num comando.
+      - name: Guardar o corpo do pull request
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          echo "ACCEPTANCE_BODY_FILE=$RUNNER_TEMP/pr-body.md" >> "$GITHUB_ENV"
+
+      - name: Verificar
+        env:
+          # Num push, a `origin/main` já é o próprio commit enviado, e a varredura de segredos
+          # não teria commit nenhum para olhar. A base passa a ser o commit anterior ao push.
+          # Num pull request, a base é a branch de destino dele.
+          HARNESS_BASE_REF: ${{ github.event_name == 'push' && github.event.before || format('origin/{0}', github.base_ref) }}
+          # Num pull request, o checkout é o merge da branch na base, e o desvio do plano contaria as
+          # mudanças da base como da branch. Ele compara com o último commit da branch.
+          HARNESS_HEAD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
+        run: scripts/verify.sh full --start-apps
+
+      - name: Logs dos contêineres
+        if: failure()
+        run: docker compose -f compose.dev.yaml logs --no-color --tail 200
+
+      - name: Guardar os relatórios
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: relatorios
+          if-no-files-found: ignore
+          path: |
+            apps/*/reports/
+            apps/*/playwright-report/
+            apps/*/test-results/

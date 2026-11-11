@@ -1,0 +1,5 @@
+interface:
+  display_name: "Revisão de conformidade"
+  short_description: "Review a change against its plan and publish the findings"
+policy:
+  allow_implicit_invocation: true

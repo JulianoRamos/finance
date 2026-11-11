@@ -1,0 +1,55 @@
+name: Guarda do harness
+
+# Reprova o pull request que altera um arquivo protegido do harness. Sem isto, um pull request
+# poderia enfraquecer a CI e ser aprovado pela CI enfraquecida.
+#
+# O `pull_request_target` roda a versão da `main` deste workflow e do script, e não a do pull
+# request. O código do pull request nunca é baixado nem executado aqui.
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: harness-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    name: Guarda do harness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Sem `ref`, o checkout traz a branch de destino, que é a versão confiável do script.
+      - uses: actions/checkout@v7
+
+      - name: Conferir os arquivos alterados
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          # A API lista no máximo 3.000 arquivos. O script reprova acima disso, com este total.
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # Onde ficam os `package.json` do pull request, só para comparar a seção `scripts`.
+          HEAD_DIR: ${{ runner.temp }}/head
+        run: |
+          set -euo pipefail
+          # O nome anterior entra na lista para que renomear um arquivo protegido também conte.
+          gh api --paginate "repos/$REPO/pulls/$PR/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)' > "$RUNNER_TEMP/changed-files.txt"
+
+          # Baixa a versão do pull request de cada `package.json` alterado. O arquivo é só lido
+          # como dado; nada dele é executado. O que foi apagado no PR fica sem cópia, e o
+          # script trata a falta como mudança.
+          { grep -E '^apps/[^/]+/package\.json$' "$RUNNER_TEMP/changed-files.txt" || true; } | sort -u |
+            while IFS= read -r path; do
+              mkdir -p "$HEAD_DIR/$(dirname "$path")"
+              gh api "repos/$REPO/contents/$path?ref=$HEAD_SHA" \
+                -H "Accept: application/vnd.github.raw" > "$HEAD_DIR/$path" || rm -f "$HEAD_DIR/$path"
+            done
+
+          scripts/harness-guard.sh "$CHANGED_FILES" < "$RUNNER_TEMP/changed-files.txt"
