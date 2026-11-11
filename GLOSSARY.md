@@ -1,11 +1,11 @@
 # Finance
 
-Gestão financeira de uma família e da empresa dela: as finanças de cada pessoa física e jurídica ficam separadas, e o sistema oferece visões consolidadas sobre elas.
+Gestão financeira de uma família e das empresas dela: as finanças de cada pessoa física e jurídica ficam separadas, e o sistema oferece visões consolidadas sobre elas.
 
 ## Quem tem as finanças
 
 **Entidade**:
-Uma pessoa física ou jurídica cujas finanças o sistema controla, com contas, lançamentos, bens e obrigações próprios. Não é quem acessa o sistema.
+Uma pessoa física ou jurídica cujas finanças o sistema controla, com nome, contas, lançamentos, bens e obrigações próprios. Pode haver quantas pessoas físicas e jurídicas forem necessárias. Não é quem acessa o sistema.
 _Avoid_: Titular (para qualquer pessoa), cliente, perfil
 
 **Usuário**:
@@ -21,7 +21,7 @@ A entidade ou o grupo financeiro que o usuário escolheu ver no momento. Define 
 _Avoid_: Perfil, modo, visão (sem qualificar)
 
 **Visão Familiar**:
-O grupo financeiro das pessoas físicas da família. A empresa não faz parte dele: ela só aparece pelos repasses às pessoas físicas e pela participação delas no patrimônio.
+O grupo financeiro que já vem criado, com as pessoas físicas da família que o usuário escolher. Só aceita pessoas físicas: as empresas aparecem nele pelos repasses e pela participação societária.
 _Avoid_: Visão consolidada (sem dizer qual grupo)
 
 ## Dinheiro
@@ -51,8 +51,22 @@ A passagem de dinheiro entre duas contas da mesma entidade. Não é receita nem 
 _Avoid_: Repasse, movimentação interna
 
 **Repasse**:
-A passagem de dinheiro de uma entidade para outra, sempre com um tipo: pró-labore, distribuição de lucros, aporte, reembolso ou a classificar. O tipo decide se o repasse entra no resultado de cada lado.
+A passagem de dinheiro de uma entidade para outra, sempre com um tipo. O tipo decide se o repasse entra no resultado de cada lado, e os tipos possíveis dependem de quem dá e de quem recebe:
+
+- entre pessoa física e empresa: pró-labore, distribuição de lucros, aporte, reembolso ou empréstimo;
+- entre duas pessoas físicas: transferência familiar, reembolso ou empréstimo;
+- entre duas empresas: aporte, reembolso ou empréstimo.
+
+Qualquer repasse pode ficar a classificar.
 _Avoid_: Transferência (entre entidades), transferência PF/PJ
+
+**Transferência familiar**:
+O repasse entre duas pessoas físicas sem obrigação de devolver, como o dinheiro que um cônjuge passa ao outro para as despesas da casa. Não é receita nem despesa de nenhum dos lados e, num grupo com as duas, se anula.
+_Avoid_: Mesada, doação, transferência (que é na mesma entidade)
+
+**Empréstimo entre entidades**:
+O repasse de uma entidade a outra que precisa ser devolvido. Não é receita nem despesa de nenhum dos lados: fica em aberto, como valor a receber de quem emprestou, até a devolução.
+_Avoid_: Aporte, reembolso pendente
 
 **Saldo**:
 O dinheiro de uma conta numa data, calculado pelo saldo inicial mais as movimentações desde então. Uma diferença para o banco se corrige com um ajuste.
@@ -77,7 +91,7 @@ _Avoid_: Extrato do cartão
 ## Classificação
 
 **Categoria**:
-A classificação de uma receita ou despesa numa árvore com subcategorias. As pessoas físicas compartilham uma árvore, e a empresa tem a dela, no formato de um demonstrativo de resultado gerencial.
+A classificação de uma receita ou despesa numa árvore com subcategorias. As pessoas físicas compartilham uma árvore, e cada empresa tem a sua, no formato de um demonstrativo de resultado gerencial.
 _Avoid_: Plano de contas, tag, rubrica
 
 **Finalidade**:
@@ -89,10 +103,14 @@ A entidade de cuja conta o dinheiro saiu para pagar um lançamento. Normalmente 
 _Avoid_: Responsável, titular do pagamento
 
 **Reembolso pendente**:
-O valor que uma entidade deve a outra porque a outra pagou um lançamento dela, como a pessoa física que paga com o próprio cartão uma compra da empresa. Fica em aberto até ser quitado por um repasse do tipo reembolso ou convertido em aporte.
-_Avoid_: Adiantamento, empréstimo entre entidades
+O valor que uma entidade deve a outra porque a outra pagou um lançamento dela, como a pessoa física que paga com o próprio cartão uma compra de uma empresa. Fica em aberto até ser quitado por um repasse do tipo reembolso ou convertido em aporte.
+_Avoid_: Adiantamento, empréstimo entre entidades (que é outro tipo de repasse)
 
 ## Empresa
+
+**Operação de clínica**:
+O conjunto de funções de clínica (clientes, procedimentos, atendimentos, pacotes, estoque e compras) ligado em cada empresa que precisa dele. Toda empresa tem o núcleo financeiro, e só a que tem a operação ligada tem essas funções.
+_Avoid_: Módulo clínico, tipo de empresa
 
 **Cliente**:
 A pessoa atendida pela clínica, guardada só com dados administrativos: nome, telefone e CPF. Não tem dado de saúde. A pedido dela, o cadastro é anonimizado, e os atendimentos e valores continuam ligados a uma cliente anônima.
@@ -151,19 +169,19 @@ O pedido à adquirente para repassar um recebível antes da data prevista. A tax
 _Avoid_: Adiantamento, desconto de recebíveis
 
 **Pró-labore**:
-O repasse da empresa à sócia como remuneração pelo trabalho. É despesa da empresa e receita da pessoa física.
+O repasse de uma empresa a um sócio pessoa física como remuneração pelo trabalho. É despesa da empresa e receita da pessoa física.
 _Avoid_: Salário, retirada
 
 **Distribuição de lucros**:
-O repasse da empresa à sócia de parte do lucro já apurado. Não é despesa da empresa, mas é receita da pessoa física.
+O repasse de uma empresa a um sócio pessoa física de parte do lucro já apurado. Não é despesa da empresa, mas é receita da pessoa física.
 _Avoid_: Retirada, dividendo
 
 **Aporte**:
-O repasse de uma pessoa física à empresa como capital. Não é receita da empresa nem despesa da pessoa física.
+O repasse de uma pessoa física ou de outra empresa a uma empresa como capital. Não é receita de quem recebe nem despesa de quem dá.
 _Avoid_: Investimento (na empresa), empréstimo
 
 **Participação societária**:
-A fração da empresa que pertence a uma pessoa física. No patrimônio dela, vale o patrimônio líquido da empresa vezes essa fração.
+A fração de uma empresa que pertence a outra entidade, pessoa física ou empresa. No patrimônio de quem a tem, vale o patrimônio líquido da empresa vezes essa fração.
 _Avoid_: Cotas, ações (da clínica)
 
 ## Estoque
@@ -257,11 +275,11 @@ _Avoid_: Bem durável, imobilizado
 ## Indicadores
 
 **Custo de vida**:
-A soma das despesas das pessoas físicas num mês, pessoais e familiares, pelo regime de caixa. Inclui a compra de bens de consumo e as parcelas inteiras das dívidas, e não inclui aplicações, transferências nem aportes.
+A soma das despesas das pessoas físicas do contexto financeiro num mês, pessoais e familiares, pelo regime de caixa. Inclui a compra de bens de consumo e as parcelas inteiras das dívidas, e não inclui aplicações, transferências, transferências familiares, empréstimos nem aportes.
 _Avoid_: Custo mensal familiar, gasto do mês
 
 **Taxa de poupança**:
-As aplicações menos os resgates das pessoas físicas num mês, divididos pelas receitas delas no mesmo mês. Pode ser negativa.
+As aplicações menos os resgates das pessoas físicas do contexto financeiro num mês, divididos pelas receitas delas no mesmo mês. Pode ser negativa.
 _Avoid_: Sobra, economia do mês
 
 ## Sistema
