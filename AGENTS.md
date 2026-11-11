@@ -28,7 +28,7 @@ Cada projeto em `apps/` tem o próprio `AGENTS.md`, com os comandos, as particul
 
 ## Execução no Docker
 
-Tudo roda dentro dos contêineres do Docker Compose: instalação de dependências, servidor de desenvolvimento, testes, lint, checagem de tipos e qualquer outro comando do projeto. **Nunca rode `node`, `npx`, `pnpm`, `python` ou `pip` direto na máquina.** Na máquina rodam só o `docker`, o `git`, o `gh`, o `jq` e os scripts de `scripts/`, que chamam os contêineres.
+Tudo roda dentro dos contêineres do Docker Compose: instalação de dependências, servidor de desenvolvimento, testes, lint, checagem de tipos e qualquer outro comando do projeto. **Nunca rode `node`, `npx` ou `pnpm` direto na máquina.** Na máquina rodam só o `docker`, o `git`, o `gh`, o `jq` e os scripts de `scripts/`, que chamam os contêineres.
 
 O ambiente de desenvolvimento usa o `compose.dev.yaml`, na raiz:
 
@@ -124,10 +124,10 @@ Os comandos de teste, de lint e de formatação de cada projeto estão no `AGENT
 
 O Jira é o gerenciador de issues do projeto, acessado pelo servidor MCP `atlassian` (o Rovo MCP da Atlassian). Specs e tickets vivem lá, e não em arquivos do repositório.
 
-- **Site:** `toglab.atlassian.net`.
-- **Projeto:** `IGLOB`. As issues têm a chave `IGLOB-<n>`.
+- **Site:** `finance12.atlassian.net`.
+- **Projeto:** `KAN`. As issues têm a chave `KAN-<n>`.
 - **Tipos de issue:** `Epic` para a spec; `História` para uma funcionalidade, `Bug` para um defeito e `Tarefa` para uma melhoria ou um ticket de preparação. São os tipos nativos do projeto, com os nomes em português que ele mostra (na API, `Story` e `Task`), e não labels. O `Subtask` não é usado.
-- **Status:** `A fazer`, `Fazendo` e `Feito`.
+- **Status:** `Tarefas pendentes`, `Em andamento`, `Em análise` e `Concluído`.
 - **Label de triagem:** `ready-for-agent`, para a issue já especificada, que um agente pode pegar sem triagem adicional.
 
 **Da funcionalidade ao ticket**
@@ -150,13 +150,13 @@ O Jira é o gerenciador de issues do projeto, acessado pelo servidor MCP `atlass
 - Leia o ticket e a spec pai antes de começar. O contrato e as regras completas estão no LLD.
 - Planeje o ticket com a `/plan-ticket` e só implemente depois do commit de plano, como descrito em [Plano do ticket](#plano-do-ticket).
 - Use o identificador da issue no nome da branch.
-- Mova a issue para `Fazendo` ao começar, e para `Feito` só ao concluí-la. Ela só é concluída quando todos os critérios de aceite e a [definição de pronto](#definição-de-pronto) passam.
+- Mova a issue para `Em andamento` ao começar, para `Em análise` ao abrir o pull request, e para `Concluído` só ao concluí-la. Ela só é concluída quando todos os critérios de aceite e a [definição de pronto](#definição-de-pronto) passam.
 - Não feche nem edite a spec pai ao concluir um ticket.
 - Se a implementação mudar uma decisão, atualize o documento dono dela (o LLD ou o `AGENTS.md` do projeto) e o ticket na mesma tarefa.
 
 ### Referência visual
 
-Os protótipos do produto ficam no repositório `toglab/iglob-prototipo`, que nasce no Claude Design e é publicado para validação. Cada tela é um arquivo `<Tela>.dc.html` na raiz dele, e é citada pelo nome sem a extensão, como `Cadastro-imovel`. O protótipo anda à frente do código e traz o que ainda vai entrar, então ele nunca é o escopo: o escopo é o recorte que a spec e o ticket fazem dele.
+Os protótipos do produto ficam no repositório `JulianoRamos/finance-prototipo`, que nasce no Claude Design e é publicado para validação. Cada tela é um arquivo `<Tela>.dc.html` na raiz dele, e é citada pelo nome sem a extensão, como `Lancamentos`. O protótipo anda à frente do código e traz o que ainda vai entrar, então ele nunca é o escopo: o escopo é o recorte que a spec e o ticket fazem dele.
 
 - **Na spec e no ticket de interface:** a seção "Referência visual" traz o repositório, o commit (um hash, e não uma branch nem uma tag, que mudam) e, por tela, o que entra e o que fica fora. O ticket estreita o recorte da spec à fatia dele. O que está na tela e o ticket não cita fica fora do escopo.
 - **No plano:** a `/plan-ticket` baixa só as telas citadas, naquele commit, para a pasta `referencia/` do ticket, com o comando da referência visual (ver "Valores da skill de plano"), e registra o recorte no bloco `Visual reference:` da mensagem do commit de plano. A pasta fica fora do Git, como tudo na pasta do ticket, salvo o aceite.
@@ -180,7 +180,7 @@ Cada ticket é planejado no início dele, e não na criação dos tickets, e só
 - **Pasta dos documentos:** `docs`.
 - **Comando do Node:** `scripts/node-in-harness.sh`, que roda o Node no contêiner `harness`, sobre o repositório montado em `/repo`, porque a máquina não roda `node`.
 - **Comando do contrato:** `nenhum`, enquanto nenhuma app declara contrato. Quando a API declarar, passa a ser `scripts/verify.sh contract`, a visão legível do contrato e do schema.
-- **Comando da referência visual:** `scripts/referencia-visual.sh <pai> <ticket> <commit> <tela>...`, que baixa as telas com o `gh`, na máquina, de `toglab/iglob-prototipo` (ou de `PROTOTYPE_REPO`), para `docs/tickets/<pai>/<ticket>/referencia/`, com a origem em `origem.txt`.
+- **Comando da referência visual:** `scripts/referencia-visual.sh <pai> <ticket> <commit> <tela>...`, que baixa as telas com o `gh`, na máquina, de `JulianoRamos/finance-prototipo` (ou de `PROTOTYPE_REPO`), para `docs/tickets/<pai>/<ticket>/referencia/`, com a origem em `origem.txt`.
 - **Arquivos do contrato:** nenhum por enquanto. A API os declara no grupo dela em `scripts/verify/`, no ticket que a cria, e este item passa a listá-los, junto com o documento que define o formato de uma rota e de uma tabela.
 
 O atalho `scripts/verify.sh plan <issue> <ticket> [<commit de plano>]` chama o script da página da skill com esses valores (a `<issue>` é a issue pai do ticket, que vai no `--pai` do script); use-o nos passos de parada e de commit da skill.

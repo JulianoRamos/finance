@@ -1,14 +1,14 @@
-# iGlob.ai
+# Finance
 
-Plataforma web de gestão patrimonial que consolida, numa visão única, o patrimônio de uma família distribuído entre titulares, países, moedas e tipos de ativo: ações, renda fixa, criptoativos, imóveis, participações societárias, veículos e outros bens.
+Aplicação web de gestão financeira familiar e empresarial. Ela centraliza as finanças de pessoas físicas e jurídicas (inicialmente, o titular, a esposa e uma clínica de biomedicina estética), mantém os recursos de cada entidade separados e oferece uma visão consolidada da família. Também apoia a gestão da clínica: atendimentos, procedimentos, estoque, compras, fornecedores e resultados.
 
 O produto é construído com agentes de código, num processo que vai da ideia à especificação, da especificação aos tickets e dos tickets ao pull request. Os documentos, as regras para os agentes, as skills e o harness que confere cada entrega estão todos neste repositório.
 
 ## Estado atual
 
-Em planejamento. O ponto de partida é o [documento de contexto](./docs/documento-de-contexto.md), validado na descoberta. A próxima etapa é o modelo de domínio e o PRD do MVP. O código ainda não começou.
+Em planejamento. O ponto de partida é o [documento de contexto](./docs/documento-de-contexto.md). As próximas etapas são o modelo de domínio e o PRD. O código ainda não começou.
 
-A stack confirmada é Next.js + React no frontend, Python + FastAPI no backend, PostgreSQL e um monolito modular.
+A stack prevista no documento de contexto é Next.js, NestJS, Prisma e PostgreSQL, em TypeScript, num monólito modular organizado em monorepo.
 
 ## O que tem no repositório
 
@@ -25,7 +25,7 @@ A stack confirmada é Next.js + React no frontend, Python + FastAPI no backend, 
 ## Fluxo de trabalho
 
 1. **Domínio:** `/grill-with-docs` fecha os termos e as decisões, registrados no `GLOSSARY.md` e em `docs/adr/`.
-2. **Produto e arquitetura:** a skill `prd` escreve o brief do MVP; o HLD e o LLD vêm em seguida.
+2. **Produto e arquitetura:** a skill `prd` escreve o brief; o HLD e o LLD vêm em seguida.
 3. **Spec e tickets:** `/to-spec` publica a spec no Jira, como um Epic, e `/to-tickets` a quebra em fatias verticais, com os bloqueios entre elas.
 4. **Plano do ticket:** `/plan-ticket` escreve o arquivo de aceite e o desenho do contrato e para numa página de revisão; só depois da aprovação vem o commit de plano.
 5. **Implementação:** a skill `tdd`, a partir do commit de plano, seguida da `/simplify`, da `/code-review` e da revisão de conformidade.

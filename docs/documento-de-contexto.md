@@ -1,290 +1,592 @@
-# Consolidador de Patrimônio Global e Multiativos com IA
+# Documento de Contexto do Projeto
+## Sistema de Gestão Financeira Familiar e Empresarial
 
-**Documento de Contexto do Projeto**
+**Versão:** 1.0  
+**Status:** Contexto inicial consolidado  
+**Nome comercial:** A definir  
+**Repositório:** https://github.com/JulianoRamos/finance  
+**Desenvolvimento:** Individual, com assistência de IA
 
-Versão 1.0 • 16 de outubro de 2026 • Contexto consolidado e validado
+---
 
-Documento de referência para orientar a definição de requisitos, a arquitetura detalhada e o planejamento de implementação do produto. As decisões confirmadas são distinguidas das propostas e pendências.
+## 1. Contexto e Visão Geral
 
-| **Campo**       | **Definição**                                                                                                 |
-|-----------------|---------------------------------------------------------------------------------------------------------------|
-| Natureza        | Plataforma web de gestão e inteligência patrimonial, com potencial de comercialização futura                  |
-| Público inicial | Idealizador e sua estrutura patrimonial; expansão possível para investidores e famílias de média e alta renda |
-| Estado atual    | Planejamento e definição do MVP; implementação ainda não descrita como iniciada                               |
-| Base            | Sete etapas de contexto validadas e transcrição da reunião de descoberta                                      |
+O projeto consiste no desenvolvimento de uma aplicação web para gestão financeira pessoal, familiar e empresarial.
 
-# 1. Contexto e visão geral
+Inicialmente, o sistema atenderá três entidades financeiras:
 
-## 1.1 Cenário
+- Pessoa Física — Titular
+- Pessoa Física — Esposa
+- Pessoa Jurídica — Clínica de Biomedicina Estética
 
-Investidores com patrimônio distribuído entre países, moedas e tipos de ativos frequentemente utilizam diversas soluções para acompanhar investimentos financeiros, bens e participações empresariais. Os consolidadores disponíveis tendem a privilegiar ações, renda fixa e criptomoedas, enquanto outros componentes patrimoniais permanecem dispersos em registros manuais, planilhas ou serviços de consultoria.
+A aplicação deverá centralizar o acompanhamento das finanças, preservando a separação dos recursos e das obrigações de cada entidade.
 
-No caso que originou o projeto, o acompanhamento envolve investimentos na bolsa americana, ativos mantidos em diferentes países, imóveis, participações societárias e carteiras familiares. Hoje, esse panorama depende da combinação de planilhas, ferramentas de mercado e consultorias.
+O sistema permitirá visualizar a situação financeira individual de cada entidade e disponibilizará uma visão consolidada familiar, respeitando a distinção entre recursos pessoais e empresariais.
 
-## 1.2 Visão do produto
+A aplicação também deverá apoiar a administração financeira e operacional da clínica, incluindo atendimentos, procedimentos, estoque, compras, fornecedores, receitas, despesas e resultados.
 
-Criar uma plataforma web única para cadastrar, organizar, acompanhar e analisar o patrimônio global, com múltiplas carteiras, titulares, países e moedas. A solução deve oferecer uma visão consolidada e visões detalhadas por carteira, proprietário, classe de ativo ou localização.
+O projeto será desenvolvido integralmente antes de entrar em produção.
 
-A camada inteligente deverá apoiar o acompanhamento de indicadores e notícias e apresentar análises e alertas contextuais ao perfil do investidor, sem realizar operações financeiras de forma automática.
+### 1.1 Visão do Produto
 
-## 1.3 Público e posicionamento
+Construir uma plataforma centralizada, confiável e intuitiva que permita compreender a saúde financeira da família e da empresa, organizar operações financeiras e apoiar decisões de curto, médio e longo prazo.
 
-- Primeira validação: utilização prática pelo idealizador, reproduzindo os controles hoje mantidos em planilhas e soluções externas.
+### 1.2 Público Inicial
 
-- Público comercial potencial: investidores de média e alta renda, famílias com patrimônio diversificado e estruturas semelhantes a family offices.
+O sistema será utilizado inicialmente pelo titular do projeto e por sua esposa.
 
-- Visão internacional: operação com diversos países e moedas; recursos multilíngues; atenção inicial especial à bolsa americana.
+A arquitetura deverá permitir o cadastro de novas pessoas físicas e jurídicas, novos usuários e novos grupos financeiros futuramente.
 
-# 2. O problema
+### 1.3 Princípios do Produto
 
-## 2.1 Formulação central
+- Clareza e confiabilidade das informações.
+- Separação entre finanças pessoais e empresariais.
+- Centralização dos controles financeiros.
+- Rastreabilidade das movimentações.
+- Facilidade de utilização no dia a dia.
+- Automação de tarefas repetitivas.
+- Segurança e privacidade dos dados.
+- Flexibilidade para expansão futura.
 
-A ausência de uma solução integrada, global e inteligente de gestão patrimonial obriga investidores com ativos diversificados a recorrer a múltiplas ferramentas e serviços, dificultando a consolidação das informações, o acompanhamento dos ativos e a identificação oportuna de riscos e oportunidades.
+## 2. O Problema
 
-## 2.2 Dores principais
+Atualmente, não existe um controle financeiro estruturado para a família ou para a empresa.
 
-- Fragmentação: dados espalhados entre instituições, países, aplicações, planilhas e diferentes proprietários.
+O titular assume as despesas familiares, mas não possui ferramentas para acompanhar adequadamente os gastos, identificar padrões e avaliar a capacidade de poupança.
 
-- Trabalho manual: atualização periódica de valores, fórmulas, posições e consultas a indicadores de mercado.
+A esposa realiza movimentações financeiras entre suas contas pessoais e empresariais, dificultando a separação de recursos e a compreensão do resultado real da empresa.
 
-- Visão familiar insuficiente: dificuldade para visualizar patrimônio individual, compartilhado e pertencente a pessoas jurídicas.
+Na clínica, faltam controles estruturados de receitas, despesas, estoque, custos dos procedimentos, compras, fornecedores e lucratividade.
 
-- Monitoramento contínuo: acompanhar preço-alvo, mínima de 52 semanas, alocação, notícias e indicadores requer esforço regular.
+Também não existe acompanhamento consolidado do patrimônio, das dívidas, dos investimentos ou das metas financeiras.
 
-- Dependência de serviços externos: consultorias são utilizadas para fornecer análises e informações que apoiam decisões.
+### 2.1 Principais Problemas Identificados
 
-## 2.3 Consequências
+1. Ausência de controle estruturado das receitas e despesas.
+2. Falta de visibilidade do custo de vida familiar.
+3. Movimentações entre PF e PJ sem classificação adequada.
+4. Falta de controle de faturamento, custos e resultados empresariais.
+5. Ausência de controle integrado de estoque e procedimentos.
+6. Falta de gestão patrimonial.
+7. Inexistência de orçamento e metas financeiras.
+8. Dificuldade de projetar necessidades futuras de caixa.
+9. Ausência de indicadores consolidados para apoiar decisões.
 
-Maior tempo de acompanhamento, custos recorrentes, risco de inconsistências na consolidação e menor agilidade para reconhecer situações relevantes do mercado. A experiência fragmentada também dificulta a leitura do patrimônio total em uma moeda de referência.
+### 2.2 Impactos
 
-# 3. Objetivos e resultados esperados
+Essas dificuldades prejudicam a previsibilidade financeira, a avaliação da lucratividade empresarial, a organização patrimonial e o planejamento de longo prazo.
 
-## 3.1 Objetivo geral
+## 3. Objetivos e Resultados Esperados
 
-Desenvolver uma plataforma inteligente de gestão patrimonial global que centralize diferentes classes de ativos, carteiras, moedas e proprietários e forneça informações confiáveis para acompanhamento e apoio à decisão.
+### 3.1 Objetivo Principal
 
-## 3.2 Objetivos específicos
+Proporcionar clareza sobre a saúde financeira da família e da empresa por meio de um sistema centralizado de gestão, acompanhamento e planejamento financeiro.
 
-- Centralizar ações, renda fixa, criptomoedas, imóveis, participações societárias, veículos e outros bens.
+### 3.2 Objetivos Específicos
 
-- Permitir carteiras individuais e familiares e visões consolidadas por proprietário, país e classe de ativo.
+- Conhecer receitas, despesas e saldos de cada entidade.
+- Identificar o custo mensal da família.
+- Separar e classificar movimentações entre PF e PJ.
+- Acompanhar faturamento, custos e resultados da clínica.
+- Controlar materiais e insumos utilizados nos procedimentos.
+- Identificar a rentabilidade dos atendimentos.
+- Acompanhar contas a pagar e receber.
+- Controlar patrimônio, investimentos e dívidas.
+- Estabelecer orçamentos e metas financeiras.
+- Projetar o fluxo de caixa.
+- Disponibilizar relatórios e indicadores confiáveis.
+- Reduzir o trabalho manual por meio de importação de extratos bancários.
 
-- Exibir valores nas moedas originais e convertê-los para a moeda de visualização selecionada.
+### 3.3 Critério Principal de Sucesso
 
-- Reduzir a necessidade de planilhas, sobretudo no acompanhamento da bolsa americana.
+O usuário deverá conseguir acessar o sistema e compreender claramente a situação financeira da família e da empresa, individualmente e de forma consolidada.
 
-- Evoluir para alertas e análises informativas de mercado, observando limites regulatórios.
+### 3.4 Indicadores de Sucesso
 
-- Validar a utilidade do MVP com o caso real antes de definir uma estratégia comercial.
+Os indicadores iniciais incluirão:
 
-## 3.3 Resultados esperados
+- Receitas e despesas por período.
+- Resultado financeiro mensal.
+- Saldos bancários e de caixa.
+- Custo mensal familiar.
+- Taxa de poupança.
+- Evolução do patrimônio líquido.
+- Faturamento e resultado empresarial.
+- Custos e rentabilidade dos procedimentos.
+- Valores a pagar e a receber.
+- Cumprimento dos orçamentos e metas.
 
-| **Resultado**            | **Evidência de valor**                                                              |
-|--------------------------|-------------------------------------------------------------------------------------|
-| Visão unificada          | Consultar patrimônio total e detalhado sem alternar entre ferramentas               |
-| Acompanhamento acionário | Visualizar posições, preços, metas e variações relevantes                           |
-| Menor esforço manual     | Substituir controles recorrentes hoje realizados em planilhas                       |
-| Gestão familiar          | Visualizar ativos individuais e compartilhados conforme permissões                  |
-| Base extensível          | Adicionar indicadores, alertas e funcionalidades futuras sem reconstruir o cadastro |
+Os parâmetros quantitativos e critérios detalhados de aceitação serão definidos no PRD.
 
-## 3.4 Critérios de sucesso para validação
+## 4. Escopo e Principais Funcionalidades
 
-Os critérios a seguir são qualitativos e deverão ser transformados em metas quantitativas durante o planejamento do MVP; prazos e percentuais de desempenho não foram aprovados.
+### 4.1 Gestão de Entidades Financeiras
 
-- Cadastrar e consultar cada classe de ativo incluída no MVP.
+O sistema deverá permitir cadastrar e administrar múltiplas pessoas físicas e jurídicas.
 
-- Conferir somatórios patrimoniais contra uma base de referência, evitando dupla contagem.
+Cada entidade terá suas próprias contas, cartões, movimentações, obrigações, ativos e indicadores.
 
-- Validar conversões BRL/USD com taxa e data de referência identificáveis.
+Também será possível criar grupos financeiros para consulta de informações consolidadas.
 
-- Consultar carteiras separadas e consolidadas respeitando titularidade e acesso.
+Usuários e entidades serão conceitos separados: usuários acessam o sistema, enquanto entidades representam as pessoas e empresas cujas finanças são controladas.
 
-- Reproduzir os controles essenciais da planilha de ações atual.
+### 4.2 Gestão de Contas Bancárias e Cartões
 
-- Realizar fluxos essenciais de cadastro e consulta com autonomia do usuário.
+O sistema deverá permitir cadastrar múltiplas contas e cartões vinculados às entidades financeiras.
 
-# 4. Escopo e principais funcionalidades
+Instituições utilizadas inicialmente:
 
-## 4.1 Núcleo do MVP 1
+- Nubank
+- Caixa Econômica Federal
+- Mercado Pago
+- Bradesco
+- Itaú
+- Banco do Brasil
 
-| **Módulo**           | **Capacidade prevista**                                                                                           |
-|----------------------|-------------------------------------------------------------------------------------------------------------------|
-| Usuários e perfis    | Cadastro, autenticação, onboarding e informações sobre objetivo, horizonte, liquidez e tolerância a risco         |
-| Família e permissões | Convites, participação de membros e níveis de acesso; detalhamento final das permissões é requisito a especificar |
-| Carteiras            | Criar, editar e agrupar carteiras por tipo, país ou finalidade; visões individuais e consolidadas                 |
-| Cadastro de ativos   | Registro manual de ações, renda fixa, criptoativos, imóveis, sociedades, veículos e outros bens                   |
-| Bolsa americana      | Operações, quantidade, custo médio, preço-alvo, intenção de compra/manutenção/venda e alocação desejada           |
-| Painéis              | Patrimônio total; distribuição por classe, país, titular e carteira                                               |
-| Multimoeda           | Moeda original, moeda padrão e troca rápida de moeda de visualização                                              |
-| Preferências         | Idioma, fuso horário, visualização e privacidade dos valores exibidos                                             |
+Deverá existir controle de saldos, movimentações, faturas, compras parceladas, vencimentos e pagamentos.
 
-## 4.2 Informações específicas por classe
+### 4.3 Importação e Conciliação Bancária
 
-- Ações: identificador do papel, quantidade, compras/vendas, preço médio, preço de mercado, preço-alvo, intenção e percentuais da carteira.
+O sistema deverá importar extratos bancários por arquivos OFX, CSV e XLSX, conforme disponibilidade e compatibilidade com cada instituição.
 
-- Imóveis: identificação, endereço/localização, metragem, titular, valor de mercado, moeda, gastos recorrentes e renda de aluguel, se houver.
+A importação deverá oferecer:
 
-- Participações societárias: empresa, país, atividade, titular, percentual de participação, valuation, critério/data de avaliação e informações essenciais.
+- Identificação da conta de origem.
+- Pré-visualização dos registros.
+- Identificação de possíveis duplicidades.
+- Sugestões de classificação.
+- Identificação de transferências.
+- Conciliação com lançamentos existentes.
+- Revisão antes da confirmação.
+- Histórico e rastreabilidade das importações.
 
-- Veículos e outros bens: identificação, localização, titular, valor de mercado, moeda e custos periódicos estimados.
+Também deverá ser possível importar períodos anteriores para construir o histórico financeiro.
 
-- Renda fixa: emissor/tipo, principal, moeda, remuneração e prazos aplicáveis.
+Os saldos iniciais e as datas das movimentações deverão ser considerados para preservar a consistência financeira.
 
-- Criptoativos: ativo, quantidade, moeda de referência e valor atualizado quando disponível.
+### 4.4 Gestão de Receitas e Despesas
 
-## 4.3 Funcionalidades inteligentes com prioridade ainda aberta
+O sistema deverá controlar receitas e despesas de cada entidade, com categorias e subcategorias configuráveis.
 
-A inclusão exata dos recursos abaixo no MVP permanece pendente de priorização e viabilidade. A reunião sugeriu iniciar com poucos indicadores (aproximadamente 3 a 5) e ampliar depois.
+As despesas poderão ser classificadas como pessoais, familiares ou empresariais.
 
-- Monitoramento de indicadores de sentimento e mercado, com painel de sinais.
+O responsável pelo pagamento deverá ser identificado separadamente da finalidade da despesa.
 
-- Alertas de proximidade de preço-alvo e de mínima de 52 semanas.
+Será possível trabalhar com lançamentos únicos, parcelados e recorrentes.
 
-- Notificações via WhatsApp, Telegram ou e-mail, após avaliação de custo e confiabilidade.
+### 4.5 Transferências entre PF e PJ
 
-- Análises informativas por perfil, sem caracterização automática como recomendação de investimento.
+O sistema deverá identificar e classificar transferências entre contas e entidades.
 
-## 4.4 Fora do MVP inicial
+As movimentações entre PF e PJ poderão representar:
 
-- Árvore patrimonial com múltiplos níveis societários e vínculos complexos de controle.
+- Pró-labore.
+- Distribuição de lucros.
+- Aportes.
+- Reembolsos.
+- Transferências pendentes de classificação.
 
-- Simulações sofisticadas de cenários e realocação patrimonial.
+As operações deverão preservar origem, destino, finalidade e histórico.
 
-- Mentores virtuais configuráveis com estilos de análise distintos.
+Transferências não deverão ser contabilizadas automaticamente como novas receitas ou despesas operacionais.
 
-- Integração completa com corretoras ou sincronização automática de operações.
+A classificação contábil e tributária deverá seguir as orientações aplicáveis à empresa.
 
-- Assistente conversacional avançado com voz e múltiplos canais.
+### 4.6 Gestão Empresarial da Clínica
 
-- Execução automática de ordens de compra ou venda.
+O sistema deverá atender inicialmente uma clínica de Biomedicina Estética.
 
-## 4.5 Regras transversais
+Os serviços oferecidos incluem:
 
-O desenho do cadastro deverá ser internacional, evitando dependência obrigatória de identificadores exclusivos do Brasil. Ativos sem preço de mercado automatizado poderão receber valor informado manualmente, acompanhado de data de referência. O modelo de dados deverá ser preparado para titularidade por pessoas físicas e jurídicas, sem impor ao MVP a montagem de estruturas societárias completas.
+- Limpeza de pele.
+- Aplicação de botox.
+- Microagulhamento.
+- Preenchimento labial.
+- Otomodelação.
+- Extensão de cílios.
+- PEIM.
 
-A consolidação não poderá contar duas vezes o mesmo valor econômico quando existirem participações e ativos subjacentes; as regras específicas de eliminação de duplicidades devem ser detalhadas no PRD.
+A gestão empresarial deverá acompanhar faturamento, despesas, custos, fluxo de caixa, contas a receber, compras, estoque e resultado financeiro.
 
-# 5. Arquitetura e abordagem
+### 4.7 Controle de Atendimentos
 
-## 5.1 Decisões confirmadas
+Cada atendimento poderá conter:
 
-| **Componente**       | **Decisão**                         | **Status** |
-|----------------------|-------------------------------------|------------|
-| Frontend             | Next.js + React                     | Confirmado |
-| Backend              | Python + FastAPI                    | Confirmado |
-| Persistência         | PostgreSQL                          | Confirmado |
-| Organização          | Monolito modular                    | Confirmado |
-| Hospedagem           | Fornecedor/ambiente a definir       | Pendente   |
-| APIs externas        | Fornecedores e limites a definir    | Pendente   |
-| Agentes/notificações | Tecnologias e integrações a definir | Pendente   |
+- Identificação administrativa do cliente.
+- Procedimento realizado.
+- Data do atendimento.
+- Valor cobrado.
+- Descontos.
+- Forma de pagamento.
+- Parcelamento.
+- Produtos utilizados.
+- Quantidades consumidas.
+- Custos relacionados.
+- Resultado financeiro estimado.
+- Situação da nota fiscal.
 
-TypeScript foi mencionado como recomendação para o frontend, mas não consta como decisão explicitamente confirmada.
+O módulo será voltado à gestão administrativa e financeira.
 
-## 5.2 Organização lógica proposta
+Prontuários clínicos, fotografias de pacientes e informações médicas sensíveis não fazem parte do escopo inicial.
 
-- Interface web: onboarding, cadastro, consulta de ativos, carteiras, painéis e preferências.
+### 4.8 Gestão de Estoque
 
-- API central: usuários, famílias, carteiras, ativos, movimentações, consolidação, moedas e acesso.
+O estoque deverá controlar:
 
-- Banco PostgreSQL: dados cadastrais, históricos, movimentações, avaliações e referências de preço/câmbio.
+- Cadastro de produtos e insumos.
+- Fabricantes e fornecedores.
+- Unidades de medida.
+- Quantidades disponíveis.
+- Custos de aquisição.
+- Lotes e validade.
+- Estoque mínimo.
+- Entradas, saídas, perdas e ajustes.
+- Valor financeiro do estoque.
 
-- Camada de integrações: abstração para provedores de preços, câmbio e indicadores, sem dependência de uma API específica.
+A conclusão de um atendimento deverá permitir a baixa automática dos materiais efetivamente consumidos.
 
-- Camada de inteligência e notificações: processamento agendado, sinais e canais externos, adicionados conforme escopo.
+Os procedimentos poderão possuir listas padrão de materiais, com possibilidade de ajuste das quantidades utilizadas.
 
-## 5.3 Premissas arquiteturais
+### 4.9 Compras e Fornecedores
 
-- Separar responsabilidades por módulos dentro do monolito, facilitando manutenção e possíveis extrações futuras.
+O sistema deverá registrar compras, fornecedores, produtos, preços, descontos, fretes, recebimento de mercadorias e condições de pagamento.
 
-- Rastrear origem, horário e moeda de cada dado externo utilizado em cálculos e visualizações.
+A entrada dos produtos no estoque deverá ser associada ao recebimento físico.
 
-- Proteger dados patrimoniais por autenticação, autorização, criptografia, backups e registros de auditoria.
+As obrigações financeiras deverão ser geradas conforme as condições de pagamento estabelecidas.
 
-- Manter cálculos financeiros reprodutíveis e histórico de movimentações/avaliações.
+Compras parceladas deverão manter a separação entre aquisição, obrigação financeira e pagamento efetivo.
 
-- Evitar acoplamento entre canais de notificação e as regras centrais do patrimônio.
+### 4.10 Contas a Pagar e Receber
 
-## 5.4 Estratégia de implementação
+O sistema deverá controlar pagamentos e recebimentos previstos, pendentes, parciais, liquidados, vencidos e cancelados.
 
-Validar requisitos e fluxos antes da programação; estruturar modelo de dados; implementar cadastro, carteiras e consolidação; integrar preços/câmbio; adicionar indicadores e alertas aprovados. O detalhamento técnico deverá respeitar a priorização final do MVP.
+Serão consideradas inicialmente as seguintes formas de recebimento:
 
-# 6. Dependências, restrições e riscos
+- Pix.
+- Dinheiro.
+- Cartão de débito.
+- Cartão de crédito à vista.
+- Cartão de crédito parcelado.
 
-## 6.1 Dependências
+O sistema deverá permitir registrar taxas e prazos de recebimento.
 
-- Recebimento da planilha de referência com dados fictícios e fórmulas utilizadas na rotina atual.
+Faturamento, contas a receber e dinheiro efetivamente recebido deverão permanecer claramente diferenciados.
 
-- Revisão do protótipo para confirmar telas, fluxos e campos mínimos por tipo de ativo.
+### 4.11 Controle de Notas Fiscais
 
-- Seleção de provedores de cotação, câmbio e eventualmente criptomoedas.
+O sistema não emitirá notas fiscais.
 
-- Seleção dos primeiros 3 a 5 indicadores e definição de regras de cálculo/alerta.
+Sua responsabilidade será acompanhar a situação fiscal dos atendimentos e permitir registrar informações sobre notas emitidas externamente.
 
-- Definição da infraestrutura, custos, equipe, orçamento e calendário.
+Os estados previstos incluem:
 
-- Especificação de titularidade, valuation e regras de consolidação patrimonial.
+- Pendente.
+- Emitida.
+- Cancelada.
+- Não aplicável.
 
-## 6.2 Restrições
+O controle fiscal deverá ser independente do recebimento financeiro.
 
-- MVP concentrado em cadastros, carteira e consolidação; recursos avançados dependem de validação de prioridade.
+Será possível registrar número, data, valor e documentos vinculados à nota fiscal.
 
-- Cadastro inicial predominantemente manual, sem integração mandatória às corretoras.
+As regras sobre obrigatoriedade e momento da emissão deverão ser validadas com o contador.
 
-- Sem execução de operações financeiras pela plataforma.
+### 4.12 Gestão de Documentos
 
-- Abordagem multigeográfica: não tornar os cadastros dependentes das regras de um único país.
+O sistema deverá permitir vincular documentos a receitas, despesas, compras, pagamentos, atendimentos e outras operações.
 
-- Custos e limitações de APIs e mensageria deverão orientar a implementação dos recursos automatizados.
+Entre os documentos previstos estão notas fiscais, recibos, comprovantes e arquivos administrativos.
 
-## 6.3 Matriz inicial de riscos
+O armazenamento deverá respeitar controles de acesso, segurança e privacidade.
 
-| **Risco**                        | **Impacto estimado** | **Mitigação proposta**                                                     |
-|----------------------------------|----------------------|----------------------------------------------------------------------------|
-| APIs indisponíveis/limitadas     | Alto                 | Adaptadores de integração, monitoramento e alternativas de fornecedor      |
-| Erros na consolidação            | Alto                 | Testes de cálculos, referência à planilha e regras contra duplicidade      |
-| Vazamento de dados               | Alto                 | Controles de acesso, criptografia, auditoria e backups                     |
-| Cadastro excessivamente complexo | Alto                 | Campos mínimos, fluxos progressivos e testes de usabilidade                |
-| Análises de IA equivocadas       | Alto                 | Rastreabilidade, fontes, datas e limites claros entre dado e interpretação |
-| Custos de notificações           | Médio                | Análise de fornecedores, quotas e preferências de frequência               |
-| Internacionalização difícil      | Médio                | Modelo independente de país e moeda, testes com múltiplas jurisdições      |
+### 4.13 Gestão Patrimonial
 
-## 6.4 Cuidados legais e de conformidade
+O sistema deverá controlar:
 
-Antes da comercialização, avaliar requisitos aplicáveis de privacidade e proteção de dados (incluindo LGPD), regras de mercado e limites entre análise informativa e recomendação personalizada de investimento, licenças de dados de fornecedores e exposição de informações patrimoniais em canais externos. Uma avaliação especializada será necessária para delimitar obrigações regulatórias conforme o serviço efetivamente oferecido.
+- Imóveis.
+- Veículos.
+- Investimentos.
+- Saldos financeiros.
+- Equipamentos e bens empresariais.
+- Financiamentos.
+- Empréstimos.
+- Dívidas e obrigações.
 
-# 7. Observações finais e próximos passos
+Será possível acompanhar a evolução patrimonial por entidade e no contexto familiar.
 
-## 7.1 Situação consolidada
+O patrimônio líquido será calculado pela diferença entre ativos e passivos, respeitando os critérios de avaliação definidos.
 
-As etapas de visão, problema, objetivos, escopo, arquitetura e riscos foram validadas. A arquitetura de referência possui quatro definições técnicas confirmadas: Next.js + React, Python + FastAPI, PostgreSQL e monolito modular. O produto segue em planejamento; pendências de integração, infraestrutura e orçamento permanecem abertas.
+A consolidação deverá evitar a duplicação de ativos e obrigações entre entidades.
 
-## 7.2 Plano de continuidade
+### 4.14 Metas Financeiras
 
-1.  Produzir o PRD do MVP: requisitos funcionais e não funcionais, regras, atores, permissões e critérios de aceite.
+O sistema deverá permitir cadastrar objetivos financeiros pessoais, familiares e empresariais.
 
-2.  Analisar a planilha fictícia de investimentos e mapear fórmulas, métricas e alertas prioritários.
+Cada meta poderá possuir valor-alvo, prazo, valor acumulado, aportes planejados e indicador de progresso.
 
-3.  Definir o modelo de dados de ativos, proprietários, carteiras, avaliações e movimentações.
+Exemplos incluem reserva de emergência, investimentos, aquisição de bens, viagens e reserva de caixa da empresa.
 
-4.  Escolher fornecedores de cotação e câmbio e validar limites, contratos e custos.
+### 4.15 Orçamento Financeiro
 
-5.  Refinar o protótipo com foco nos cadastros simples e nas consultas consolidadas.
+O sistema deverá permitir criar orçamentos por período, categoria e entidade.
 
-6.  Definir infraestrutura, ambiente de desenvolvimento, repositório, testes e plano de entregas.
+Será possível comparar valores planejados e realizados, identificar excessos e acompanhar os limites disponíveis.
 
-7.  Implementar o núcleo do MVP, testar com dados reais ou representativos e revisar resultados para orientar as próximas fases.
+### 4.16 Projeção de Fluxo de Caixa
 
-## 7.3 Registro de pendências
+O sistema deverá apresentar projeções para 30, 60 e 90 dias.
 
-| **Tema**       | **Definição pendente**                                                        |
-|----------------|-------------------------------------------------------------------------------|
-| Hospedagem     | Provedor, ambientes e forma de implantação                                    |
-| Dados externos | APIs de ações, moedas, criptoativos e indicadores; SLA, custo e atualização   |
-| Notificações   | Canal inicial e política de envio                                             |
-| Inteligência   | Indicadores e alertas efetivamente incluídos no MVP                           |
-| Gestão         | Cronograma, orçamento, equipe e responsabilidades                             |
-| Detalhamento   | Critérios quantitativos de sucesso, permissões e regras financeiras completas |
+As projeções considerarão saldos, receitas previstas, despesas recorrentes, parcelamentos e compromissos futuros.
 
-## 7.4 Critério de encerramento do contexto
+Valores confirmados e estimados deverão ser diferenciados.
 
-Este documento registra o entendimento de alto nível aprovado nas sete etapas e servirá de entrada para a elaboração do PRD e das especificações técnicas. As pendências são deliberadas: não devem ser interpretadas como requisitos já aprovados. Mudanças relevantes deverão ser registradas na próxima versão do documento.
+### 4.17 Dashboards
+
+A aplicação terá uma interface única com seletor de contexto financeiro.
+
+Os contextos iniciais serão:
+
+- Visão Familiar.
+- Titular PF.
+- Esposa PF.
+- Clínica PJ.
+
+O dashboard deverá apresentar indicadores, gráficos, comparações e alertas conforme o contexto selecionado.
+
+### 4.18 Relatórios
+
+O sistema deverá disponibilizar relatórios de receitas, despesas, fluxo de caixa, patrimônio, metas, orçamento, estoque, procedimentos, contas a pagar e receber e resultados empresariais.
+
+Deverá permitir exportação em PDF e Excel (XLSX).
+
+Os demonstrativos empresariais terão finalidade gerencial e não substituirão documentos fiscais ou contábeis oficiais.
+
+### 4.19 Notificações Internas
+
+Os alertas serão apresentados exclusivamente dentro da aplicação.
+
+Entre os eventos monitorados estarão vencimentos, atrasos, estoque mínimo, validade de produtos, notas fiscais pendentes, desvios orçamentários, metas e falhas de backup.
+
+Não haverá envio de notificações por e-mail, SMS ou WhatsApp no escopo inicial.
+
+### 4.20 Usuários, Segurança e Auditoria
+
+O sistema deverá oferecer:
+
+- Login individual por e-mail e senha.
+- Suporte a autenticação em dois fatores.
+- Recuperação de acesso.
+- Gerenciamento de sessões.
+- Controle de permissões.
+- Registro de operações importantes.
+- Auditoria de alterações financeiras.
+- Histórico de importações e movimentações de estoque.
+
+A auditoria deverá identificar o responsável, a operação, o momento, os registros afetados e os valores anteriores e posteriores quando aplicável.
+
+### 4.21 Privacidade e Proteção de Dados
+
+A aplicação deverá considerar os requisitos aplicáveis da LGPD.
+
+Deverá permitir arquivamento de cadastros, anonimização quando apropriada, controle de acesso, rastreabilidade e políticas de retenção.
+
+Informações necessárias para cumprimento de obrigações legais deverão ser preservadas conforme os requisitos aplicáveis.
+
+## 5. Arquitetura e Abordagem Técnica
+
+### 5.1 Stack Tecnológica
+
+| Camada | Tecnologia |
+|---|---|
+| Frontend | Next.js |
+| Linguagem | TypeScript |
+| Estilização | Tailwind CSS |
+| Backend | NestJS |
+| ORM | Prisma |
+| Banco de dados | PostgreSQL |
+| Comunicação | API REST |
+| Infraestrutura | Docker e Docker Compose |
+| Arquitetura | Monólito modular |
+| Organização | Monorepo |
+
+### 5.2 Princípios Arquiteturais
+
+- Separação entre frontend, backend e persistência.
+- Organização modular por domínio de negócio.
+- Regras financeiras centralizadas e testáveis.
+- Validação de dados e permissões no backend.
+- Migrações versionadas do banco de dados.
+- Precisão decimal para valores monetários.
+- Rastreabilidade das operações financeiras.
+- Independência de provedores de nuvem.
+- Configuração por variáveis de ambiente.
+
+### 5.3 Implantação
+
+O sistema será desenvolvido para funcionar na nuvem ou em servidor local.
+
+Apenas um ambiente estará ativo para utilização em cada momento.
+
+Não haverá sincronização automática entre instalações.
+
+A migração entre ambientes será realizada por meio de procedimentos controlados de backup, transferência e restauração.
+
+A infraestrutura definitiva será escolhida após a conclusão do desenvolvimento.
+
+### 5.4 Interface e Navegação
+
+O sistema será uma aplicação web responsiva, acessível por computador, tablet ou smartphone.
+
+A navegação será organizada por módulos, com um seletor de contexto financeiro.
+
+As funcionalidades disponíveis e as informações apresentadas dependerão do contexto selecionado e das permissões do usuário.
+
+### 5.5 Internacionalização
+
+A configuração inicial será:
+
+- Idioma: português do Brasil.
+- Moeda: BRL.
+- Formatação regional: pt-BR.
+- Fuso horário padrão: America/Sao_Paulo.
+
+A arquitetura deverá permitir expansão futura para outros idiomas e moedas.
+
+A conversão cambial automática não faz parte do escopo inicial.
+
+## 6. Dependências, Restrições e Riscos
+
+### 6.1 Desenvolvimento
+
+O projeto será desenvolvido por uma única pessoa, com assistência de ferramentas de IA.
+
+A implementação utilizará o repositório existente:
+
+https://github.com/JulianoRamos/finance
+
+A estrutura de documentação e os processos de desenvolvimento do repositório serão aproveitados.
+
+As referências específicas ao projeto anterior, iGlob.ai, deverão ser substituídas pelo novo contexto financeiro.
+
+### 6.2 Estratégia de Entrega
+
+O objetivo é desenvolver todas as funcionalidades definidas antes de colocar a aplicação em produção.
+
+O trabalho deverá ocorrer de forma modular, com integração e testes contínuos.
+
+O desenvolvimento completo não elimina a necessidade de validações intermediárias.
+
+### 6.3 Backup e Recuperação
+
+O sistema deverá oferecer:
+
+- Backups automáticos diários.
+- Backups manuais.
+- Criptografia dos arquivos.
+- Retenção configurável.
+- Possibilidade de armazenamento externo.
+- Restauração dos dados.
+- Verificação de integridade.
+- Histórico e alertas de falha.
+
+Os procedimentos de restauração deverão ser testados antes da entrada em produção.
+
+### 6.4 Dependências Externas
+
+O projeto poderá depender de:
+
+- Arquivos disponibilizados pelas instituições financeiras.
+- Orientações contábeis e fiscais aplicáveis à empresa.
+- Definição posterior da infraestrutura definitiva.
+- Ferramentas de desenvolvimento e execução.
+- Validação das regras de negócio com dados reais.
+
+### 6.5 Principais Riscos
+
+**Complexidade do escopo:** o sistema reúne diversos domínios financeiros e empresariais, exigindo boa organização modular.
+
+**Integridade financeira:** erros de cálculo, duplicação ou classificação podem comprometer saldos, resultados e relatórios.
+
+**Conciliação bancária:** arquivos de diferentes instituições podem possuir estruturas e comportamentos distintos.
+
+**Separação entre PF e PJ:** classificações incorretas podem distorcer o resultado empresarial e a visão familiar.
+
+**Estoque:** erros de baixa, lote ou custo podem prejudicar os indicadores de rentabilidade.
+
+**Segurança e privacidade:** informações financeiras e dados pessoais exigem controles adequados.
+
+**Desenvolvimento individual:** a amplitude do projeto exige documentação, testes automatizados e controle de mudanças.
+
+### 6.6 Mitigação dos Riscos
+
+- Desenvolvimento modular.
+- Regras de negócio documentadas.
+- Testes automatizados.
+- Validação das operações financeiras.
+- Revisão das alterações assistidas por IA.
+- Auditoria e rastreabilidade.
+- Backups e testes de restauração.
+- Homologação antes da produção.
+
+## 7. Fora do Escopo Inicial
+
+Não fazem parte do escopo inicial:
+
+- Emissão ou transmissão de notas fiscais.
+- Sistema completo de prontuários clínicos.
+- Armazenamento de fotografias clínicas e dados médicos sensíveis.
+- Aplicativos nativos para Android ou iOS.
+- Sincronização entre instalações locais e em nuvem.
+- Integrações bancárias automáticas em tempo real.
+- Envio de notificações por canais externos.
+- Conversão cambial automática.
+- Operação efetiva com múltiplas moedas.
+- Substituição de serviços contábeis e fiscais oficiais.
+
+## 8. Observações Finais e Próximos Passos
+
+### 8.1 Estado Atual
+
+O projeto encontra-se na fase de definição e consolidação do contexto.
+
+Foram identificados os problemas, objetivos, principais funcionalidades, tecnologias, estratégia de implantação e restrições operacionais.
+
+O nome comercial permanece em aberto.
+
+### 8.2 Documentação Complementar
+
+O Documento de Contexto servirá como referência para a elaboração de:
+
+1. PRD — Documento de Requisitos do Produto.
+2. Regras de negócio detalhadas.
+3. Modelo conceitual e lógico de dados.
+4. ADRs — Registros de Decisões Arquiteturais.
+5. Especificações técnicas dos módulos.
+6. Critérios de aceitação e estratégia de testes.
+7. Plano de implementação.
+8. Orientações para desenvolvimento assistido por IA.
+
+### 8.3 Próximas Ações
+
+- Adaptar a documentação existente no repositório ao novo projeto.
+- Substituir as referências ao iGlob.ai.
+- Elaborar o PRD com base neste documento.
+- Formalizar as decisões de arquitetura.
+- Detalhar regras financeiras e empresariais.
+- Definir o modelo de dados.
+- Especificar os módulos e suas dependências.
+- Estabelecer a sequência de implementação.
+- Implementar, integrar, testar e homologar o sistema completo.
+- Definir a infraestrutura de produção.
+- Realizar a implantação definitiva.
+
+### 8.4 Diretriz Final
+
+O sistema deverá priorizar a confiabilidade dos dados e a clareza dos indicadores.
+
+A principal finalidade não será apenas registrar movimentações financeiras, mas transformar essas informações em uma visão compreensível da saúde financeira familiar e empresarial, apoiando a organização, o planejamento e a tomada de decisões.
+
+---
+
+**Fim do Documento de Contexto — Versão 1.0**
