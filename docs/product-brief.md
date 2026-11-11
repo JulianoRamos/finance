@@ -6,11 +6,11 @@ Este documento diz o que o finance é, para quem é, o que entra no escopo, o qu
 
 **Problema.** A família e a clínica não têm controle financeiro estruturado. Não se sabe o custo de vida, o dinheiro passa entre a pessoa física da esposa e a clínica sem classificação, e a clínica não conhece o próprio resultado, o custo dos procedimentos nem o estoque.
 
-**Solução.** Uma aplicação web que mantém as finanças de cada entidade separadas, importa os extratos bancários, classifica os repasses entre pessoa física e empresa e mostra, em cada contexto financeiro, a situação da entidade ou da Visão Familiar. Para a clínica, ela acrescenta atendimentos, pacotes, estoque, compras e resultado gerencial.
+**Solução.** Uma aplicação web que mantém separadas as finanças de cada entidade, pessoa física ou jurídica, em quantas houver, importa os extratos bancários, classifica os repasses entre pessoa física e empresa e mostra, em cada contexto financeiro, a situação da entidade ou da Visão Familiar. Toda empresa tem resultado gerencial, e a empresa com a operação de clínica ligada ganha atendimentos, pacotes, estoque e compras.
 
-**Critérios de sucesso.** Medidos depois da entrada em produção, mês a mês, com os dados reais das três entidades:
+**Critérios de sucesso.** Medidos depois da entrada em produção, mês a mês, com os dados reais de todas as entidades cadastradas:
 
-1. **Mês fechado em até 1 hora.** Importar os extratos e as faturas de todas as contas das três entidades e revisar o que a conciliação não resolveu sozinha leva, no total, até 60 minutos por mês.
+1. **Mês fechado em até 1 hora.** Importar os extratos e as faturas de todas as contas das entidades e revisar o que a conciliação não resolveu sozinha leva, no total, até 60 minutos por mês.
 2. **Saldos que batem.** No último dia de cada mês, o saldo de 100% das contas é igual ao do banco, ou a diferença está explicada por um ajuste registrado.
 3. **Nada esquecido sem classificação.** Nenhuma movimentação, lançamento ou repasse fica "a classificar" por mais de 7 dias.
 4. **Valores exatos.** Nenhuma diferença de centavo entre a soma dos lançamentos de um período e os totais dos relatórios e dashboards desse período.
@@ -23,7 +23,7 @@ Este documento diz o que o finance é, para quem é, o que entra no escopo, o qu
 - **O titular:** controla as próprias finanças e as despesas da casa, e quer ver o custo de vida, a taxa de poupança e o patrimônio da família.
 - **A esposa, sócia da clínica:** controla a própria pessoa física e opera a clínica no dia a dia: atendimentos, pacotes, estoque, compras e o que a clínica tem a pagar e a receber.
 
-Os dois usuários veem e operam as três entidades. A separação por permissões é um requisito da arquitetura, para usuários futuros, mas não muda o uso inicial.
+Os dois usuários veem e operam todas as entidades. A separação por permissões é um requisito da arquitetura, para usuários futuros, mas não muda o uso inicial.
 
 ### Histórias e critérios de aceite
 
@@ -35,7 +35,9 @@ As histórias estão agrupadas pela fase de construção (ver "Fases"). Os crit�
   - O login exige e-mail e senha, e a recuperação de acesso funciona por um link de uso único com validade.
   - O usuário vê as próprias sessões ativas e encerra qualquer uma.
 - Como usuário, quero cadastrar entidades e grupos financeiros e escolher o contexto financeiro, para ver só os números de quem me interessa.
-  - Existem as entidades "Titular PF", "Esposa PF" e "Clínica PJ" e o grupo "Visão Familiar", com as duas pessoas físicas.
+  - O usuário cadastra quantas pessoas físicas e jurídicas precisar, com o nome que quiser. No uso inicial são três: as pessoas físicas do titular e da esposa e a clínica.
+  - A Visão Familiar já vem criada, e o usuário escolhe quais pessoas físicas fazem parte dela. Ela não aceita empresas.
+  - Cada empresa tem a operação de clínica ligada ou não, e a própria árvore de categorias.
   - Toda tela de dados mostra o contexto financeiro escolhido, e nenhum número de outra entidade aparece nela.
 - Como usuário, quero que toda alteração financeira fique registrada, para saber quem mudou o quê.
   - Cada criação, alteração ou exclusão de um registro financeiro guarda quem fez, quando, o registro e os valores anteriores e novos.
@@ -55,12 +57,14 @@ As histórias estão agrupadas pela fase de construção (ver "Fases"). Os crit�
   - Uma recorrência de valor variável gera previsões com valor estimado, que são confirmadas quando a conta chega.
 - Como titular, quero que as transferências entre minhas contas e as aplicações em investimentos não contem como despesa, para que o custo de vida seja real.
   - Transferências e aplicações não entram no custo de vida nem no orçamento de despesas.
+- Como titular, quero registrar o dinheiro que passo para outra pessoa física da família como transferência familiar ou empréstimo, para que ele não vire receita nem despesa.
+  - Uma transferência familiar se anula na Visão Familiar, e um empréstimo fica em aberto até ser devolvido.
 - Como titular, quero ver na Visão Familiar o saldo, as receitas, as despesas, o custo de vida e a taxa de poupança do mês, para entender a situação da família.
 
 **Núcleo financeiro da clínica**
 
 - Como sócia, quero registrar o pró-labore, a distribuição de lucros, os aportes e os reembolsos entre a minha pessoa física e a clínica, para que o resultado da clínica e o meu fiquem corretos.
-  - Todo repasse entre entidades tem um tipo, e o tipo decide se ele entra no resultado de cada lado.
+  - Todo repasse entre entidades tem um tipo, e o tipo decide se ele entra no resultado de cada lado. Os tipos possíveis dependem de o repasse ser entre pessoa física e empresa, entre duas pessoas físicas ou entre duas empresas.
   - Um repasse sem tipo fica "a classificar" e gera um alerta.
 - Como sócia, quando eu pagar algo da clínica com o meu cartão pessoal, quero que o sistema registre o reembolso pendente, para não esquecer de acertar.
   - A despesa fica na clínica, e o reembolso pendente aparece como alerta até ser quitado por um repasse ou convertido em aporte.
@@ -87,7 +91,7 @@ As histórias estão agrupadas pela fase de construção (ver "Fases"). Os crit�
 **Patrimônio e planejamento**
 
 - Como titular, quero cadastrar bens e dívidas com reavaliações, para acompanhar o patrimônio líquido de cada entidade e da família.
-  - A participação societária da esposa na clínica vale o patrimônio líquido da clínica vezes a fração dela.
+  - A participação societária de uma entidade numa empresa vale o patrimônio líquido da empresa vezes a fração dela, como a da esposa na clínica.
   - Nenhum bem ou dívida é contado duas vezes num grupo financeiro.
 - Como titular, quero criar metas com contribuições planejadas e orçamentos por categoria, para planejar o futuro.
   - O valor acumulado de uma meta é o saldo das contas e o último valor dos bens ligados a ela.
@@ -138,9 +142,9 @@ A stack, a arquitetura e as decisões técnicas são do `hld.md`, e o esquema e 
 O sistema só entra em produção completo. As fases dão a ordem de construção, e cada uma termina com uma validação com dados reais.
 
 1. **Fundação:** ambiente, autenticação, entidades, grupos financeiros, contexto financeiro e auditoria.
-2. **Finanças das pessoas físicas:** contas, cartões e faturas, lançamentos, categorias, recorrências, importação e conciliação, transferências e a Visão Familiar. Validação: um mês real das duas pessoas físicas, com os saldos batendo.
+2. **Finanças das pessoas físicas:** contas, cartões e faturas, lançamentos, categorias, recorrências, importação e conciliação, transferências e a Visão Familiar. Validação: um mês real das pessoas físicas da família, com os saldos batendo.
 3. **Núcleo financeiro da clínica:** repasses, reembolso pendente, contas a pagar e a receber, formas de pagamento, recebíveis e antecipação. Validação: um mês real da clínica, com os repasses classificados.
-4. **Operação da clínica:** clientes, procedimentos, atendimentos, pacotes, situação fiscal, estoque, compras, fornecedores, entregas, rentabilidade e resultado gerencial.
+4. **Operação da clínica:** a operação de clínica ligada por empresa, com clientes, procedimentos, atendimentos, pacotes, situação fiscal, estoque, compras, fornecedores, entregas, rentabilidade e resultado gerencial.
 5. **Patrimônio e planejamento:** bens, dívidas, reavaliações, participação societária, metas, orçamento e projeção de caixa.
 6. **Relatórios e operação:** relatórios com exportação, alertas, documentos, segundo fator, backup e restauração, anonimização e a homologação final.
 

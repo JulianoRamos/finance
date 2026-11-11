@@ -1,6 +1,6 @@
 # Finance
 
-Aplicação web de gestão financeira familiar e empresarial. Ela centraliza as finanças de pessoas físicas e jurídicas (inicialmente, o titular, a esposa e uma clínica de biomedicina estética), mantém os recursos de cada entidade separados e oferece uma visão consolidada da família. Também apoia a gestão da clínica: atendimentos, procedimentos, estoque, compras, fornecedores e resultados.
+Aplicação web de gestão financeira familiar e empresarial. Ela centraliza as finanças de quantas pessoas físicas e jurídicas forem necessárias (inicialmente, o titular, a esposa e uma clínica de biomedicina estética), mantém os recursos de cada entidade separados e oferece uma visão consolidada da família. Também apoia a gestão da clínica: atendimentos, procedimentos, estoque, compras, fornecedores e resultados.
 
 O produto é construído com agentes de código, num processo que vai da ideia à especificação, da especificação aos tickets e dos tickets ao pull request. Os documentos, as regras para os agentes, as skills e o harness que confere cada entrega estão todos neste repositório.
 
