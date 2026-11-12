@@ -263,7 +263,7 @@ Este documento é o dono dos tokens e dos componentes. O que está no Claude é 
 
 1. **Design system no Claude:** um artefato do tipo Design System, com os tokens e os componentes deste documento em visualizações navegáveis. Ele é refeito a partir deste documento sempre que um PR muda as seções 2 a 7, e não é editado direto.
 2. **Protótipo:** cada tela é desenhada no Claude Design sobre esse design system, em pt-BR e com o vocabulário do glossário, nos dois temas e nas larguras de celular e desktop quando a tela muda entre elas, com os estados vazio, carregando e de erro quando a tela os tem.
-3. **Publicação:** a tela é salva no repositório `JulianoRamos/finance-prototipo` como `<Tela>.dc.html`, na raiz, com o nome em PascalCase, sem acento (`Lancamentos`, `Conciliacao`, `AtendimentoNovo`), num commit que diz o que mudou.
+3. **Publicação:** a tela é salva no repositório `toglab/finance-prototipo` como `<Tela>.dc.html`, na raiz, com o nome em PascalCase, sem acento (`Lancamentos`, `Conciliacao`, `AtendimentoNovo`), num commit que diz o que mudou.
 4. **Uso nos tickets:** a spec e o ticket citam o repositório, o commit e o recorte de cada tela, como a "Referência visual" do `AGENTS.md` da raiz descreve.
 5. **Mudança de linguagem:** se um protótipo precisa de um token, um componente ou uma variante que este documento não tem, ele entra aqui primeiro, num PR do finance; depois no design system do Claude; e só então no protótipo. O protótipo nunca é a fonte de um token.
 
