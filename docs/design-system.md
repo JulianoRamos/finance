@@ -161,7 +161,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
   - **Recolhida:** 64px, só com os ícones do logo, do seletor, da navegação e do avatar, cada um com o nome do destino na dica e no `aria-label`. Quem recolhe e abre a barra é o botão na barra superior.
 - **Barra superior:** 56px, fundo `surface`, borda inferior `hairline`, fixa no topo ao rolar. À esquerda, o botão da barra lateral, uma divisória e o caminho da página ("Configurações › Entidades"), em que só os níveis que são uma página têm link. À direita:
   - a **pesquisa**, um campo de 240px com o atalho ⌘K, que abre a paleta de pesquisa (seção 4.5);
-  - o **tema**;
+  - o **tema**, um botão que abre a escolha entre claro, escuro e sistema (seção 2.1);
   - os **alertas**, com um ponto `accent` quando há algo novo;
   - as **configurações**, uma engrenagem que abre o menu com os cadastros (Entidades, Grupos financeiros, Usuários e acessos). As configurações ficam só aí, e não na barra lateral. Numa tela de configuração, a engrenagem e o item do menu ficam em `accent-soft`.
 - **Seletor de contexto financeiro:** sempre visível, no topo da barra lateral. Mostra o ícone do tipo (pessoa, empresa ou grupo) num quadrado com borda `hairline`, o nome e uma linha em `body-sm` com o tipo e o resumo ("Grupo · 2 pessoas físicas"). Abre, ao lado da barra, uma lista com busca, agrupada em Grupos, Pessoas físicas e Empresas, com o contexto atual marcado e, no fim, o atalho para os cadastros. Trocar o contexto recarrega os dados da página atual, e nenhuma tela mostra dados sem dizer de quem são.
