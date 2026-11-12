@@ -12,7 +12,7 @@ apps/
     src/
       modulos/<módulo>/   um módulo do HLD por pasta, com a interface pública num index.ts
       comum/              dinheiro, datas, transação, contexto financeiro, erros
-      cli/                os comandos de operação (restauração, link de recuperação)
+      cli/                os comandos de operação (restauração, primeiro usuário, link de recuperação)
     prisma/
       schema/             o schema do Prisma, um arquivo por módulo
       migrations/
@@ -277,6 +277,7 @@ A clínica só aceita escrita em entidade com `operacao_clinica`; o serviço con
 - **Sessão:** expira depois de 7 dias sem uso e, de qualquer forma, 30 dias depois da criação. O `ultimo_uso_em` é atualizado no máximo uma vez por minuto. A troca de senha encerra as outras sessões do usuário.
 - **Limite de tentativas:** 5 falhas por e-mail em 15 minutos bloqueiam aquela etapa por 15 minutos; 20 falhas por origem em 15 minutos bloqueiam a origem. A resposta do bloqueio não diz se o e-mail existe.
 - **Link de recuperação:** vale 1 hora e uma vez só. É gerado por um usuário com `gere_acessos` ou pelo comando `recuperar-acesso <email>` no servidor. Usá-lo define a nova senha e encerra todas as sessões.
+- **Primeiro usuário:** o comando `criar-usuario <nome> <email>` no servidor cria um usuário com `gere_acessos` e devolve um link de recuperação, com a mesma validade, para ele definir a senha. Os outros usuários são cadastrados pela interface, por quem tem `gere_acessos`, e recebem o link da mesma forma.
 - **Segundo fator:** a ativação confirma um código antes de valer e gera 10 códigos de recuperação, mostrados uma vez. Desativar pede a senha e um código.
 - **Permissão:** `ver` lê, `operar` lê e escreve. Gerir usuários e permissões exige `gere_acessos`. No uso inicial, os dois usuários têm `operar` em todas as entidades e `gere_acessos`.
 
