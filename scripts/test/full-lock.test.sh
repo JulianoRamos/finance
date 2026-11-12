@@ -132,8 +132,11 @@ check "o full que não deu para verificar não mexe na contagem" test "$count" =
 
 # Sem a pasta de estado, só os modos que gravam estado abortam; os outros seguem.
 out="$(STATE_ROOT="$state/nao-existe" verify "" apps 2>&1)"
-# Sem app registrada, o modo apps não imprime nada, nem o aviso de que não verificou.
-check "sem a pasta de estado, o modo apps segue" test -z "$out"
+code=$?
+# O modo apps lista as apps registradas, como com a pasta de estado, e nada do aviso de que não
+# verificou.
+check "sem a pasta de estado, o modo apps segue" \
+  bash -c '[[ "$1" == 0 && "$2" == "$3" ]]' _ "$code" "$out" "$("$ROOT/scripts/verify.sh" apps)"
 for mode in prepush unlock full; do
   out="$(STATE_ROOT="$state/nao-existe" verify "" "$mode" 2>&1)"
   code=$?

@@ -1,0 +1,73 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "O banco respondeu.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "O banco não respondeu dentro do prazo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        },
+        "summary": "O estado da api e do banco. Rota pública.",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "finance",
+    "description": "A api do finance. O contrato das rotas: LLD, seção 5.",
+    "version": "1",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "DatabaseState": {
+        "type": "string",
+        "enum": [
+          "connected",
+          "down"
+        ],
+        "description": "Se o banco respondeu a uma consulta dentro do prazo."
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "database": {
+            "description": "Se o banco respondeu a uma consulta dentro do prazo.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatabaseState"
+              }
+            ]
+          }
+        },
+        "required": [
+          "database"
+        ]
+      }
+    }
+  }
+}

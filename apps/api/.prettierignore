@@ -1,0 +1,6 @@
+dist/
+.openapi/
+reports/
+src/generated/
+openapi.json
+*.md

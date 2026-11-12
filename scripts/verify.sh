@@ -50,7 +50,7 @@ cd "$(dirname "$0")/.."
 # app tem contrato planejado, <app>_contract_drift. A app dona do contrato (a API) declara também
 # <app>_contract_view, a visão legível do contrato, e acrescenta os arquivos dele a CONTRACT_FILES.
 # Uma app entra aqui junto com o grupo dela, no ticket que a cria.
-APPS=()
+APPS=(api web)
 
 # Os arquivos do contrato (as rotas e as tabelas), que a skill de plano trata à parte. Vazio enquanto
 # nenhuma app declara contrato: o plano usa então o contrato `nenhum`.
@@ -358,14 +358,14 @@ tree_state() {
   done | sha256sum | cut -d' ' -f1
 }
 
-# O mesmo resumo, para a pasta de trabalho: é ela que o modo completo verifica. Usa um índice
-# temporário, para contar o que ainda não foi commitado sem mexer no índice de quem trabalha. Só os
-# caminhos que existem na pasta ou no HEAD entram no `git add`, que falha com um caminho que não está
-# em nenhum dos dois (como o apps/ antes da primeira app); o que falta nos dois o `tree_state` resume
-# como ausente.
-worktree_state() {
+# O id da árvore do HEAD com os <caminhos> como estão na pasta de trabalho, inclusive o que ainda não
+# foi commitado. Usa um índice temporário, para não mexer no índice de quem trabalha. Só os caminhos
+# que existem na pasta ou no HEAD entram no `git add`, que falha com um caminho que não está em nenhum
+# dos dois (como o apps/ antes da primeira app). Falha sem imprimir nada quando não monta a árvore.
+# worktree_tree <caminhos...>
+worktree_tree() {
   local dir tree path paths=()
-  for path in "${VERIFIED_PATHS[@]}"; do
+  for path in "$@"; do
     [[ -e "$path" ]] || git rev-parse --verify --quiet "HEAD:$path" >/dev/null && paths+=("$path")
   done
   dir="$(mktemp -d)" || return 1
@@ -374,8 +374,14 @@ worktree_state() {
     git read-tree HEAD && { [[ ${#paths[@]} -eq 0 ]] || git add -A -- "${paths[@]}"; } && git write-tree
   )"
   rm -rf "$dir"
-  [[ -n "$tree" ]] || return 1
-  tree_state "$tree"
+  [[ -n "$tree" ]] && printf '%s\n' "$tree"
+}
+
+# O mesmo resumo do `tree_state`, para a pasta de trabalho: é ela que o modo completo verifica. O que
+# falta na pasta e no HEAD o `tree_state` resume como ausente.
+worktree_state() {
+  local tree
+  tree="$(worktree_tree "${VERIFIED_PATHS[@]}")" && tree_state "$tree"
 }
 
 # Confere que o modo completo aprovou exatamente o que está no último commit.

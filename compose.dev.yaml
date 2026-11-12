@@ -1,3 +1,35 @@
+# O que a api e a web têm em comum. O usuário (1000) e a pasta de trabalho vêm das imagens.
+x-app: &app
+  init: true
+  volumes:
+    # O repositório inteiro, porque o workspace do pnpm fica na raiz. A app trabalha na pasta dela.
+    - .:/repo
+    # As dependências da raiz do workspace ficam num volume: a raiz do checkout pode não aceitar a
+    # escrita do usuário 1000 (na CI, só apps/ a aceita). O store do pnpm fica no mesmo volume, para o
+    # pnpm ligar os pacotes por hard link em vez de copiá-los.
+    - node-modules:/repo/node_modules
+    # O Chromium do Playwright, na versão do @playwright/test do lockfile.
+    - playwright-browsers:/ms-playwright
+
+x-app-env: &app-env
+  TZ: America/Sao_Paulo
+  pnpm_config_store_dir: /repo/node_modules/.pnpm-store
+  # O pnpm que o corepack baixa fica no volume das dependências, para não baixar de novo a cada
+  # contêiner.
+  COREPACK_HOME: /repo/node_modules/.corepack
+  PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+
+x-app-healthcheck: &app-healthcheck
+  interval: 3s
+  timeout: 5s
+  retries: 20
+  start_period: 120s
+  start_interval: 3s
+
+# Os healthchecks pedem a rota de saúde de cada app, no próprio contêiner.
+x-api-health: &api-health "fetch('http://127.0.0.1:3001/v1/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+x-web-health: &web-health "fetch('http://127.0.0.1:3000/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+
 services:
   # O Node do harness: o conferidor do aceite, a página do plano, a visão do contrato e os testes do
   # harness (scripts/node-in-harness.sh). Fica num serviço próprio, e não no de uma app, para não
@@ -21,5 +53,80 @@ services:
     # Fica parado. Os comandos rodam com `docker compose exec`.
     command: ["tail", "-f", "/dev/null"]
 
+  # O PostgreSQL, com o banco de desenvolvimento (finance) e o dos testes de integração da api
+  # (finance_test), que o script de docker/db/ cria quando o volume nasce. Só na rede interna.
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: finance
+      POSTGRES_USER: finance
+      POSTGRES_PASSWORD: finance
+    volumes:
+      - db-data:/var/lib/postgresql
+      - ./docker/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Pelo TCP, e não pelo socket: na criação do volume, o servidor temporário que roda os scripts
+      # de docker/db/ só atende pelo socket, e o banco só fica pronto depois dele.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U finance -d finance"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Instala as dependências do workspace inteiro e baixa o Chromium do Playwright, e termina. A api e a web sobem depois dele. Para instalar de novo, depois de mudar o
+  # lockfile: `docker compose -f compose.dev.yaml up -d --wait`, que roda o deps outra vez.
+  deps:
+    <<: *app
+    build: apps/api
+    environment: *app-env
+    command:
+      - sh
+      - -c
+      - >-
+        pnpm install --frozen-lockfile
+        && pnpm --dir ../web exec playwright install chromium
+
+  # A api (NestJS). Ao subir, gera o cliente do Prisma, aplica as migrações no banco de desenvolvimento e roda em modo de
+  # observação. Só na rede interna, como o ADR 0004 pede: a web a chama em http://api:3001.
+  api:
+    <<: *app
+    build: apps/api
+    environment:
+      <<: *app-env
+      DATABASE_URL: postgresql://finance:finance@db:5432/finance
+      DATABASE_URL_TEST: postgresql://finance:finance@db:5432/finance_test
+      PORT: "3001"
+    command: [sh, -c, "pnpm prisma generate && pnpm prisma migrate deploy && exec pnpm dev"]
+    depends_on:
+      db:
+        condition: service_healthy
+      deps:
+        condition: service_completed_successfully
+    healthcheck:
+      <<: *app-healthcheck
+      test: [CMD, node, -e, *api-health]
+
+  # A web (Next.js), a única porta de entrada do navegador, publicada em http://localhost:3000, ou na
+  # porta de WEB_PORT (num .env da raiz, fora do Git) quando a 3000 da máquina já está em uso. Os
+  # testes de ponta a ponta rodam neste contêiner, contra a web em 127.0.0.1.
+  web:
+    <<: *app
+    build: apps/web
+    environment:
+      <<: *app-env
+      API_URL: http://api:3001
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    command: ["pnpm", "dev"]
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+    healthcheck:
+      <<: *app-healthcheck
+      test: [CMD, node, -e, *web-health]
+
 volumes:
   harness-reports:
+  db-data:
+  node-modules:
+  playwright-browsers:

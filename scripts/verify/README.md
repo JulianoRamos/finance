@@ -10,4 +10,4 @@ O grupo define:
 - `<app>_contract_drift`, opcional: o aviso de que o contrato mudou depois do commit de plano.
 - `<app>_contract_view`, só na app dona do contrato: a visão legível do contrato e do schema entre dois pontos do Git, no formato da skill de plano. Essa app acrescenta os arquivos do contrato a `CONTRACT_FILES`.
 
-Os auxiliares que o grupo usa (`step`, `in_container`, `require_container`, `check_report`, `node_in_harness`, `plain_diff`, `responds`, `wait_for`, `abort`, `fail`) são do `scripts/verify.sh`.
+Os auxiliares que o grupo usa (`step`, `in_container`, `require_container`, `check_report`, `node_in_harness`, `plain_diff`, `worktree_tree`, `responds`, `wait_for`, `abort`, `fail`) são do `scripts/verify.sh`.

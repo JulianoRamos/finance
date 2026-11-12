@@ -1,0 +1,49 @@
+{
+  "name": "api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0 && prettier --check .",
+    "format": "prettier --write . && eslint --fix .",
+    "test": "vitest run",
+    "test:report": "vitest run --reporter=default --reporter=json --outputFile.json=reports/vitest.json",
+    "openapi:generate": "nest build -p tsconfig.openapi.json && node .openapi/cli/generate-spec.js openapi.json",
+    "openapi:check": "nest build -p tsconfig.openapi.json && node .openapi/cli/generate-spec.js --check openapi.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.4.2",
+    "@nestjs/core": "12.4.2",
+    "@nestjs/platform-express": "12.4.2",
+    "@nestjs/swagger": "12.1.1",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@nestjs/cli": "12.0.12",
+    "@nestjs/testing": "12.4.2",
+    "@swc/cli": "0.8.2",
+    "@swc/core": "1.16.22",
+    "@types/express": "5.0.6",
+    "@types/node": "24.19.2",
+    "@types/supertest": "7.2.1",
+    "eslint": "9.39.5",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-import-resolver-typescript": "4.4.5",
+    "eslint-plugin-boundaries": "7.4.2",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
+    "prisma": "7.10.1",
+    "supertest": "7.3.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2",
+    "unplugin-swc": "2.0.0",
+    "vitest": "5.1.0"
+  }
+}

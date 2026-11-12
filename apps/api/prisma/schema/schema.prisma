@@ -1,0 +1,11 @@
+// O datasource e o generator. As tabelas ficam num arquivo por módulo, nesta pasta (LLD, seção 4).
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../../src/generated/prisma"
+  moduleFormat = "esm"
+}

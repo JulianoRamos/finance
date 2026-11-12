@@ -1,0 +1,7 @@
+.next/
+reports/
+playwright-report/
+test-results/
+next-env.d.ts
+src/api/schema.d.ts
+*.md
