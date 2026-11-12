@@ -78,12 +78,12 @@ test('lê a referência visual até as linhas de atribuição, com o commit e o 
       '',
       'Data changes: none.',
       '',
-      'Visual reference: JulianoRamos/finance-prototipo@a1b2c3d.',
+      'Visual reference: toglab/finance-prototipo@a1b2c3d.',
       '- Lancamentos: o formulário. Fora: a aba de documentos.',
       '',
       'Co-Authored-By: Someone <someone@example.com>',
     ].join('\n'),
   );
   assert.equal(parsed.data, 'none.');
-  assert.equal(parsed.visual, 'JulianoRamos/finance-prototipo@a1b2c3d.\n- Lancamentos: o formulário. Fora: a aba de documentos.');
+  assert.equal(parsed.visual, 'toglab/finance-prototipo@a1b2c3d.\n- Lancamentos: o formulário. Fora: a aba de documentos.');
 });

@@ -156,7 +156,7 @@ O Jira é o gerenciador de issues do projeto, acessado pelo servidor MCP `atlass
 
 ### Referência visual
 
-Os protótipos do produto ficam no repositório `JulianoRamos/finance-prototipo`, que nasce no Claude Design e é publicado para validação. Cada tela é um arquivo `<Tela>.dc.html` na raiz dele, e é citada pelo nome sem a extensão, como `Lancamentos`. O protótipo anda à frente do código e traz o que ainda vai entrar, então ele nunca é o escopo: o escopo é o recorte que a spec e o ticket fazem dele.
+Os protótipos do produto ficam no repositório `toglab/finance-prototipo`, que nasce no Claude Design e é publicado para validação. Cada tela é um arquivo `<Tela>.dc.html` na raiz dele, e é citada pelo nome sem a extensão, como `Lancamentos`. O protótipo anda à frente do código e traz o que ainda vai entrar, então ele nunca é o escopo: o escopo é o recorte que a spec e o ticket fazem dele. O repositório é público, então um protótipo só traz dados fictícios: nenhum nome, valor, conta ou documento real da família, da clínica ou das clientes.
 
 - **Na spec e no ticket de interface:** a seção "Referência visual" traz o repositório, o commit (um hash, e não uma branch nem uma tag, que mudam) e, por tela, o que entra e o que fica fora. O ticket estreita o recorte da spec à fatia dele. O que está na tela e o ticket não cita fica fora do escopo.
 - **No plano:** a `/plan-ticket` baixa só as telas citadas, naquele commit, para a pasta `referencia/` do ticket, com o comando da referência visual (ver "Valores da skill de plano"), e registra o recorte no bloco `Visual reference:` da mensagem do commit de plano. A pasta fica fora do Git, como tudo na pasta do ticket, salvo o aceite.
@@ -180,7 +180,7 @@ Cada ticket é planejado no início dele, e não na criação dos tickets, e só
 - **Pasta dos documentos:** `docs`.
 - **Comando do Node:** `scripts/node-in-harness.sh`, que roda o Node no contêiner `harness`, sobre o repositório montado em `/repo`, porque a máquina não roda `node`.
 - **Comando do contrato:** `nenhum`, enquanto nenhuma app declara contrato. Quando a API declarar, passa a ser `scripts/verify.sh contract`, a visão legível do contrato e do schema.
-- **Comando da referência visual:** `scripts/referencia-visual.sh <pai> <ticket> <commit> <tela>...`, que baixa as telas com o `gh`, na máquina, de `JulianoRamos/finance-prototipo` (ou de `PROTOTYPE_REPO`), para `docs/tickets/<pai>/<ticket>/referencia/`, com a origem em `origem.txt`.
+- **Comando da referência visual:** `scripts/referencia-visual.sh <pai> <ticket> <commit> <tela>...`, que baixa as telas com o `gh`, na máquina, de `toglab/finance-prototipo` (ou de `PROTOTYPE_REPO`), para `docs/tickets/<pai>/<ticket>/referencia/`, com a origem em `origem.txt`.
 - **Arquivos do contrato:** nenhum por enquanto. A API os declara no grupo dela em `scripts/verify/`, no ticket que a cria, e este item passa a listá-los, junto com o documento que define o formato de uma rota e de uma tabela.
 
 O atalho `scripts/verify.sh plan <issue> <ticket> [<commit de plano>]` chama o script da página da skill com esses valores (a `<issue>` é a issue pai do ticket, que vai no `--pai` do script); use-o nos passos de parada e de commit da skill.
