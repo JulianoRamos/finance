@@ -45,18 +45,18 @@ Cada módulo é dono de um pedaço do domínio: das tabelas dele, das regras del
 | Módulo | É dono de | Fase |
 | --- | --- | --- |
 | Identidade | Usuários, senhas, sessões, segundo fator, recuperação de acesso e permissões | 1 |
-| Entidades | Entidades, grupos financeiros (com a Visão Familiar), a operação de clínica ligada por empresa e a resolução do contexto financeiro | 1 |
+| Entidades | Entidades, grupos financeiros (com a Visão Familiar), participação societária, a operação de clínica ligada por empresa e a resolução do contexto financeiro | 1 |
 | Auditoria | O registro de cada alteração financeira, com quem, quando, o registro e os valores anteriores e novos | 1 |
-| Contas | Contas, contas de reserva, cartões, faturas, saldo inicial e ajustes. Calcula o saldo | 2 |
+| Contas | Contas, contas de reserva, cartões, faturas, movimentações (importadas, manuais e ajustes) e saldo inicial. Calcula o saldo | 2 |
 | Lançamentos | Lançamentos, parcelas e as situações delas, recorrências, categorias, finalidade e transferências. É o dono das contas a pagar e a receber | 2 |
-| Importação | Os arquivos importados, os leitores de cada banco e formato, as movimentações e a detecção de duplicidade | 2 |
+| Importação | Os arquivos importados, os leitores de cada banco e formato e a detecção de duplicidade. Grava as movimentações pelos Contas | 2 |
 | Conciliação | A ligação entre movimentação e lançamento, as sugestões e a conciliação automática | 2 |
 | Repasses | Repasses e os tipos deles, reembolso pendente e empréstimo entre entidades | 3 |
 | Recebimentos | Formas de pagamento, taxa de recebimento, recebíveis, antecipação e estorno | 3 |
 | Clínica | Clientes, procedimentos, atendimentos, pacotes e sessões, situação fiscal e anonimização de clientes. Só responde em empresa com a operação de clínica ligada | 4 |
 | Estoque | Produtos, lotes, entradas, baixas e custo médio | 4 |
 | Compras | Fornecedores, compras e entregas | 4 |
-| Patrimônio | Bens, dívidas, reavaliações, aplicações, resgates e participação societária | 5 |
+| Patrimônio | Bens, dívidas, reavaliações, aplicações e resgates | 5 |
 | Planejamento | Metas e contribuições, orçamentos e projeção de caixa | 5 |
 | Indicadores | Os números consolidados: resultado, custo de vida, taxa de poupança, patrimônio líquido, resultado gerencial e fluxo de caixa. Só lê | 2 em diante |
 | Relatórios | A exportação em PDF e XLSX do que os outros módulos calculam. Só lê | 6 |
@@ -67,7 +67,7 @@ Cada módulo é dono de um pedaço do domínio: das tabelas dele, das regras del
 ### Regras entre módulos
 
 - **Cada módulo só acessa as próprias tabelas.** Para ler ou mudar algo de outro módulo, ele chama a interface pública desse módulo. Um módulo que precisaria criar ou mudar dado de outro domínio pede isso a ele, como o `AGENTS.md` da raiz pede. A regra é conferida pelo lint da `api`, como o LLD descreve.
-- **As dependências não têm ciclo.** Os módulos de operação dependem dos financeiros, e nunca o contrário. Por exemplo, a Clínica chama Lançamentos, Recebimentos e Estoque; Compras chama Lançamentos e Estoque; Repasses chama Lançamentos; e a Conciliação chama Importação e Lançamentos. Indicadores, Relatórios e Alertas leem de todos, e ninguém depende deles.
+- **As dependências não têm ciclo.** Os módulos de operação dependem dos financeiros, e nunca o contrário. Por exemplo, a Clínica chama Lançamentos, Recebimentos e Estoque; Compras chama Lançamentos e Estoque; Repasses chama Lançamentos; a Importação chama Contas e Conciliação; e a Conciliação chama Contas e Lançamentos. Indicadores, Relatórios e Alertas leem de todos, e ninguém depende deles.
 - **Um comando é uma transação.** Quando um comando atravessa módulos, como um atendimento que gera a receita, os recebíveis e a baixa de estoque, tudo acontece numa transação só do banco, com chamadas síncronas entre os módulos. Não há barramento de eventos nem fila. Ou o comando inteiro fica gravado, ou nada fica ([ADR 0006](adr/0006-modulos-sincronos-na-mesma-transacao.md)).
 - **A Auditoria entra na mesma transação.** Cada alteração financeira grava o registro de auditoria junto com a mudança, e a auditoria nunca fica para trás nem à frente do dado.
 - **Os alertas são derivados.** Cada módulo expõe as condições de alerta dele (um vencimento, um estoque abaixo do mínimo, um reembolso pendente, uma nota fiscal pendente), e o módulo de Alertas as consulta na hora de mostrar. Só o que o usuário já leu fica gravado. A falha de backup é a exceção, porque vem do histórico de backups, que é um dado como os outros.
@@ -137,6 +137,7 @@ sequenceDiagram
   participant W as web
   participant I as Importação
   participant C as Conciliação
+  participant K as Contas
   participant L as Lançamentos
   U->>W: Envia o arquivo de uma conta
   W->>I: Repassa o arquivo
@@ -148,7 +149,7 @@ sequenceDiagram
   I-->>W: Prévia: movimentações, duplicidades, sugestões
   U->>W: Revisa e confirma
   W->>I: Confirma a importação
-  I->>I: Grava as movimentações (uma transação)
+  I->>K: Grava as movimentações (uma transação)
   I->>C: Grava as conciliações confirmadas
 ```
 
