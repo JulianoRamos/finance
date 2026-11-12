@@ -55,12 +55,13 @@ Cada token tem um valor no tema claro e outro no escuro. O tema segue a preferê
 | `positive-soft` | `#e6f4ea` | `#0f2e1a` | Fundo de selo positivo |
 | `negative` | `#c50000` | `#ff6166` | Saldo negativo, vencida, erro, ação destrutiva |
 | `negative-strong` | `#ee0000` | `#d81f26` | Ícone e borda de erro, fundo do botão destrutivo |
+| `on-negative` | `#ffffff` | `#ffffff` | Texto e ícone sobre `negative-strong`, no botão destrutivo |
 | `negative-soft` | `#ffe8e8` | `#3a1214` | Fundo de selo e de aviso de erro |
 | `warning` | `#ab570a` | `#ffb224` | Texto de atenção: parcial, pendente, a classificar |
 | `warning-strong` | `#f5a623` | `#f5a623` | Ícone e borda de atenção |
 | `warning-soft` | `#ffefcf` | `#3a2a0a` | Fundo de selo e de aviso de atenção |
 
-Os tokens de texto (`ink`, `body`, `mute`, `link`, `positive`, `negative`, `warning`) têm contraste de ao menos 4,5:1 sobre `canvas`, `surface` e `surface-subtle`, e sobre o fundo `-soft` do mesmo significado, no tema deles. O branco sobre `negative-strong` também passa de 4,5:1. Os outros tokens `-strong` não são usados em texto. Quem muda uma cor confere de novo esses pares.
+Os tokens de texto (`ink`, `body`, `mute`, `link`, `positive`, `negative`, `warning`) têm contraste de ao menos 4,5:1 sobre `canvas`, `surface` e `surface-subtle`, e sobre o fundo `-soft` do mesmo significado, no tema deles. O `on-negative` sobre `negative-strong` também passa de 4,5:1. Os outros tokens `-strong` não são usados em texto. Quem muda uma cor confere de novo esses pares.
 
 **Gráficos**
 
@@ -152,11 +153,31 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 
 ### 4.1 Estrutura do app
 
-- **Barra lateral** (desktop): 240px, fundo `canvas`, borda direita `hairline`, com os módulos agrupados (Visão geral, Dinheiro, Clínica, Patrimônio e planejamento, Configurações). Os itens da clínica só aparecem num contexto com uma empresa com a operação de clínica ligada. Pode recolher para só os ícones, com 64px.
-- **Barra superior:** 56px, com o seletor de contexto financeiro à esquerda e, à direita, os alertas, o tema e o menu do usuário.
-- **Seletor de contexto financeiro:** sempre visível. Mostra o nome da entidade ou do grupo e o tipo (PF, PJ, Grupo) num selo. Abre uma lista com busca, agrupada em Grupos, Pessoas físicas e Empresas. Trocar o contexto recarrega os dados da página atual, e nenhuma tela mostra dados sem dizer de quem são.
+- **Barra lateral** (desktop): 280px, fundo `surface`, borda direita `hairline`, na altura toda da tela. De cima para baixo:
+  - **Logo:** a marca num quadrado de 32px e o nome do produto, que levam ao Início.
+  - **Seletor de contexto financeiro** (abaixo).
+  - **Navegação:** os módulos agrupados sob rótulos em `eyebrow` `mute` (Geral, Dinheiro, Clínica, Patrimônio e planejamento). Um item com subitens abre no lugar, com os subitens recuados e uma linha `hairline` à esquerda. O item da página atual fica em `accent-soft`. Os itens de uma operação, como a clínica, só aparecem num contexto com uma empresa que tem essa operação ligada.
+  - **Botão da conta,** no rodapé: avatar, nome e e-mail. Abre o menu da conta, com o nome e o e-mail no topo, Minha conta e Sair.
+  - **Recolhida:** 64px, só com os ícones do logo, do seletor, da navegação e do avatar, cada um com o nome do destino na dica e no `aria-label`. Quem recolhe e abre a barra é o botão na barra superior.
+- **Barra superior:** 56px, fundo `surface`, borda inferior `hairline`, fixa no topo ao rolar. À esquerda, o botão da barra lateral, uma divisória e o caminho da página ("Configurações › Entidades"), em que só os níveis que são uma página têm link. À direita:
+  - a **pesquisa**, um campo de 240px com o atalho ⌘K, que abre a paleta de pesquisa (seção 4.5);
+  - o **tema**;
+  - os **alertas**, com um ponto `accent` quando há algo novo;
+  - as **configurações**, uma engrenagem que abre o menu com os cadastros (Entidades, Grupos financeiros, Usuários e acessos). As configurações ficam só aí, e não na barra lateral. Numa tela de configuração, a engrenagem e o item do menu ficam em `accent-soft`.
+- **Seletor de contexto financeiro:** sempre visível, no topo da barra lateral. Mostra o ícone do tipo (pessoa, empresa ou grupo) num quadrado com borda `hairline`, o nome e uma linha em `body-sm` com o tipo e o resumo ("Grupo · 2 pessoas físicas"). Abre, ao lado da barra, uma lista com busca, agrupada em Grupos, Pessoas físicas e Empresas, com o contexto atual marcado e, no fim, o atalho para os cadastros. Trocar o contexto recarrega os dados da página atual, e nenhuma tela mostra dados sem dizer de quem são.
 - **Navegação inferior** (celular): até quatro destinos e "Mais", com ícone e rótulo, e 64px mais a área segura.
-- **Página:** título em `heading-lg`, ações da página à direita do título e, abaixo, os filtros. A largura máxima do conteúdo é de 1280px, salvo nas tabelas grandes, que ocupam a largura toda.
+- **Telas de acesso** (entrar, definir a senha, recuperar o acesso): fora da estrutura do app, em duas colunas. À esquerda, um painel em `ink` (texto em `on-primary`, frase de apoio no valor escuro de `body`) com o nome do produto, a composição de blocos da capa do design system e uma frase; à direita, sobre `canvas`, o formulário centralizado com largura máxima de 400px, título em `heading-lg` e subtítulo centralizados, campos e botão principal de 44px de altura, e uma linha de rodapé em `body-sm` `mute`. No celular, o painel vai para o topo, menor. Não há login por outro serviço, "manter conectado" nem termos de uso: a sessão tem prazo fixo (LLD, regra 6.1).
+- **Cabeçalho da página:** abaixo da barra superior, sobre o fundo do corpo, com o título em `heading-lg`, uma frase em `body-md`, as ações da página à direita e, abaixo, os filtros, quando a tela tem. Ele rola com o conteúdo, e o caminho na barra superior continua dizendo onde se está.
+- **Corpo:** fundo `surface-subtle`, margem `space-10` nas laterais e `space-8` entre os painéis, que são cartões (seção 4.4). O conteúdo ocupa a largura toda da tela.
+  - **Coluna:** a lista, com a busca no topo, numa base de 300px. O item selecionado fica em `accent-soft`, com contorno `accent`.
+  - **Conteúdo:** o detalhe do item, numa base de 520px, com o dobro da largura da Coluna.
+  - Uma tela sem lista usa só o Conteúdo. Sem espaço para os dois lado a lado, o Conteúdo desce para baixo da Coluna.
+- **Criar e editar:** o formulário ocupa o painel de Conteúdo, no lugar do detalhe, e a lista continua visível. Na criação, um item com o nome da ação e "Ainda não salvo" aparece selecionado no topo da lista. As ações ficam no rodapé do painel, com a principal à direita e, na edição, a destrutiva à esquerda. Uma ação pequena sobre uma parte do detalhe, como registrar ou encerrar uma participação, abre um formulário curto dentro da própria seção, sobre `canvas`.
+- **Camadas,** de baixo para cima:
+  1. o corpo e o cabeçalho da página;
+  2. a barra superior e o menu das configurações;
+  3. a barra lateral e os menus dela, que passam por cima da barra superior;
+  4. o painel lateral, a paleta de pesquisa e os diálogos, sobre o fundo escurecido.
 
 ### 4.2 Botões
 
@@ -165,7 +186,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 | Principal | Fundo `primary`, texto `on-primary` | A ação principal da tela. Uma por área |
 | Secundário | Fundo `surface`, borda `hairline-strong`, texto `ink` | As outras ações |
 | Fantasma | Sem fundo nem borda, texto `body` | Ações de linha e de barra de ferramentas |
-| Destrutivo | Fundo `negative-strong`, texto branco | Excluir, cancelar um registro. Sempre com confirmação |
+| Destrutivo | Fundo `negative-strong`, texto `on-negative` | Excluir, cancelar um registro. Sempre com confirmação |
 | Ícone | Quadrado do tamanho do botão, ícone centralizado | Ações compactas, sempre com `aria-label` e dica |
 
 - Tamanhos: 32px (padrão no desktop), 40px (formulário e celular) e 28px (dentro de tabela). No celular, a área de toque tem ao menos 44px.
@@ -178,7 +199,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 - **Campo de valor:** prefixo `R$`, alinhado à direita, números tabulares e teclado numérico no celular. Aceita "1234,56" e "1.234,56", e formata ao sair do campo. Nunca guarda o valor como número de ponto flutuante: entrega a string decimal do contrato.
 - **Campo de data:** digitação em `dd/mm/aaaa` com calendário ao lado. Atalhos "Hoje" e "Ontem" nos lançamentos.
 - **Seleção e busca:** lista simples até 10 opções; acima disso, com busca. A categoria mostra a árvore, com o caminho do pai ("Casa › Energia").
-- **Caixa de seleção, rádio e chave:** 16px, com rótulo clicável. A chave liga algo na hora, como a operação de clínica; a caixa vale ao salvar.
+- **Caixa de seleção, rádio e chave:** 16px, com rótulo clicável. A chave liga algo na hora, como uma operação da empresa; a caixa vale ao salvar.
 - **Envio de arquivo:** área tracejada com "Arraste o arquivo ou escolha", os formatos aceitos e o tamanho máximo, e a lista dos arquivos com o progresso.
 - **Formulário:** uma coluna no celular e até duas no desktop. As ações ficam no fim, com a principal à direita no desktop, e fixas no rodapé no celular.
 
@@ -207,7 +228,9 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 - **Aviso temporário:** no canto inferior direito (topo no celular), some em 5 segundos, e o de erro só ao fechar. Anunciado por `aria-live`.
 - **Diálogo:** fundo `surface`, raio `radius-lg`, nível 2, largura máxima de 560px, fundo da página escurecido a 40%. Fecha com Esc e com o botão de fechar, e devolve o foco a quem o abriu. No celular, vira uma folha que sobe do rodapé.
 - **Confirmação destrutiva:** diz o que vai acontecer e o que não volta, e o botão repete a ação ("Cancelar pacote"), em vez de "Sim".
-- **Menu:** nível 2, raio `radius-sm`, itens de 32px, e o destrutivo por último, em `negative`.
+- **Menu:** nível 2, raio `radius-md`, itens de 36px (40px quando trazem um ícone num quadrado, como no seletor de contexto), rótulos de grupo em `eyebrow` `mute`, divisórias `hairline` entre os grupos, e o destrutivo por último, em `negative`.
+- **Painel lateral:** abre pela direita, por cima de tudo, com até 520px de largura, fundo `surface`, borda esquerda `hairline`, nível 2 e o fundo da página escurecido a 40%. Rola por dentro e fecha com Esc e com o botão de fechar. Serve para consultar algo ao lado do item, como o histórico de alterações.
+- **Paleta de pesquisa:** um diálogo de 640px, a 120px do topo, aberto pelo campo da barra superior ou por ⌘K (Ctrl+K). Tem o campo de 56px, os resultados agrupados por tipo, com o primeiro em `surface-subtle` e o trecho encontrado em `accent-soft`, e um rodapé em `body-sm` com os atalhos (↑ ↓, ↵ e Esc). Sem nada digitado, mostra os destinos e as ações mais comuns; sem resultado, diz o que a pesquisa procura.
 - **Estado vazio:** ícone, uma frase do que falta e a ação que resolve ("Nenhuma conta ainda. Cadastrar conta").
 - **Carregando:** blocos cinza (`surface-subtle`) no formato do conteúdo, e não um indicador girando no meio da página.
 - **Erro de carregamento:** a área mostra o que falhou e um botão "Tentar de novo"; o resto da página continua funcionando.
@@ -261,7 +284,7 @@ Todo componente interativo define estes estados, e o protótipo os mostra quando
 
 Este documento é o dono dos tokens e dos componentes. O que está no Claude é uma cópia para desenhar, e o código é a implementação.
 
-1. **Design system no Claude:** um artefato do tipo Design System, com os tokens e os componentes deste documento em visualizações navegáveis. Ele é refeito a partir deste documento sempre que um PR muda as seções 2 a 7, e não é editado direto.
+1. **Design system no Claude:** um artefato do tipo Design System (https://claude.ai/artifact/HhWAbERmJvUWh37ZHk16d8), com os tokens e os componentes deste documento em visualizações navegáveis. Ele é refeito a partir deste documento sempre que um PR muda as seções 2 a 7, e não é editado direto.
 2. **Protótipo:** cada tela é desenhada no Claude Design sobre esse design system, em pt-BR e com o vocabulário do glossário, nos dois temas e nas larguras de celular e desktop quando a tela muda entre elas, com os estados vazio, carregando e de erro quando a tela os tem.
 3. **Publicação:** a tela é salva no repositório `JulianoRamos/finance-prototipo` como `<Tela>.dc.html`, na raiz, com o nome em PascalCase, sem acento (`Lancamentos`, `Conciliacao`, `AtendimentoNovo`), num commit que diz o que mudou.
 4. **Uso nos tickets:** a spec e o ticket citam o repositório, o commit e o recorte de cada tela, como a "Referência visual" do `AGENTS.md` da raiz descreve.
