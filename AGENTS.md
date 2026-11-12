@@ -156,7 +156,7 @@ O Jira é o gerenciador de issues do projeto, acessado pelo servidor MCP `atlass
 
 ### Referência visual
 
-Os protótipos do produto ficam no repositório `JulianoRamos/finance-prototipo`, que nasce no Claude Design e é publicado para validação. Cada tela é um arquivo `<Tela>.dc.html` na raiz dele, e é citada pelo nome sem a extensão, como `Lancamentos`. O protótipo anda à frente do código e traz o que ainda vai entrar, então ele nunca é o escopo: o escopo é o recorte que a spec e o ticket fazem dele.
+Os protótipos do produto ficam no repositório `JulianoRamos/finance-prototipo`, que nasce no Claude Design e é publicado para validação. Cada tela é um arquivo `<Tela>.dc.html` na raiz dele, e é citada pelo nome sem a extensão, como `Lancamentos`. O protótipo anda à frente do código e traz o que ainda vai entrar, então ele nunca é o escopo: o escopo é o recorte que a spec e o ticket fazem dele. O repositório é público, então um protótipo só traz dados fictícios: nenhum nome, valor, conta ou documento real da família, da clínica ou das clientes.
 
 - **Na spec e no ticket de interface:** a seção "Referência visual" traz o repositório, o commit (um hash, e não uma branch nem uma tag, que mudam) e, por tela, o que entra e o que fica fora. O ticket estreita o recorte da spec à fatia dele. O que está na tela e o ticket não cita fica fora do escopo.
 - **No plano:** a `/plan-ticket` baixa só as telas citadas, naquele commit, para a pasta `referencia/` do ticket, com o comando da referência visual (ver "Valores da skill de plano"), e registra o recorte no bloco `Visual reference:` da mensagem do commit de plano. A pasta fica fora do Git, como tudo na pasta do ticket, salvo o aceite.
