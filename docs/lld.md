@@ -48,7 +48,6 @@ As versões exatas são fixadas no ticket que cria cada app, na versão estável
 | Datas | `date-fns` e `@date-fns/tz` | Datas de calendário e o fuso America/Sao_Paulo |
 | Senha | `@node-rs/argon2` | argon2id |
 | Segundo fator | `otplib` | TOTP, RFC 6238 |
-| Limite de tentativas por origem | `@nestjs/throttler` | O limite por conta fica no banco (seção 6.1) |
 | Agendador | `@nestjs/schedule` | Tarefas da seção 7 |
 | Logs | `nestjs-pino` | JSON na saída padrão |
 | CSV | `csv-parse` | Leitura dos extratos |
@@ -266,7 +265,7 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 
 - **Prefixo:** `/v1`.
 - **Nomes:** caminhos, parâmetros, cabeçalhos, campos JSON, códigos de erro e valores de enumeração em inglês, como a seção 4.1. Os caminhos de um recurso usam o plural do termo em `kebab-case` (`/v1/entity-transfers`), e os campos JSON, `camelCase`. Só a `message` do erro é texto para o usuário, em português.
-- **Autenticação:** esquema `session`, um `Authorization: Bearer <token>` que a `web` monta com o cookie. As rotas públicas (login, uso de link de recuperação, saúde) são marcadas como tal.
+- **Autenticação:** esquema `session`, um `Authorization: Bearer <token>` que a `web` monta com o cookie. As rotas públicas (login, consulta e uso de link de recuperação, saúde) são marcadas como tal; as outras respondem 401 `UNAUTHENTICATED` sem uma sessão válida. O login com o e-mail ou a senha errados responde 401 `INVALID_CREDENTIALS`, com a mesma mensagem exista ou não o e-mail.
 - **Contexto financeiro:** o cabeçalho `Financial-Context`, com `entity:<id>` ou `group:<id>`, obrigatório nas rotas de dados.
 - **Identificador da requisição:** o cabeçalho `X-Request-Id`, um UUID, opcional em toda rota. A `web` gera um a cada requisição do navegador e o manda em toda chamada à `api` feita nela. A `api` usa o recebido quando ele é um UUID e gera outro quando falta ou não é; o identificador vai para o registro de auditoria (seção 4.4). Como vale para todas as rotas, ele fica nesta convenção, e não em cada rota do `openapi.json`.
 - **Dinheiro e quantidades** trafegam como string decimal (`"1234.56"`), e nunca como número JSON. **Datas de calendário** como `"AAAA-MM-DD"`, e instantes em ISO 8601 com fuso.
@@ -294,7 +293,11 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 
 - **Sessão:** expira depois de 7 dias sem uso e, de qualquer forma, 30 dias depois da criação. O `last_used_at` é atualizado no máximo uma vez por minuto. A troca de senha encerra as outras sessões do usuário.
 - **Limite de tentativas:** 5 falhas por e-mail em 15 minutos bloqueiam aquela etapa por 15 minutos; 20 falhas por origem em 15 minutos bloqueiam a origem. A resposta do bloqueio não diz se o e-mail existe.
-- **Link de recuperação:** vale 1 hora e uma vez só. É gerado por um usuário com `manages_access` ou pelo comando `recover-access <email>` no servidor. Usá-lo define a nova senha e encerra todas as sessões.
+  - **Contagem:** as falhas ficam no `login_attempt`, as de e-mail e as de origem, e o bloqueio dura 15 minutos a partir da falha que atingiu o limite. A tentativa feita durante o bloqueio não é conferida nem contada. O sucesso não zera as falhas.
+  - **Igual para quem não existe:** o e-mail que não existe conta falhas e é bloqueado como um que existe, e o login confere a senha contra um hash fixo quando não há usuário, para o tempo da resposta não dizer se o e-mail existe.
+  - **Origem:** o primeiro endereço do `X-Forwarded-For`, que a `web` repassa e a `api` aceita porque só a `web` a alcança (ADR 0004); sem ele, o endereço da conexão.
+  - **Link de recuperação:** a consulta ou o uso de um link que não vale conta uma falha da origem, na etapa `recovery`, sem e-mail.
+- **Link de recuperação:** vale 1 hora e uma vez só. É gerado por um usuário com `manages_access` ou pelo comando `recover-access <email>` no servidor. Usá-lo define a nova senha, encerra todas as sessões e abre uma sessão nova. O comando imprime o link inteiro, com o endereço de `PUBLIC_URL`.
 - **Senha:** pelo menos 12 caracteres, sem outra regra de composição. A definição e a troca pedem a senha duas vezes.
 - **Primeiro usuário:** o comando `create-user <nome> <email>` no servidor cria um usuário com `manages_access` e devolve um link de recuperação, com a mesma validade, para ele definir a senha. Os outros usuários são cadastrados pela interface, por quem tem `manages_access`, e recebem o link da mesma forma.
 - **Segundo fator:** a ativação confirma um código antes de valer e gera 10 códigos de recuperação, mostrados uma vez. Desativar pede a senha e um código.
@@ -500,6 +503,7 @@ Os horários estão em America/Sao_Paulo. Uma tarefa que falha registra o erro n
 | `TOTP_KEY` | api | Chave AES-256 do segredo do TOTP, em base64 | |
 | `SESSION_IDLE_DAYS` | api | Regra 6.1 | 7 |
 | `SESSION_MAX_DAYS` | api | Regra 6.1 | 30 |
+| `PUBLIC_URL` | api | O endereço público da `web`, com que os comandos montam o link de recuperação | |
 | `DOCUMENTS_DIR` | api | Pasta do volume de documentos | `/data/documents` |
 | `DOCUMENT_MAX_SIZE_MB` | api | Limite de um arquivo enviado | 20 |
 | `BACKUP_DIR` | api | Pasta do volume de backups | `/data/backups` |
@@ -510,8 +514,9 @@ Os horários estão em America/Sao_Paulo. Uma tarefa que falha registra o erro n
 | `BACKUP_S3_ENDPOINT`, `BACKUP_S3_BUCKET`, `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY`, `BACKUP_S3_SECRET_KEY` | api | Cópia externa, opcional: sem o endpoint, ela fica `not_configured` | |
 | `API_URL` | web | Endereço da `api` na rede interna | `http://api:3001` |
 | `COOKIE_SECURE` | web | Cookie com `Secure`; desligado só no desenvolvimento | `true` |
+| `E2E_DATABASE_URL` | web | Conexão com o banco de desenvolvimento, com o papel `finance_app`, só para a preparação dos testes de ponta a ponta, no desenvolvimento e na CI | |
 | `DOMAIN` | proxy | Domínio público do Caddy | |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | db | Banco e papel dono das tabelas, que aplica as migrações | |
 | `POSTGRES_APP_PASSWORD` | db | Senha do papel `finance_app`, com que a `api` se conecta (seção 4.4) | |
 
-O proxy repassa o host público em `X-Forwarded-Host` e a origem em `X-Forwarded-For`, para a conferência de origem das ações do Next e para o limite de tentativas por origem. A `web` repassa a origem à `api` no mesmo cabeçalho, e a `api` só confia nele quando vem da `web`.
+O proxy repassa o host público em `X-Forwarded-Host` e a origem em `X-Forwarded-For`, para a conferência de origem das ações do Next e para o limite de tentativas por origem. A `web` repassa a origem à `api` no mesmo cabeçalho, junto com o `User-Agent` do navegador, e a `api` confia nele porque só a `web` a alcança.

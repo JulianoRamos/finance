@@ -16,6 +16,11 @@ Uma pessoa que acessa o sistema com login próprio. Um usuário pode ver ou oper
 _Avoid_: Conta (de acesso), entidade
 **Em código:** `user`
 
+**Link de recuperação**:
+Um link de uso único, que vale 1 hora, com que um usuário define a senha: a primeira, depois de cadastrado, ou uma nova, quando perdeu o acesso. O sistema não envia e-mail: quem gere os acessos, ou o comando no servidor, gera o link e o entrega ao usuário.
+_Avoid_: Convite, token, código de recuperação (que é do segundo fator)
+**Em código:** `recovery_link`
+
 **Grupo financeiro**:
 Um conjunto de entidades consultado de forma consolidada.
 _Avoid_: Família (como termo técnico), carteira
