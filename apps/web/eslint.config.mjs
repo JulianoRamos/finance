@@ -5,11 +5,13 @@ import boundaries from 'eslint-plugin-boundaries';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
-// As camadas da web (AGENTS.md da web, "Camadas e imports"): as rotas do App Router usam o acesso à
-// api, e o acesso à api não conhece as rotas.
+// As camadas da web (AGENTS.md da web, "Camadas e imports"): as rotas do App Router e o proxy usam o
+// acesso à api, e o acesso à api não conhece nenhum dos dois.
 const elements = [
   { type: 'api', pattern: 'src/api' },
   { type: 'app', pattern: 'src/app' },
+  // Por último: os arquivos soltos em src/, como o proxy.ts.
+  { type: 'root', pattern: 'src' },
 ];
 
 export default defineConfig([
@@ -39,7 +41,7 @@ export default defineConfig([
         'error',
         {
           default: 'disallow',
-          policies: [{ from: { element: { type: 'app' } }, allow: { to: { element: { type: 'api' } } } }],
+          policies: [{ from: { element: { type: ['app', 'root'] } }, allow: { to: { element: { type: 'api' } } } }],
         },
       ],
     },

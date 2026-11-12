@@ -23,8 +23,10 @@ model AuditLog {
   /// O usuário que fez a alteração. Nulo quando ela veio de um comando no servidor, sem usuário, como o
   /// create-user (regra 6.1). Sem chave estrangeira para user, para o registro sobreviver ao usuário.
   userId     String?     @map("user_id") @db.Uuid
-  /// O instante da transação do comando.
-  occurredAt DateTime    @default(now()) @map("occurred_at") @db.Timestamptz
+  /// O instante da transação do comando. O padrão é o do banco, e não o now() do Prisma, que o cliente
+  /// calcula fora da transação; o transaction_timestamp(), e não o CURRENT_TIMESTAMP, porque o Prisma lê
+  /// este como o now() dele, e veria uma diferença entre o schema e a migração.
+  occurredAt DateTime    @default(dbgenerated("transaction_timestamp()")) @map("occurred_at") @db.Timestamptz
   /// create, update ou delete.
   action     AuditAction
   /// O nome da tabela do registro, no banco (snake_case), como entity ou financial_group.

@@ -57,6 +57,15 @@ O `eslint-plugin-boundaries` confere essas regras no lint (`eslint.config.mjs`).
 - **DTOs.** As classes de entrada e de saída das rotas, com os decorators do `@nestjs/swagger` (`@ApiProperty`) e, na entrada, os do `class-validator`. O nome da classe é o nome do schema no `openapi.json`, então ele é do domínio (`Health`, e não `HealthDto`).
 - **Cada resposta e cada erro da rota** é declarado no controlador (`@ApiOkResponse`, `@ApiServiceUnavailableResponse` e os outros), porque o contrato é o que os decorators geram.
 
+## Transação e auditoria
+
+O mecanismo (o contexto da requisição, a transação, o antes e o depois, os papéis do banco) está no `docs/lld.md`, seções 3 e 4.4. No código:
+
+- **O comando abre a transação** com o `TransactionService.run`, do `common`, no serviço do módulo que recebeu a requisição. Dentro dela, toda consulta usa o `TransactionService.client`, e nunca o `PrismaService` direto, senão ela fica fora da transação. Um `run` dentro de outro roda na transação já aberta.
+- **Toda alteração de registro grava a auditoria** com o `AuditService.record`, do módulo Auditoria, dentro da transação do comando: a operação, a tabela (o nome no banco), o id, a entidade (ou nulo) e o registro de antes e o de depois, como o Prisma os lê. O usuário e o identificador da requisição vêm do contexto, e o serviço converte os valores e retira os campos sensíveis. Fora de uma transação, o `record` recusa a gravação.
+- **O contexto da requisição** é aberto pelo middleware que o `configureApp` registra. A autenticação define o usuário com o `setCurrentUser`, antes de o comando abrir a transação, e um comando fora de uma requisição abre o próprio contexto com o `runInRequestContext`.
+- **Nos testes de integração,** a app se conecta com o papel `finance_app`, como em produção, e a preparação da suíte (`test/setup-database.ts`) usa o papel dono, que esvazia a auditoria antes da suíte. Dentro dela, o papel da app não apaga a auditoria, então um teste filtra os registros dela pelo id do registro que criou, e não conta com a tabela vazia.
+
 ## Erros
 
 - Um erro que a rota devolve sai como `HttpException` com o status e o corpo do contrato (`docs/lld.md`, seção 5, que registra também a exceção da rota de saúde). O corpo nunca traz a mensagem de uma exceção do driver, da biblioteca ou do sistema: ela vai só para o log, pelo `Logger` do Nest.
