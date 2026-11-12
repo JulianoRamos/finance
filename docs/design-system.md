@@ -55,12 +55,13 @@ Cada token tem um valor no tema claro e outro no escuro. O tema segue a preferê
 | `positive-soft` | `#e6f4ea` | `#0f2e1a` | Fundo de selo positivo |
 | `negative` | `#c50000` | `#ff6166` | Saldo negativo, vencida, erro, ação destrutiva |
 | `negative-strong` | `#ee0000` | `#d81f26` | Ícone e borda de erro, fundo do botão destrutivo |
+| `on-negative` | `#ffffff` | `#ffffff` | Texto e ícone sobre `negative-strong`, no botão destrutivo |
 | `negative-soft` | `#ffe8e8` | `#3a1214` | Fundo de selo e de aviso de erro |
 | `warning` | `#ab570a` | `#ffb224` | Texto de atenção: parcial, pendente, a classificar |
 | `warning-strong` | `#f5a623` | `#f5a623` | Ícone e borda de atenção |
 | `warning-soft` | `#ffefcf` | `#3a2a0a` | Fundo de selo e de aviso de atenção |
 
-Os tokens de texto (`ink`, `body`, `mute`, `link`, `positive`, `negative`, `warning`) têm contraste de ao menos 4,5:1 sobre `canvas`, `surface` e `surface-subtle`, e sobre o fundo `-soft` do mesmo significado, no tema deles. O branco sobre `negative-strong` também passa de 4,5:1. Os outros tokens `-strong` não são usados em texto. Quem muda uma cor confere de novo esses pares.
+Os tokens de texto (`ink`, `body`, `mute`, `link`, `positive`, `negative`, `warning`) têm contraste de ao menos 4,5:1 sobre `canvas`, `surface` e `surface-subtle`, e sobre o fundo `-soft` do mesmo significado, no tema deles. O `on-negative` sobre `negative-strong` também passa de 4,5:1. Os outros tokens `-strong` não são usados em texto. Quem muda uma cor confere de novo esses pares.
 
 **Gráficos**
 
@@ -156,6 +157,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 - **Barra superior:** 56px, com o seletor de contexto financeiro à esquerda e, à direita, os alertas, o tema e o menu do usuário.
 - **Seletor de contexto financeiro:** sempre visível. Mostra o nome da entidade ou do grupo e o tipo (PF, PJ, Grupo) num selo. Abre uma lista com busca, agrupada em Grupos, Pessoas físicas e Empresas. Trocar o contexto recarrega os dados da página atual, e nenhuma tela mostra dados sem dizer de quem são.
 - **Navegação inferior** (celular): até quatro destinos e "Mais", com ícone e rótulo, e 64px mais a área segura.
+- **Telas de acesso** (entrar, definir a senha, recuperar o acesso): fora da estrutura do app, em duas colunas. À esquerda, um painel em `ink` (texto em `on-primary`, apoio em `faint` do tema escuro) com o nome do produto, a composição de blocos da capa do design system e uma frase; à direita, sobre `canvas`, o formulário centralizado com largura máxima de 400px, título em `heading-lg` e subtítulo centralizados, campos e botão principal de 44px de altura, e uma linha de rodapé em `body-sm` `mute`. No celular, o painel vai para o topo, menor. Não há login por outro serviço, "manter conectado" nem termos de uso: a sessão tem prazo fixo (LLD, regra 6.1).
 - **Página:** título em `heading-lg`, ações da página à direita do título e, abaixo, os filtros. A largura máxima do conteúdo é de 1280px, salvo nas tabelas grandes, que ocupam a largura toda.
 
 ### 4.2 Botões
@@ -165,7 +167,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 | Principal | Fundo `primary`, texto `on-primary` | A ação principal da tela. Uma por área |
 | Secundário | Fundo `surface`, borda `hairline-strong`, texto `ink` | As outras ações |
 | Fantasma | Sem fundo nem borda, texto `body` | Ações de linha e de barra de ferramentas |
-| Destrutivo | Fundo `negative-strong`, texto branco | Excluir, cancelar um registro. Sempre com confirmação |
+| Destrutivo | Fundo `negative-strong`, texto `on-negative` | Excluir, cancelar um registro. Sempre com confirmação |
 | Ícone | Quadrado do tamanho do botão, ícone centralizado | Ações compactas, sempre com `aria-label` e dica |
 
 - Tamanhos: 32px (padrão no desktop), 40px (formulário e celular) e 28px (dentro de tabela). No celular, a área de toque tem ao menos 44px.
@@ -261,7 +263,7 @@ Todo componente interativo define estes estados, e o protótipo os mostra quando
 
 Este documento é o dono dos tokens e dos componentes. O que está no Claude é uma cópia para desenhar, e o código é a implementação.
 
-1. **Design system no Claude:** um artefato do tipo Design System, com os tokens e os componentes deste documento em visualizações navegáveis. Ele é refeito a partir deste documento sempre que um PR muda as seções 2 a 7, e não é editado direto.
+1. **Design system no Claude:** um artefato do tipo Design System (https://claude.ai/artifact/HhWAbERmJvUWh37ZHk16d8), com os tokens e os componentes deste documento em visualizações navegáveis. Ele é refeito a partir deste documento sempre que um PR muda as seções 2 a 7, e não é editado direto.
 2. **Protótipo:** cada tela é desenhada no Claude Design sobre esse design system, em pt-BR e com o vocabulário do glossário, nos dois temas e nas larguras de celular e desktop quando a tela muda entre elas, com os estados vazio, carregando e de erro quando a tela os tem.
 3. **Publicação:** a tela é salva no repositório `JulianoRamos/finance-prototipo` como `<Tela>.dc.html`, na raiz, com o nome em PascalCase, sem acento (`Lancamentos`, `Conciliacao`, `AtendimentoNovo`), num commit que diz o que mudou.
 4. **Uso nos tickets:** a spec e o ticket citam o repositório, o commit e o recorte de cada tela, como a "Referência visual" do `AGENTS.md` da raiz descreve.
