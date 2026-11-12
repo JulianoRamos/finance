@@ -118,7 +118,8 @@ O segredo do TOTP é cifrado com AES-256-GCM e a chave `TOTP_CHAVE`, porque prec
 
 | Tabela | Colunas que carregam regra | Restrições |
 | --- | --- | --- |
-| `entidade` | `tipo` (pf, pj), `nome`, `documento`, `operacao_clinica`, `ativa` | `CHECK (tipo = 'pj' OR NOT operacao_clinica)`. `documento` único quando preenchido |
+| `entidade` | `tipo` (pf, pj), `nome`, `documento`, `ativa` | `documento` único quando preenchido. O `tipo` não muda depois da criação (regra 6.2) |
+| `entidade_operacao` | `entidade_id`, `operacao` (clinica) | Chave `(entidade_id, operacao)`. Só pessoa jurídica (regra 6.2) |
 | `grupo_financeiro` | `nome`, `visao_familiar` | Índice único parcial: só um grupo com `visao_familiar` |
 | `grupo_membro` | `grupo_id`, `entidade_id` | Chave `(grupo_id, entidade_id)`. Só pessoa física na Visão Familiar (regra 6.2) |
 | `participacao_societaria` | `detentora_id` (pessoa física ou empresa), `empresa_id` (pessoa jurídica), `fracao`, `inicio`, `fim` | `0 < fracao <= 1`. A soma vigente por empresa não passa de 1, e não há ciclo (regra 6.17) |
@@ -194,7 +195,7 @@ O saldo em aberto do reembolso e do empréstimo é calculado: o valor menos as q
 | `atendimento_procedimento` | `atendimento_id`, `procedimento_id`, `valor` | |
 | `nota_fiscal` | `entidade_id`, `atendimento_id`, `pacote_id`, `numero`, `data`, `valor`, `documento_id` | Exatamente um entre `atendimento_id` e `pacote_id`, e no máximo uma nota não cancelada por registro |
 
-A clínica só aceita escrita em entidade com `operacao_clinica`; o serviço confere isso antes de qualquer comando.
+A clínica só aceita escrita em entidade com a operação `clinica` ligada; o serviço confere isso antes de qualquer comando.
 
 ### 4.12 Estoque
 
@@ -277,15 +278,22 @@ A clínica só aceita escrita em entidade com `operacao_clinica`; o serviço con
 - **Sessão:** expira depois de 7 dias sem uso e, de qualquer forma, 30 dias depois da criação. O `ultimo_uso_em` é atualizado no máximo uma vez por minuto. A troca de senha encerra as outras sessões do usuário.
 - **Limite de tentativas:** 5 falhas por e-mail em 15 minutos bloqueiam aquela etapa por 15 minutos; 20 falhas por origem em 15 minutos bloqueiam a origem. A resposta do bloqueio não diz se o e-mail existe.
 - **Link de recuperação:** vale 1 hora e uma vez só. É gerado por um usuário com `gere_acessos` ou pelo comando `recuperar-acesso <email>` no servidor. Usá-lo define a nova senha e encerra todas as sessões.
+- **Senha:** pelo menos 12 caracteres, sem outra regra de composição. A definição e a troca pedem a senha duas vezes.
 - **Primeiro usuário:** o comando `criar-usuario <nome> <email>` no servidor cria um usuário com `gere_acessos` e devolve um link de recuperação, com a mesma validade, para ele definir a senha. Os outros usuários são cadastrados pela interface, por quem tem `gere_acessos`, e recebem o link da mesma forma.
 - **Segundo fator:** a ativação confirma um código antes de valer e gera 10 códigos de recuperação, mostrados uma vez. Desativar pede a senha e um código.
 - **Permissão:** `ver` lê, `operar` lê e escreve. Gerir usuários e permissões exige `gere_acessos`. No uso inicial, os dois usuários têm `operar` em todas as entidades e `gere_acessos`.
+- **Troca de e-mail:** o e-mail é o login e é trocado por quem tem `gere_acessos`. A troca encerra as sessões do usuário.
+- **Usuário desativado:** não entra, e as sessões dele são encerradas na hora. O histórico e as permissões ficam guardados, e ele pode ser reativado.
 
 ### 6.2 Entidades e grupos
 
 - A Visão Familiar já vem criada na primeira subida e só aceita pessoa física. As outras pessoas físicas cadastradas não entram nela sozinhas.
+- A Visão Familiar não é renomeada nem excluída.
+- O tipo de uma entidade (pessoa física ou jurídica) não muda depois da criação.
 - Uma entidade com registros não é excluída: é desativada, e some das escolhas sem sumir dos números do passado.
-- A operação de clínica só se liga em pessoa jurídica. Desligá-la esconde as funções, e não apaga nada.
+- **Exclusão de grupo:** um grupo sem metas é excluído, e quem estava nesse contexto volta para a Visão Familiar. Um grupo com metas é recusado, com `422 GRUPO_COM_METAS`, até as metas serem excluídas ou passadas para outro dono.
+- **Operações:** só se ligam em pessoa jurídica, e uma empresa pode ter várias ligadas. Na API, a entidade traz a lista das ligadas (`"operacoes": ["clinica"]`). Desligar uma operação esconde as funções dela e recusa novas escritas, e não apaga nada: ao religar, tudo volta como estava. Os lançamentos que a operação criou continuam nos números, mas só mudam com ela ligada (regra 6.20).
+- **Participação societária:** é encerrada informando o último dia (`fim`). Depois dele, a fração deixa de contar como vigente, e o registro continua no histórico.
 
 ### 6.3 Saldo e ajuste
 
@@ -432,6 +440,15 @@ Os tipos permitidos por par de entidades e o efeito em cada lado:
 ### 6.21 Arredondamento
 
 Toda divisão de dinheiro é feita em centavos, e a diferença dos centavos fica numa parcela só, para que a soma das partes seja exatamente o total: a primeira parcela num parcelamento, a última sessão num pacote, o último item no rateio do frete. Cada taxa é arredondada meio para cima, ao centavo.
+
+### 6.22 Pesquisa
+
+- **Rota:** `GET /v1/pesquisa?termo=<texto>`, sem o cabeçalho `Contexto-Financeiro`, porque procura em todos os contextos do usuário. O termo tem ao menos 2 caracteres e é comparado sem acento e sem diferença de maiúsculas, em qualquer posição do nome.
+- **Onde procura:** nas entidades em que o usuário tem `ver` ou `operar`, nos grupos em que ele tem permissão em todos os membros (a mesma regra do contexto financeiro) e, só para quem tem `gere_acessos`, nos usuários. Uma entidade desativada aparece marcada como tal.
+- **Resposta:** até 5 resultados por tipo, cada um com o tipo, o id, o nome e um complemento (o tipo da entidade, o resumo do grupo, o e-mail do usuário).
+- **Cada módulo** responde pelos próprios registros, por uma função pública que o módulo Pesquisa chama. Um módulo novo entra na pesquisa no ticket que o cria.
+- **Telas e ações** não passam pela API: a `web` as filtra pelo termo e pelas permissões do usuário, como "Novo usuário" só para quem tem `gere_acessos`.
+- **Abrir um resultado:** uma entidade, um grupo ou um usuário abre o cadastro dele; "Trocar para", o contexto financeiro dele.
 
 ## 7. Tarefas agendadas
 

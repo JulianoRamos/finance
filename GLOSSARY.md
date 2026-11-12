@@ -108,8 +108,12 @@ _Avoid_: Adiantamento, empréstimo entre entidades (que é outro tipo de repasse
 
 ## Empresa
 
+**Operação**:
+O conjunto de funções de um segmento de negócio, ligado em cada empresa que precisa dele. Toda empresa tem o núcleo financeiro, e cada operação ligada acrescenta as funções do segmento. Uma empresa pode ter várias operações ligadas, ou nenhuma.
+_Avoid_: Segmento, módulo, tipo de empresa
+
 **Operação de clínica**:
-O conjunto de funções de clínica (clientes, procedimentos, atendimentos, pacotes, estoque e compras) ligado em cada empresa que precisa dele. Toda empresa tem o núcleo financeiro, e só a que tem a operação ligada tem essas funções.
+A operação com as funções de clínica: clientes, procedimentos, atendimentos, pacotes, estoque e compras. É a única operação por enquanto.
 _Avoid_: Módulo clínico, tipo de empresa
 
 **Cliente**:

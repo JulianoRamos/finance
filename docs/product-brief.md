@@ -6,7 +6,7 @@ Este documento diz o que o finance é, para quem é, o que entra no escopo, o qu
 
 **Problema.** A família e a clínica não têm controle financeiro estruturado. Não se sabe o custo de vida, o dinheiro passa entre a pessoa física da esposa e a clínica sem classificação, e a clínica não conhece o próprio resultado, o custo dos procedimentos nem o estoque.
 
-**Solução.** Uma aplicação web que mantém separadas as finanças de cada entidade, pessoa física ou jurídica, em quantas houver, importa os extratos bancários, classifica os repasses entre pessoa física e empresa e mostra, em cada contexto financeiro, a situação da entidade ou da Visão Familiar. Toda empresa tem resultado gerencial, e a empresa com a operação de clínica ligada ganha atendimentos, pacotes, estoque e compras.
+**Solução.** Uma aplicação web que mantém separadas as finanças de cada entidade, pessoa física ou jurídica, em quantas houver, importa os extratos bancários, classifica os repasses entre pessoa física e empresa e mostra, em cada contexto financeiro, a situação da entidade ou da Visão Familiar. Toda empresa tem resultado gerencial, e cada uma liga as operações do segmento dela. A primeira é a operação de clínica, que traz atendimentos, pacotes, estoque e compras.
 
 **Critérios de sucesso.** Medidos depois da entrada em produção, mês a mês, com os dados reais de todas as entidades cadastradas:
 
@@ -37,8 +37,11 @@ As histórias estão agrupadas pela fase de construção (ver "Fases"). Os crit�
 - Como usuário, quero cadastrar entidades e grupos financeiros e escolher o contexto financeiro, para ver só os números de quem me interessa.
   - O usuário cadastra quantas pessoas físicas e jurídicas precisar, com o nome que quiser. No uso inicial são três: as pessoas físicas do titular e da esposa e a clínica.
   - A Visão Familiar já vem criada, e o usuário escolhe quais pessoas físicas fazem parte dela. Ela não aceita empresas.
-  - Cada empresa tem a operação de clínica ligada ou não, e a própria árvore de categorias.
+  - Cada empresa tem as próprias operações ligadas, hoje só a de clínica, e a própria árvore de categorias.
   - Toda tela de dados mostra o contexto financeiro escolhido, e nenhum número de outra entidade aparece nela.
+- Como usuário, quero pesquisar pelo nome, de qualquer tela, para achar um cadastro, uma tela ou uma ação sem saber onde estão.
+  - A pesquisa procura em todas as entidades em que o usuário tem permissão, e não só no contexto escolhido.
+  - Cada módulo acrescenta os próprios registros à pesquisa quando nasce.
 - Como usuário, quero que toda alteração financeira fique registrada, para saber quem mudou o quê.
   - Cada criação, alteração ou exclusão de um registro financeiro guarda quem fez, quando, o registro e os valores anteriores e novos.
 
