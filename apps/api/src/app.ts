@@ -1,5 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 
+import { requestContextMiddleware } from './common/index.js';
+
 /** O prefixo de todas as rotas (LLD, seção 5). */
 export const PREFIX = 'v1';
 
@@ -9,4 +11,6 @@ export const PREFIX = 'v1';
  */
 export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix(PREFIX);
+  // O contexto de cada requisição: o identificador, o usuário e a transação do comando (LLD, seção 3).
+  app.use(requestContextMiddleware);
 }

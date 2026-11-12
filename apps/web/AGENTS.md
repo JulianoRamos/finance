@@ -30,12 +30,13 @@ Tudo roda no contêiner `web`, da raiz do repositório, com o ambiente no ar (`A
 
 ```
 src/
-  app/    as rotas do App Router: páginas, layouts e rotas de repasse
-  api/    o acesso à api: o cliente gerado e as funções que o usam
+  app/      as rotas do App Router: páginas, layouts e rotas de repasse
+  api/      o acesso à api: o cliente gerado e as funções que o usam
+  proxy.ts  o proxy do Next, que roda antes de cada requisição
 e2e/      os testes de ponta a ponta
 ```
 
-- **`app` usa `api`,** e `api` não conhece `app`. Nenhuma página chama `fetch` para a `api` direto: ela passa por uma função de `src/api/`.
+- **`app` e o `proxy.ts` usam `api`,** e `api` não conhece nenhum dos dois. Nenhuma página chama `fetch` para a `api` direto: ela passa por uma função de `src/api/`.
 - **Sem regra de negócio:** a `web` formata e mostra o que a `api` devolve. Validação de formulário é só para a experiência; a que vale é a da `api`.
 - Imports de dentro de `src/` usam o alias `@/` entre camadas e caminho relativo dentro da mesma camada.
 

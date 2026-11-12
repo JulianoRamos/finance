@@ -36,13 +36,13 @@ O ambiente de desenvolvimento usa o `compose.dev.yaml`, na raiz:
 | --- | --- | --- | --- |
 | `harness` | O Node do harness: o conferidor do aceite, a página do plano e os testes do harness | Não é publicado | Não recebe conexões |
 | `deps` | Instala as dependências do workspace e o Chromium do Playwright, e termina | Não é publicado | Não recebe conexões |
-| `db` | O PostgreSQL 18, com o banco de desenvolvimento (`finance`) e o dos testes de integração da `api` (`finance_test`) | Não é publicado | `db:5432` |
+| `db` | O PostgreSQL 18, com o banco de desenvolvimento (`finance`), o dos testes de integração da `api` (`finance_test`) e o papel da `api` (`finance_app`) | Não é publicado | `db:5432` |
 | `api` | A `api` (NestJS) em modo de observação | Não é publicada (ADR 0004) | `http://api:3001` |
 | `web` | A `web` (Next.js) em modo de desenvolvimento, e o Playwright dos testes de ponta a ponta | `http://localhost:3000`, ou a porta de `WEB_PORT` | `http://web:3000` |
 
 O `harness` monta o repositório em `/repo`, só para leitura e sem o `.git`, e grava num volume próprio, em `/out`. Ele fica parado, e os comandos rodam nele pelo `scripts/node-in-harness.sh`.
 
-As apps montam o repositório inteiro em `/repo`, porque o workspace do pnpm fica na raiz, e trabalham na pasta delas. Antes delas, o serviço `deps` instala as dependências do workspace inteiro e o Chromium do Playwright, e termina; ele roda de novo a cada `up`. Ao subir, a `api` gera o cliente do Prisma e aplica as migrações no banco de desenvolvimento. As dependências da raiz do workspace (com o store do pnpm) e o Chromium ficam em volumes, o pnpm vem pelo corepack, na versão do `packageManager` do `package.json` da raiz, e os contêineres rodam com o usuário 1000. O banco `finance_test` é criado quando o volume do banco nasce; num volume antigo, recrie-o com `down -v`. Se a porta 3000 da máquina já estiver em uso, defina outra em `WEB_PORT`, num `.env` na raiz, fora do Git.
+As apps montam o repositório inteiro em `/repo`, porque o workspace do pnpm fica na raiz, e trabalham na pasta delas. Antes delas, o serviço `deps` instala as dependências do workspace inteiro e o Chromium do Playwright, e termina; ele roda de novo a cada `up`. Ao subir, a `api` gera o cliente do Prisma e aplica as migrações no banco de desenvolvimento. As dependências da raiz do workspace (com o store do pnpm) e o Chromium ficam em volumes, o pnpm vem pelo corepack, na versão do `packageManager` do `package.json` da raiz, e os contêineres rodam com o usuário 1000. O banco `finance_test` e o papel `finance_app`, com que a `api` se conecta (as migrações rodam com o papel dono, `finance`), são criados quando o volume do banco nasce; num volume antigo, recrie-o com `down -v`. Se a porta 3000 da máquina já estiver em uso, defina outra em `WEB_PORT`, num `.env` na raiz, fora do Git.
 
 Cada app entra no `compose.dev.yaml` e nesta tabela no ticket que a cria, junto com o `AGENTS.md` dela e o grupo dela em `scripts/verify/` (ver o `README.md` dessa pasta).
 

@@ -53,14 +53,17 @@ services:
     # Fica parado. Os comandos rodam com `docker compose exec`.
     command: ["tail", "-f", "/dev/null"]
 
-  # O PostgreSQL, com o banco de desenvolvimento (finance) e o dos testes de integração da api
-  # (finance_test), que o script de docker/db/ cria quando o volume nasce. Só na rede interna.
+  # O PostgreSQL, com o banco de desenvolvimento (finance), o dos testes de integração da api
+  # (finance_test) e o papel da api (finance_app), que os scripts de docker/db/ criam quando o volume
+  # nasce. O papel finance é o dono das tabelas, e aplica as migrações. Só na rede interna.
   db:
     image: postgres:18
     environment:
       POSTGRES_DB: finance
       POSTGRES_USER: finance
       POSTGRES_PASSWORD: finance
+      # A senha do papel finance_app, com que a api se conecta (docker/db/02-app-role.sh).
+      POSTGRES_APP_PASSWORD: finance_app
     volumes:
       - db-data:/var/lib/postgresql
       - ./docker/db:/docker-entrypoint-initdb.d:ro
@@ -92,8 +95,11 @@ services:
     build: apps/api
     environment:
       <<: *app-env
-      DATABASE_URL: postgresql://finance:finance@db:5432/finance
-      DATABASE_URL_TEST: postgresql://finance:finance@db:5432/finance_test
+      # A api se conecta com o papel finance_app, e as migrações rodam com o dono (LLD, seção 4.4).
+      DATABASE_URL: postgresql://finance_app:finance_app@db:5432/finance
+      DATABASE_URL_TEST: postgresql://finance_app:finance_app@db:5432/finance_test
+      DATABASE_OWNER_URL: postgresql://finance:finance@db:5432/finance
+      DATABASE_OWNER_URL_TEST: postgresql://finance:finance@db:5432/finance_test
       PORT: "3001"
     command: [sh, -c, "pnpm prisma generate && pnpm prisma migrate deploy && exec pnpm dev"]
     depends_on:
