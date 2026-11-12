@@ -92,6 +92,7 @@ As versões exatas são fixadas no ticket que cria cada app, na versão estável
 A pasta usa o termo do módulo em inglês, em `kebab-case`. A rota de saúde fica no módulo `health`, que não é de domínio e não chama nenhum outro.
 
 - **Transação:** a transação do Prisma corre pelo contexto da requisição (`AsyncLocalStorage`), e o serviço público de cada módulo a usa quando ela existe. O comando que atravessa módulos abre a transação uma vez, no serviço do módulo que recebeu a requisição.
+- **Contexto da requisição:** fica no `common`, e traz o identificador da requisição (seção 5), o usuário (nulo até a autenticação o definir, e num comando no servidor) e a transação aberta. Um comando no servidor roda num contexto próprio, com um identificador gerado para a execução.
 
 ## 4. Esquema do banco
 
@@ -133,7 +134,12 @@ O `recovery_code` é o código de recuperação do segundo fator; o `recovery_li
 
 | Tabela | Colunas que carregam regra | Restrições |
 | --- | --- | --- |
-| `audit_log` | `id bigint`, `user_id`, `occurred_at`, `action` (`create`, `update`, `delete`), `table_name`, `record_id`, `entity_id`, `before jsonb`, `after jsonb`, `request_id` | O papel do banco da aplicação não tem `UPDATE` nem `DELETE` nesta tabela, salvo a anonimização (regra 6.19), que roda por uma função com permissão própria |
+| `audit_log` | `id bigint`, `user_id`, `occurred_at`, `action` (`create`, `update`, `delete`), `table_name`, `record_id`, `entity_id`, `before jsonb`, `after jsonb`, `request_id` | O papel do banco da aplicação não tem `UPDATE`, `DELETE` nem `TRUNCATE` nesta tabela, salvo a anonimização (regra 6.19), que roda por uma função com permissão própria. Sem chaves estrangeiras: o registro auditado e o usuário podem deixar de existir, e a auditoria fica |
+
+- **Na mesma transação:** o serviço público da Auditoria grava o registro só dentro da transação do comando (seção 3, "Transação"), e recusa a chamada feita fora dela. O módulo que altera um registro chama a Auditoria com a operação, a tabela, o registro, a entidade e os valores de antes e de depois; o usuário e o identificador da requisição vêm do contexto da requisição.
+- **O antes e o depois** são os campos do registro com os nomes do modelo (`camelCase`), com os valores convertidos para JSON: dinheiro e quantidades como string decimal, instantes em ISO 8601 e datas de calendário como `"AAAA-MM-DD"`. O `before` é nulo no `create`, e o `after`, no `delete`.
+- **Campos sensíveis:** um campo cujo nome contém `password`, `secret` ou `token`, ou termina em `Hash`, não entra no `before` nem no `after`, nem com o valor escondido: ele é retirado. Assim a senha, o segredo do TOTP, os tokens e os códigos de recuperação nunca chegam à auditoria, e um campo sensível novo, nomeado pela convenção da seção 4.1, fica de fora sem lista para manter.
+- **Papéis do banco:** as migrações rodam com o papel dono das tabelas (`POSTGRES_USER`), e a `api` se conecta com o papel `finance_app`, que não é dono de nada. Ele recebe, por privilégio padrão do esquema, `SELECT`, `INSERT`, `UPDATE` e `DELETE` em toda tabela nova e o uso das sequências; a migração da auditoria retira dele o que a tabela acima nega. O papel é criado na inicialização do banco, com a senha de `POSTGRES_APP_PASSWORD`.
 
 ### 4.5 Contas
 
@@ -262,6 +268,7 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 - **Nomes:** caminhos, parâmetros, cabeçalhos, campos JSON, códigos de erro e valores de enumeração em inglês, como a seção 4.1. Os caminhos de um recurso usam o plural do termo em `kebab-case` (`/v1/entity-transfers`), e os campos JSON, `camelCase`. Só a `message` do erro é texto para o usuário, em português.
 - **Autenticação:** esquema `session`, um `Authorization: Bearer <token>` que a `web` monta com o cookie. As rotas públicas (login, uso de link de recuperação, saúde) são marcadas como tal.
 - **Contexto financeiro:** o cabeçalho `Financial-Context`, com `entity:<id>` ou `group:<id>`, obrigatório nas rotas de dados.
+- **Identificador da requisição:** o cabeçalho `X-Request-Id`, um UUID, opcional em toda rota. A `web` gera um a cada requisição do navegador e o manda em toda chamada à `api` feita nela. A `api` usa o recebido quando ele é um UUID e gera outro quando falta ou não é; o identificador vai para o registro de auditoria (seção 4.4). Como vale para todas as rotas, ele fica nesta convenção, e não em cada rota do `openapi.json`.
 - **Dinheiro e quantidades** trafegam como string decimal (`"1234.56"`), e nunca como número JSON. **Datas de calendário** como `"AAAA-MM-DD"`, e instantes em ISO 8601 com fuso.
 - **Edição:** o corpo traz a `version` lida, e a rota devolve `409 VERSION_CONFLICT` quando ela mudou.
 - **Listas:** paginadas por `cursor` e `limit` (padrão 50, máximo 200).
@@ -483,8 +490,10 @@ Os horários estão em America/Sao_Paulo. Uma tarefa que falha registra o erro n
 
 | Variável | App | Para quê | Padrão |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | api | Conexão com o banco | |
-| `DATABASE_URL_TEST` | api | Conexão com o banco dos testes de integração, só no desenvolvimento e na CI | |
+| `DATABASE_URL` | api | Conexão com o banco, com o papel `finance_app` (seção 4.4) | |
+| `DATABASE_URL_TEST` | api | Conexão com o banco dos testes de integração, com o papel `finance_app`, só no desenvolvimento e na CI | |
+| `DATABASE_OWNER_URL` | api | Conexão com o papel dono das tabelas, só para aplicar as migrações | |
+| `DATABASE_OWNER_URL_TEST` | api | O mesmo, no banco dos testes de integração, só no desenvolvimento e na CI | |
 | `PORT` | api, web | Porta HTTP do contêiner | 3001 (api), 3000 (web) |
 | `TZ` | api, web | Fuso do processo | `America/Sao_Paulo` |
 | `LOG_LEVEL` | api, web | Nível do log | `info` |
@@ -502,6 +511,7 @@ Os horários estão em America/Sao_Paulo. Uma tarefa que falha registra o erro n
 | `API_URL` | web | Endereço da `api` na rede interna | `http://api:3001` |
 | `COOKIE_SECURE` | web | Cookie com `Secure`; desligado só no desenvolvimento | `true` |
 | `DOMAIN` | proxy | Domínio público do Caddy | |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | db | Banco e papel da aplicação | |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | db | Banco e papel dono das tabelas, que aplica as migrações | |
+| `POSTGRES_APP_PASSWORD` | db | Senha do papel `finance_app`, com que a `api` se conecta (seção 4.4) | |
 
 O proxy repassa o host público em `X-Forwarded-Host` e a origem em `X-Forwarded-For`, para a conferência de origem das ações do Next e para o limite de tentativas por origem. A `web` repassa a origem à `api` no mesmo cabeçalho, e a `api` só confia nele quando vem da `web`.

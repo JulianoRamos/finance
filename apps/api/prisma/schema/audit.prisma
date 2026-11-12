@@ -1,0 +1,49 @@
+// O módulo Auditoria (LLD, seção 4.4): o registro de cada alteração, gravado na mesma transação do
+// comando que a fez.
+
+/// O que o comando fez com o registro.
+enum AuditAction {
+  create
+  update
+  delete
+
+  @@map("audit_action")
+}
+
+/// Um registro de auditoria: quem alterou qual registro, quando, e os valores de antes e de depois.
+/// Só recebe inserções: o papel do banco da aplicação (finance_app) tem SELECT e INSERT nesta tabela,
+/// e não tem UPDATE, DELETE nem TRUNCATE. A revogação é escrita à mão na migração. A única exceção é a
+/// anonimização (regra 6.19), que roda por uma função com permissão própria, criada no ticket dela.
+/// CHECK escrito à mão na migração (audit_log_snapshot_check): no create, before é nulo e after não; no
+/// update, os dois são preenchidos; no delete, before é preenchido e after é nulo.
+/// Sem chaves estrangeiras: o registro auditado pode ter sido excluído, e a auditoria fica.
+model AuditLog {
+  /// Sequencial, na ordem em que os registros foram gravados.
+  id         BigInt      @id @default(autoincrement())
+  /// O usuário que fez a alteração. Nulo quando ela veio de um comando no servidor, sem usuário, como o
+  /// create-user (regra 6.1). Sem chave estrangeira para user, para o registro sobreviver ao usuário.
+  userId     String?     @map("user_id") @db.Uuid
+  /// O instante da transação do comando.
+  occurredAt DateTime    @default(now()) @map("occurred_at") @db.Timestamptz
+  /// create, update ou delete.
+  action     AuditAction
+  /// O nome da tabela do registro, no banco (snake_case), como entity ou financial_group.
+  tableName  String      @map("table_name")
+  /// O id do registro alterado.
+  recordId   String      @map("record_id") @db.Uuid
+  /// A entidade a que o registro pertence, para filtrar a auditoria pelo contexto financeiro. Nulo no
+  /// registro que não é de uma entidade, como um usuário ou um grupo financeiro.
+  entityId   String?     @map("entity_id") @db.Uuid
+  /// Os campos do registro antes do comando, com os nomes do modelo (camelCase) e sem os campos
+  /// sensíveis (LLD, seção 4.4). Nulo no create.
+  before     Json?
+  /// Os campos do registro depois do comando, no mesmo formato do before. Nulo no delete.
+  after      Json?
+  /// O identificador da requisição que fez o comando (cabeçalho X-Request-Id, LLD seção 5), ou o da
+  /// execução do comando no servidor.
+  requestId  String      @map("request_id") @db.Uuid
+
+  /// O histórico de um registro, do mais antigo ao mais novo.
+  @@index([tableName, recordId, id], map: "audit_log_record_idx")
+  @@map("audit_log")
+}
