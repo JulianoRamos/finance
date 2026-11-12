@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "api:gerar": "openapi-typescript ../api/openapi.json --output src/api/esquema.d.ts",
-    "dev": "pnpm api:gerar && next dev --hostname 0.0.0.0 --port 3000",
-    "build": "pnpm api:gerar && next build",
+    "api:generate": "openapi-typescript ../api/openapi.json --output src/api/schema.d.ts",
+    "dev": "pnpm api:generate && next dev --hostname 0.0.0.0 --port 3000",
+    "build": "pnpm api:generate && next build",
     "start": "next start --hostname 0.0.0.0 --port 3000",
-    "typecheck": "pnpm api:gerar && next typegen && tsc --noEmit",
+    "typecheck": "pnpm api:generate && next typegen && tsc --noEmit",
     "lint": "eslint . --max-warnings=0 && prettier --check .",
     "format": "prettier --write . && eslint --fix .",
     "test:e2e": "playwright test"

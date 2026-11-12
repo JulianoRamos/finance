@@ -27,8 +27,8 @@ x-app-healthcheck: &app-healthcheck
   start_interval: 3s
 
 # Os healthchecks pedem a rota de saúde de cada app, no próprio contêiner.
-x-api-saude: &api-saude "fetch('http://127.0.0.1:3001/v1/saude').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
-x-web-saude: &web-saude "fetch('http://127.0.0.1:3000/saude').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+x-api-health: &api-health "fetch('http://127.0.0.1:3001/v1/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+x-web-health: &web-health "fetch('http://127.0.0.1:3000/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
 
 services:
   # O Node do harness: o conferidor do aceite, a página do plano, a visão do contrato e os testes do
@@ -93,8 +93,8 @@ services:
     environment:
       <<: *app-env
       DATABASE_URL: postgresql://finance:finance@db:5432/finance
-      DATABASE_URL_TESTE: postgresql://finance:finance@db:5432/finance_test
-      PORTA: "3001"
+      DATABASE_URL_TEST: postgresql://finance:finance@db:5432/finance_test
+      PORT: "3001"
     command: [sh, -c, "pnpm prisma generate && pnpm prisma migrate deploy && exec pnpm dev"]
     depends_on:
       db:
@@ -103,10 +103,10 @@ services:
         condition: service_completed_successfully
     healthcheck:
       <<: *app-healthcheck
-      test: [CMD, node, -e, *api-saude]
+      test: [CMD, node, -e, *api-health]
 
   # A web (Next.js), a única porta de entrada do navegador, publicada em http://localhost:3000, ou na
-  # porta de WEB_PORTA (num .env da raiz, fora do Git) quando a 3000 da máquina já está em uso. Os
+  # porta de WEB_PORT (num .env da raiz, fora do Git) quando a 3000 da máquina já está em uso. Os
   # testes de ponta a ponta rodam neste contêiner, contra a web em 127.0.0.1.
   web:
     <<: *app
@@ -116,14 +116,14 @@ services:
       API_URL: http://api:3001
       NEXT_TELEMETRY_DISABLED: "1"
     ports:
-      - "${WEB_PORTA:-3000}:3000"
+      - "${WEB_PORT:-3000}:3000"
     command: ["pnpm", "dev"]
     depends_on:
       deps:
         condition: service_completed_successfully
     healthcheck:
       <<: *app-healthcheck
-      test: [CMD, node, -e, *web-saude]
+      test: [CMD, node, -e, *web-health]
 
 volumes:
   harness-reports:

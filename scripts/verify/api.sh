@@ -32,8 +32,8 @@ api_fast() {
 api_full() {
   api_fast
   step "api: cópia da especificação" \
-    "gere a cópia com \`$EXEC api pnpm openapi:gerar\`, confira o diff do $API_OPENAPI e faça o commit dele." \
-    in_container api pnpm -s openapi:conferir
+    "gere a cópia com \`$EXEC api pnpm openapi:generate\`, confira o diff do $API_OPENAPI e faça o commit dele." \
+    in_container api pnpm -s openapi:check
   step "api: testes (Vitest)" \
     "corrija o teste ou o código que falhou, em apps/api, e rode só o arquivo com \`$EXEC api pnpm test <arquivo>\`." \
     api_tests
@@ -41,7 +41,7 @@ api_full() {
 
 api_tests() {
   # Relatório antigo não vale como evidência desta execução.
-  in_container api sh -c 'rm -f reports/vitest.json && pnpm -s test:relatorio' &&
+  in_container api sh -c 'rm -f reports/vitest.json && pnpm -s test:report' &&
     check_report api vitest reports/vitest.json
 }
 

@@ -16,7 +16,7 @@ apps/*/.next/
 apps/*/next-env.d.ts
 apps/*/*.tsbuildinfo
 apps/api/src/generated/
-apps/web/src/api/esquema.d.ts
+apps/web/src/api/schema.d.ts
 # Os relatórios das suítes.
 apps/*/reports/
 apps/*/playwright-report/

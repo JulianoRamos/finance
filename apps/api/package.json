@@ -10,9 +10,9 @@
     "lint": "eslint . --max-warnings=0 && prettier --check .",
     "format": "prettier --write . && eslint --fix .",
     "test": "vitest run",
-    "test:relatorio": "vitest run --reporter=default --reporter=json --outputFile.json=reports/vitest.json",
-    "openapi:gerar": "nest build -p tsconfig.openapi.json && node .openapi/cli/gerar-especificacao.js openapi.json",
-    "openapi:conferir": "nest build -p tsconfig.openapi.json && node .openapi/cli/gerar-especificacao.js --conferir openapi.json"
+    "test:report": "vitest run --reporter=default --reporter=json --outputFile.json=reports/vitest.json",
+    "openapi:generate": "nest build -p tsconfig.openapi.json && node .openapi/cli/generate-spec.js openapi.json",
+    "openapi:check": "nest build -p tsconfig.openapi.json && node .openapi/cli/generate-spec.js --check openapi.json"
   },
   "dependencies": {
     "@nestjs/common": "12.4.2",

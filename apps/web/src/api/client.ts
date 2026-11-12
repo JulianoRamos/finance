@@ -2,7 +2,7 @@ import 'server-only';
 
 import createClient from 'openapi-fetch';
 
-import type { paths } from './esquema';
+import type { paths } from './schema';
 
 /**
  * O cliente da api, tipado pelo esquema gerado da cópia da especificação (apps/api/openapi.json).

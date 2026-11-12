@@ -32,8 +32,8 @@ web_full() {
 # que subir aqui: o `require_container` do `web_fast` já exige o contêiner, e o `up --wait` (o da CI,
 # antes do verify.sh) espera o healthcheck, que é esta mesma rota.
 web_running() {
-  responds web "$WEB_URL/saude" ||
-    fail "A web não está respondendo em $WEB_URL/saude, no contêiner dela, e os testes de ponta a ponta rodam contra ela." \
+  responds web "$WEB_URL/health" ||
+    fail "A web não está respondendo em $WEB_URL/health, no contêiner dela, e os testes de ponta a ponta rodam contra ela." \
       "veja o log com \`${COMPOSE[*]} logs web\` e suba o ambiente com \`${COMPOSE[*]} up -d --build --wait\`."
 }
 

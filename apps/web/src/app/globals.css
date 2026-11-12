@@ -6,7 +6,7 @@
  * deles não tem classe.
  *
  * Cada cor traz os dois temas no `light-dark()`, que segue o `color-scheme` da raiz: a preferência
- * do sistema, ou o atributo `data-tema` (claro ou escuro) quando o usuário escolhe um tema.
+ * do sistema, ou o atributo `data-theme` (light ou dark) quando o usuário escolhe um tema.
  */
 @theme {
   --*: initial;
@@ -130,11 +130,11 @@
     color-scheme: light dark;
   }
 
-  :root[data-tema='claro'] {
+  :root[data-theme='light'] {
     color-scheme: light;
   }
 
-  :root[data-tema='escuro'] {
+  :root[data-theme='dark'] {
     color-scheme: dark;
   }
 

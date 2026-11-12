@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/v1/saude": {
+    "/v1/health": {
       "get": {
-        "operationId": "SaudeController_verificar",
+        "operationId": "HealthController_check",
         "parameters": [],
         "responses": {
           "200": {
@@ -11,7 +11,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Saude"
+                  "$ref": "#/components/schemas/Health"
                 }
               }
             }
@@ -21,7 +21,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Saude"
+                  "$ref": "#/components/schemas/Health"
                 }
               }
             }
@@ -29,7 +29,7 @@
         },
         "summary": "O estado da api e do banco. Rota pública.",
         "tags": [
-          "saude"
+          "health"
         ]
       }
     }
@@ -44,28 +44,28 @@
   "servers": [],
   "components": {
     "schemas": {
-      "EstadoBanco": {
+      "DatabaseState": {
         "type": "string",
         "enum": [
-          "conectado",
-          "fora_do_ar"
+          "connected",
+          "down"
         ],
         "description": "Se o banco respondeu a uma consulta dentro do prazo."
       },
-      "Saude": {
+      "Health": {
         "type": "object",
         "properties": {
-          "banco": {
+          "database": {
             "description": "Se o banco respondeu a uma consulta dentro do prazo.",
             "allOf": [
               {
-                "$ref": "#/components/schemas/EstadoBanco"
+                "$ref": "#/components/schemas/DatabaseState"
               }
             ]
           }
         },
         "required": [
-          "banco"
+          "database"
         ]
       }
     }

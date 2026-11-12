@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint';
 
 // As camadas da web (AGENTS.md da web, "Camadas e imports"): as rotas do App Router usam o acesso à
 // api, e o acesso à api não conhece as rotas.
-const elementos = [
+const elements = [
   { type: 'api', pattern: 'src/api' },
   { type: 'app', pattern: 'src/app' },
 ];
@@ -30,7 +30,7 @@ export default defineConfig([
     files: ['src/**/*.{ts,tsx}'],
     plugins: { boundaries },
     settings: {
-      'boundaries/elements': elementos,
+      'boundaries/elements': elements,
       'import/resolver': { typescript: { project: './tsconfig.json' } },
     },
     rules: {
@@ -51,6 +51,6 @@ export default defineConfig([
     'playwright-report/**',
     'test-results/**',
     'next-env.d.ts',
-    'src/api/esquema.d.ts',
+    'src/api/schema.d.ts',
   ]),
 ]);
