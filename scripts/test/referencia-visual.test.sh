@@ -32,9 +32,9 @@ printf '%s\n' "\$*" >>"$tmp/calls.log"
 path=''
 for arg in "\$@"; do [[ "\$arg" == repos/* ]] && path="\$arg"; done
 case "\$path" in
-  repos/toglab/finance-prototipo/commits/a1b2c3d | repos/toglab/finance-prototipo/commits/$SHA) echo $SHA ;;
-  "repos/toglab/finance-prototipo/contents/Inicio.dc.html?ref=$SHA") echo '<html>inicio</html>' ;;
-  "repos/toglab/finance-prototipo/contents/Nav.dc.html?ref=$SHA") echo '<html>nav</html>' ;;
+  repos/JulianoRamos/finance-prototipo/commits/a1b2c3d | repos/JulianoRamos/finance-prototipo/commits/$SHA) echo $SHA ;;
+  "repos/JulianoRamos/finance-prototipo/contents/Inicio.dc.html?ref=$SHA") echo '<html>inicio</html>' ;;
+  "repos/JulianoRamos/finance-prototipo/contents/Nav.dc.html?ref=$SHA") echo '<html>nav</html>' ;;
   *) echo 'gh: Not Found (HTTP 404)' >&2; exit 1 ;;
 esac
 EOF
@@ -74,11 +74,11 @@ check "baixa as telas e sai com 0" test $code -eq 0
 check "grava a tela Inicio do commit" test "$(cat "$dir/Inicio.dc.html" 2>/dev/null)" = '<html>inicio</html>'
 check "grava a tela Nav do commit" test "$(cat "$dir/Nav.dc.html" 2>/dev/null)" = '<html>nav</html>'
 check "o origem.txt traz o commit completo" grep -qx "Commit: $SHA" "$dir/origem.txt"
-check "o origem.txt traz o repositório" grep -qx 'Repositório: toglab/finance-prototipo' "$dir/origem.txt"
+check "o origem.txt traz o repositório" grep -qx 'Repositório: JulianoRamos/finance-prototipo' "$dir/origem.txt"
 check "o origem.txt lista as telas" grep -qx -- '- Nav' "$dir/origem.txt"
 check "baixa pelo commit completo, e não pelo curto" grep -q "contents/Inicio.dc.html?ref=$SHA" "$tmp/calls.log"
 check "a cópia fica fora do Git" test -z "$(git -C "$repo" status --porcelain --untracked-files=all -- docs)"
-check "diz onde gravou e de qual commit" contains "$out" "toglab/finance-prototipo@a1b2c3d"
+check "diz onde gravou e de qual commit" contains "$out" "JulianoRamos/finance-prototipo@a1b2c3d"
 
 ref KAN-1 KAN-12 a1b2c3d Inicio
 check "refaz a pasta só com as telas da chamada" test ! -e "$dir/Nav.dc.html"

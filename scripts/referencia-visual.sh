@@ -10,7 +10,7 @@
 #
 # <commit> é o hash do commit do protótipo que o ticket cita (de 7 a 40 caracteres hexadecimais), e
 # não uma branch nem uma tag, que mudam. Cada <tela> é o nome do arquivo sem o `.dc.html`, como
-# `Lancamentos`. O repositório é o `toglab/finance-prototipo`, ou o de PROTOTYPE_REPO.
+# `Lancamentos`. O repositório é o `JulianoRamos/finance-prototipo`, ou o de PROTOTYPE_REPO.
 #
 # A pasta `referencia/` é refeita a cada chamada: só ficam nela as telas desta chamada e o
 # `origem.txt`, com o repositório, o commit completo e as telas, para a cópia poder ser refeita. O
@@ -23,7 +23,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 2
 
-REPO="${PROTOTYPE_REPO:-toglab/finance-prototipo}"
+REPO="${PROTOTYPE_REPO:-JulianoRamos/finance-prototipo}"
 TICKETS_DIR=docs/tickets
 USAGE='scripts/referencia-visual.sh <pai> <ticket> <commit> <tela>...'
 
