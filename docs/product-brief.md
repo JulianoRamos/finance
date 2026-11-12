@@ -39,6 +39,9 @@ As histórias estão agrupadas pela fase de construção (ver "Fases"). Os crit�
   - A Visão Familiar já vem criada, e o usuário escolhe quais pessoas físicas fazem parte dela. Ela não aceita empresas.
   - Cada empresa tem as próprias operações ligadas, hoje só a de clínica, e a própria árvore de categorias.
   - Toda tela de dados mostra o contexto financeiro escolhido, e nenhum número de outra entidade aparece nela.
+- Como usuário, quero pesquisar pelo nome, de qualquer tela, para achar um cadastro, uma tela ou uma ação sem saber onde estão.
+  - A pesquisa procura em todas as entidades em que o usuário tem permissão, e não só no contexto escolhido.
+  - Cada módulo acrescenta os próprios registros à pesquisa quando nasce.
 - Como usuário, quero que toda alteração financeira fique registrada, para saber quem mudou o quê.
   - Cada criação, alteração ou exclusão de um registro financeiro guarda quem fez, quando, o registro e os valores anteriores e novos.
 

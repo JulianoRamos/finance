@@ -441,6 +441,15 @@ Os tipos permitidos por par de entidades e o efeito em cada lado:
 
 Toda divisão de dinheiro é feita em centavos, e a diferença dos centavos fica numa parcela só, para que a soma das partes seja exatamente o total: a primeira parcela num parcelamento, a última sessão num pacote, o último item no rateio do frete. Cada taxa é arredondada meio para cima, ao centavo.
 
+### 6.22 Pesquisa
+
+- **Rota:** `GET /v1/pesquisa?termo=<texto>`, sem o cabeçalho `Contexto-Financeiro`, porque procura em todos os contextos do usuário. O termo tem ao menos 2 caracteres e é comparado sem acento e sem diferença de maiúsculas, em qualquer posição do nome.
+- **Onde procura:** nas entidades em que o usuário tem `ver` ou `operar`, nos grupos em que ele tem permissão em todos os membros (a mesma regra do contexto financeiro) e, só para quem tem `gere_acessos`, nos usuários. Uma entidade desativada aparece marcada como tal.
+- **Resposta:** até 5 resultados por tipo, cada um com o tipo, o id, o nome e um complemento (o tipo da entidade, o resumo do grupo, o e-mail do usuário).
+- **Cada módulo** responde pelos próprios registros, por uma função pública que o módulo Pesquisa chama. Um módulo novo entra na pesquisa no ticket que o cria.
+- **Telas e ações** não passam pela API: a `web` as filtra pelo termo e pelas permissões do usuário, como "Novo usuário" só para quem tem `gere_acessos`.
+- **Abrir um resultado:** uma entidade, um grupo ou um usuário abre o cadastro dele; "Trocar para", o contexto financeiro dele.
+
 ## 7. Tarefas agendadas
 
 | Tarefa | Horário padrão | Regra |
