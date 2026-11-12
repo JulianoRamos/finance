@@ -35,8 +35,14 @@ O ambiente de desenvolvimento usa o `compose.dev.yaml`, na raiz:
 | Serviço | O que é | Endereço na máquina | Endereço entre contêineres |
 | --- | --- | --- | --- |
 | `harness` | O Node do harness: o conferidor do aceite, a página do plano e os testes do harness | Não é publicado | Não recebe conexões |
+| `deps` | Instala as dependências do workspace e o Chromium do Playwright, e termina | Não é publicado | Não recebe conexões |
+| `db` | O PostgreSQL 18, com o banco de desenvolvimento (`finance`) e o dos testes de integração da `api` (`finance_test`) | Não é publicado | `db:5432` |
+| `api` | A `api` (NestJS) em modo de observação | Não é publicada (ADR 0004) | `http://api:3001` |
+| `web` | A `web` (Next.js) em modo de desenvolvimento, e o Playwright dos testes de ponta a ponta | `http://localhost:3000`, ou a porta de `WEB_PORTA` | `http://web:3000` |
 
 O `harness` monta o repositório em `/repo`, só para leitura e sem o `.git`, e grava num volume próprio, em `/out`. Ele fica parado, e os comandos rodam nele pelo `scripts/node-in-harness.sh`.
+
+As apps montam o repositório inteiro em `/repo`, porque o workspace do pnpm fica na raiz, e trabalham na pasta delas. Antes delas, o serviço `deps` instala as dependências do workspace inteiro e o Chromium do Playwright, e termina; ele roda de novo a cada `up`. Ao subir, a `api` gera o cliente do Prisma e aplica as migrações no banco de desenvolvimento. As dependências da raiz do workspace (com o store do pnpm) e o Chromium ficam em volumes, o pnpm vem pelo corepack, na versão do `packageManager` do `package.json` da raiz, e os contêineres rodam com o usuário 1000. O banco `finance_test` é criado quando o volume do banco nasce; num volume antigo, recrie-o com `down -v`. Se a porta 3000 da máquina já estiver em uso, defina outra em `WEB_PORTA`, num `.env` na raiz, fora do Git.
 
 Cada app entra no `compose.dev.yaml` e nesta tabela no ticket que a cria, junto com o `AGENTS.md` dela e o grupo dela em `scripts/verify/` (ver o `README.md` dessa pasta).
 
@@ -179,9 +185,9 @@ Cada ticket é planejado no início dele, e não na criação dos tickets, e só
 - **Pasta dos tickets:** `docs/tickets`. O Git versiona nela só o arquivo de aceite de cada pasta de ticket.
 - **Pasta dos documentos:** `docs`.
 - **Comando do Node:** `scripts/node-in-harness.sh`, que roda o Node no contêiner `harness`, sobre o repositório montado em `/repo`, porque a máquina não roda `node`.
-- **Comando do contrato:** `nenhum`, enquanto nenhuma app declara contrato. Quando a API declarar, passa a ser `scripts/verify.sh contract`, a visão legível do contrato e do schema.
+- **Comando do contrato:** `scripts/verify.sh contract`, a visão legível do contrato e do schema, que o grupo da `api` em `scripts/verify/` declara.
 - **Comando da referência visual:** `scripts/referencia-visual.sh <pai> <ticket> <commit> <tela>...`, que baixa as telas com o `gh`, na máquina, de `JulianoRamos/finance-prototipo` (ou de `PROTOTYPE_REPO`), para `docs/tickets/<pai>/<ticket>/referencia/`, com a origem em `origem.txt`.
-- **Arquivos do contrato:** nenhum por enquanto. A API os declara no grupo dela em `scripts/verify/`, no ticket que a cria, e este item passa a listá-los, junto com o documento que define o formato de uma rota e de uma tabela.
+- **Arquivos do contrato:** `apps/api/openapi.json`, a cópia da especificação, para as rotas, e `apps/api/prisma/schema/`, para as tabelas. O formato de uma rota e de uma tabela está no `docs/lld.md`, seção 5.
 
 O atalho `scripts/verify.sh plan <issue> <ticket> [<commit de plano>]` chama o script da página da skill com esses valores (a `<issue>` é a issue pai do ticket, que vai no `--pai` do script); use-o nos passos de parada e de commit da skill.
 

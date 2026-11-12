@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+
+/*
+ * Os tokens do design system (docs/design-system.md, seção 2), com os mesmos nomes. O tema do
+ * Tailwind começa vazio (`--*: initial`), então só existem as classes destes tokens: um valor fora
+ * deles não tem classe.
+ *
+ * Cada cor traz os dois temas no `light-dark()`, que segue o `color-scheme` da raiz: a preferência
+ * do sistema, ou o atributo `data-tema` (claro ou escuro) quando o usuário escolhe um tema.
+ */
+@theme {
+  --*: initial;
+
+  /* Faixas da seção 6: celular até 767px, tablet de 768px, desktop de 1024px. */
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+
+  /* 2.1 Cores: superfícies e texto. */
+  --color-canvas: light-dark(#fafafa, #0a0a0a);
+  --color-surface: light-dark(#ffffff, #111111);
+  --color-surface-subtle: light-dark(#f2f2f2, #1a1a1a);
+  --color-hairline: light-dark(#ebebeb, #2e2e2e);
+  --color-hairline-strong: light-dark(#d4d4d4, #454545);
+  --color-field-border: light-dark(#8a8a8a, #6e6e6e);
+  --color-ink: light-dark(#171717, #ededed);
+  --color-body: light-dark(#4d4d4d, #a1a1a1);
+  --color-mute: light-dark(#6b6b6b, #8f8f8f);
+  --color-faint: light-dark(#a1a1a1, #5c5c5c);
+
+  /* 2.1 Cores: ação e destaque. */
+  --color-primary: light-dark(#171717, #ededed);
+  --color-on-primary: light-dark(#ffffff, #0a0a0a);
+  --color-primary-hover: light-dark(#383838, #cccccc);
+  --color-accent: light-dark(#0070f3, #3291ff);
+  --color-link: light-dark(#0761d1, #52a8ff);
+  --color-accent-soft: light-dark(#d3e5ff, #0f2747);
+
+  /* 2.1 Cores: significado. */
+  --color-positive: light-dark(#107d32, #62c073);
+  --color-positive-soft: light-dark(#e6f4ea, #0f2e1a);
+  --color-negative: light-dark(#c50000, #ff6166);
+  --color-negative-strong: light-dark(#ee0000, #d81f26);
+  --color-on-negative: light-dark(#ffffff, #ffffff);
+  --color-negative-soft: light-dark(#ffe8e8, #3a1214);
+  --color-warning: light-dark(#ab570a, #ffb224);
+  --color-warning-strong: light-dark(#f5a623, #f5a623);
+  --color-warning-soft: light-dark(#ffefcf, #3a2a0a);
+
+  /* 2.1 Cores: gráficos. */
+  --color-chart-1: light-dark(#0070f3, #3291ff);
+  --color-chart-2: light-dark(#7928ca, #a970ff);
+  --color-chart-3: light-dark(#0e9f8e, #3fcfb8);
+  --color-chart-4: light-dark(#e5800b, #ffa94d);
+  --color-chart-5: light-dark(#eb367f, #ff6aa6);
+  --color-chart-outros: light-dark(#a1a1a1, #5c5c5c);
+
+  /* 2.2 Tipografia: as famílias vêm do pacote geist, pelo next/font, no layout. */
+  --font-sans: var(--font-geist-sans), Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --text-kpi: 32px;
+  --text-kpi--line-height: 40px;
+  --text-kpi--letter-spacing: -1.28px;
+  --text-kpi--font-weight: 600;
+  --text-heading-lg: 24px;
+  --text-heading-lg--line-height: 32px;
+  --text-heading-lg--letter-spacing: -0.96px;
+  --text-heading-lg--font-weight: 600;
+  --text-heading-md: 20px;
+  --text-heading-md--line-height: 28px;
+  --text-heading-md--letter-spacing: -0.4px;
+  --text-heading-md--font-weight: 600;
+  --text-heading-sm: 16px;
+  --text-heading-sm--line-height: 24px;
+  --text-heading-sm--letter-spacing: -0.32px;
+  --text-heading-sm--font-weight: 600;
+  --text-label: 14px;
+  --text-label--line-height: 20px;
+  --text-label--letter-spacing: -0.28px;
+  --text-label--font-weight: 500;
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-body-lg--letter-spacing: 0;
+  --text-body-lg--font-weight: 400;
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-md--letter-spacing: 0;
+  --text-body-md--font-weight: 400;
+  --text-body-sm: 12px;
+  --text-body-sm--line-height: 16px;
+  --text-body-sm--letter-spacing: 0;
+  --text-body-sm--font-weight: 400;
+  --text-eyebrow: 12px;
+  --text-eyebrow--line-height: 16px;
+  --text-eyebrow--letter-spacing: 0.4px;
+  --text-eyebrow--font-weight: 500;
+  --text-mono: 14px;
+  --text-mono--line-height: 20px;
+  --text-mono--letter-spacing: 0;
+  --text-mono--font-weight: 400;
+
+  /* 2.3 Espaço, base de 4px. */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-16: 64px;
+
+  /* 2.4 Raio e elevação. O nível 0 é só a borda `hairline`. */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --shadow-sussurro: 0 1px 1px rgba(0, 0, 0, 0.04);
+  --shadow-flutuante: 0 2px 2px rgba(0, 0, 0, 0.04), 0 8px 16px -4px rgba(0, 0, 0, 0.08);
+
+  /* 2.5 Movimento. */
+  --ease-out: ease-out;
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  :root[data-tema='claro'] {
+    color-scheme: light;
+  }
+
+  :root[data-tema='escuro'] {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-body-md text-body antialiased;
+    /* Todo valor, quantidade, data e percentual usa números tabulares (seção 2.2). */
+    font-variant-numeric: tabular-nums;
+  }
+}

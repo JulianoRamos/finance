@@ -1,0 +1,73 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/saude": {
+      "get": {
+        "operationId": "SaudeController_verificar",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "O banco respondeu.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Saude"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "O banco não respondeu dentro do prazo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Saude"
+                }
+              }
+            }
+          }
+        },
+        "summary": "O estado da api e do banco. Rota pública.",
+        "tags": [
+          "saude"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "finance",
+    "description": "A api do finance. O contrato das rotas: LLD, seção 5.",
+    "version": "1",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "EstadoBanco": {
+        "type": "string",
+        "enum": [
+          "conectado",
+          "fora_do_ar"
+        ],
+        "description": "Se o banco respondeu a uma consulta dentro do prazo."
+      },
+      "Saude": {
+        "type": "object",
+        "properties": {
+          "banco": {
+            "description": "Se o banco respondeu a uma consulta dentro do prazo.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EstadoBanco"
+              }
+            ]
+          }
+        },
+        "required": [
+          "banco"
+        ]
+      }
+    }
+  }
+}

@@ -8,3 +8,18 @@ docs/tickets/*/*/*
 # O estado interno do harness: a trava e as aprovações.
 .harness/
 docs/research/
+# Dependências, saídas de build e arquivos gerados das apps.
+node_modules/
+apps/*/dist/
+apps/api/.openapi/
+apps/*/.next/
+apps/*/next-env.d.ts
+apps/*/*.tsbuildinfo
+apps/api/src/generated/
+apps/web/src/api/esquema.d.ts
+# Os relatórios das suítes.
+apps/*/reports/
+apps/*/playwright-report/
+apps/*/test-results/
+.env
+.env.*

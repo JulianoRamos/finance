@@ -269,6 +269,8 @@ A clínica só aceita escrita em entidade com a operação `clinica` ligada; o s
 | 422 | Código da regra | Uma regra de negócio recusou o comando, com um código próprio, como `ESTOQUE_INSUFICIENTE` |
 | 429 | `LIMITE_TENTATIVAS` | Tentativas demais (regra 6.1) |
 
+**Exceção:** a rota de saúde (`GET /v1/saude`) não usa o corpo de erro. Ela responde 200 ou 503 com o mesmo corpo de estado, `{ "banco": "conectado" }` ou `{ "banco": "fora_do_ar" }`, porque quem a lê (o healthcheck e a `web`) quer o estado, e não um erro.
+
 **Tabela.** Cada tabela traz, no schema do Prisma, os itens do formato de tabela da skill de plano, com um comentário `///` em cada coluna e, na tabela, a nota de toda restrição escrita à mão na migração.
 
 ## 6. Regras de negócio
@@ -474,6 +476,7 @@ Os horários estão em America/Sao_Paulo. Uma tarefa que falha registra o erro n
 | Variável | App | Para quê | Padrão |
 | --- | --- | --- | --- |
 | `DATABASE_URL` | api | Conexão com o banco | |
+| `DATABASE_URL_TESTE` | api | Conexão com o banco dos testes de integração, só no desenvolvimento e na CI | |
 | `PORTA` | api, web | Porta HTTP do contêiner | 3001 (api), 3000 (web) |
 | `TZ` | api, web | Fuso do processo | `America/Sao_Paulo` |
 | `LOG_NIVEL` | api, web | Nível do log | `info` |

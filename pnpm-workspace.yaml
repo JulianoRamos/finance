@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+
+# Dependências que podem rodar scripts de instalação. As outras ficam bloqueadas.
+allowBuilds:
+  '@swc/core': true
+  '@prisma/engines': true
+  prisma: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+  # Telemetria do swagger-ui-dist.
+  '@scarf/scarf': false
