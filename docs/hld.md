@@ -45,7 +45,7 @@ Cada módulo é dono de um pedaço do domínio: das tabelas dele, das regras del
 | Módulo | É dono de | Fase |
 | --- | --- | --- |
 | Identidade | Usuários, senhas, sessões, segundo fator, recuperação de acesso e permissões | 1 |
-| Entidades | Entidades, grupos financeiros (com a Visão Familiar), participação societária, a operação de clínica ligada por empresa e a resolução do contexto financeiro | 1 |
+| Entidades | Entidades, grupos financeiros (com a Visão Familiar), participação societária, as operações ligadas em cada empresa e a resolução do contexto financeiro | 1 |
 | Auditoria | O registro de cada alteração financeira, com quem, quando, o registro e os valores anteriores e novos | 1 |
 | Contas | Contas, contas de reserva, cartões, faturas, movimentações (importadas, manuais e ajustes) e saldo inicial. Calcula o saldo | 2 |
 | Lançamentos | Lançamentos, parcelas e as situações delas, recorrências, categorias, finalidade e transferências. É o dono das contas a pagar e a receber | 2 |
