@@ -15,6 +15,7 @@ import {
 
 import { formText } from '../../_access/form-text';
 import type { CommandMessage } from '../../_shell/confirm-dialog';
+import { type FormState, refusedFormState } from '../../_shell/form-state';
 
 /** O que foi enviado no formulário de uma entidade, que volta aos campos depois de uma recusa. */
 export interface EntityFormValues {
@@ -25,19 +26,7 @@ export interface EntityFormValues {
 }
 
 /** O que o formulário de uma entidade mostra depois de um envio recusado. */
-export interface EntityFormState {
-  /**
-   * O que foi enviado, ou nulo antes do primeiro envio. O React limpa o formulário depois de cada envio
-   * com ação, e os campos voltam a estes valores.
-   */
-  readonly values: EntityFormValues | null;
-  /** A recusa que não é de um campo, como a versão desatualizada ou a api fora do ar. */
-  readonly message: string | null;
-  /** Se a recusa foi pela versão desatualizada, que pede para recarregar a entidade. */
-  readonly conflict: boolean;
-  /** O motivo da recusa de cada campo, pelo nome dele no contrato. */
-  readonly fields: Readonly<Record<string, string>>;
-}
+export type EntityFormState = FormState<EntityFormValues>;
 
 /** Os campos que cada formulário mostra com o erro ao lado; a recusa de outro campo vai para o aviso. */
 const CREATE_FIELDS: ReadonlySet<string> = new Set(['type', 'name', 'taxId', 'operations']);
@@ -67,14 +56,9 @@ function valuesOf(form: FormData): EntityFormValues {
 function afterSave(result: EntityResult, values: EntityFormValues, shown: ReadonlySet<string>): EntityFormState {
   if (result.ok) {
     revalidatePath('/entities', 'layout');
-    redirect(`/entities/${result.entity.id}`);
+    redirect(`/entities/${result.data.id}`);
   }
-  if (result.code === 'UNAUTHENTICATED') redirect('/login');
-  const ruleField = FIELD_OF_CODE[result.code];
-  const fields = result.fields ?? (ruleField ? { [ruleField]: result.message } : {});
-  // Um campo que o formulário não mostra, como a versão oculta, não pode recusar sem dizer nada.
-  const placed = Object.keys(fields).length > 0 && Object.keys(fields).every((field) => shown.has(field));
-  return { values, message: placed ? null : result.message, conflict: result.code === 'VERSION_CONFLICT', fields };
+  return refusedFormState(result, values, shown, FIELD_OF_CODE);
 }
 
 /** Cadastra a entidade do formulário e abre o detalhe dela. */

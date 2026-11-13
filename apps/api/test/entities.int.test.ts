@@ -5,7 +5,7 @@ import type { INestApplication } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PrismaService } from '../src/common/index.js';
-import { authedRequest, buildTestApp, getCurrentSession, newSession, TestClock } from './support/app.js';
+import { authedRequest, buildTestApp, getCurrentSession, newSession, TestClock, uniqueName } from './support/app.js';
 import { formatCnpj, uniqueCnpj, uniqueCpf } from './support/tax-ids.js';
 
 /** Uma entidade, como o contrato a descreve. */
@@ -17,11 +17,6 @@ interface Entity {
   readonly active: boolean;
   readonly operations: string[];
   readonly version: number;
-}
-
-/** Um nome que nenhum outro teste usa. */
-function uniqueName(prefix: string): string {
-  return `${prefix} ${randomUUID()}`;
 }
 
 describe('Entidades', () => {

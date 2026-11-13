@@ -32,3 +32,41 @@ export async function commandResult(
     return { ok: false, ...UNAVAILABLE };
   }
 }
+
+/** O resultado de um comando que devolve o registro: ele, como ficou, ou o erro do contrato. */
+export type DataResult<T> = { ok: true; data: T } | ({ ok: false } & ApiError);
+
+/** Faz o pedido que devolve o registro e traduz a resposta, ou a falta dela. */
+export async function dataResult<T>(
+  call: (signal: AbortSignal) => Promise<{ data?: T; error?: unknown }>,
+): Promise<DataResult<T>> {
+  try {
+    const { data, error } = await call(AbortSignal.timeout(API_TIMEOUT_MS));
+    if (data) return { ok: true, data };
+    return { ok: false, ...contractError(error) };
+  } catch {
+    return { ok: false, ...UNAVAILABLE };
+  }
+}
+
+/**
+ * O que uma leitura devolve: o dado; `not-found` quando o registro do id não existe, ou o id nem é um
+ * id; `unauthenticated` quando não há uma sessão válida; ou `unavailable` quando a api não respondeu
+ * como o contrato diz.
+ */
+export type ReadResult<T> =
+  { status: 'ok'; data: T } | { status: 'not-found' } | { status: 'unauthenticated' } | { status: 'unavailable' };
+
+/** Faz a leitura do estado de agora, sem cache e com prazo, e traduz a resposta, ou a falta dela. */
+export async function readResult<T>(
+  call: (init: { cache: 'no-store'; signal: AbortSignal }) => Promise<{ data?: T; response: Response }>,
+): Promise<ReadResult<T>> {
+  try {
+    const { data, response } = await call({ cache: 'no-store', signal: AbortSignal.timeout(API_TIMEOUT_MS) });
+    if (data) return { status: 'ok', data };
+    if (response.status === 404 || response.status === 400) return { status: 'not-found' };
+    return { status: response.status === 401 ? 'unauthenticated' : 'unavailable' };
+  } catch {
+    return { status: 'unavailable' };
+  }
+}

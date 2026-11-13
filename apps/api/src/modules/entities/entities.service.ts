@@ -6,15 +6,14 @@ import {
   CLOCK,
   type EntityType,
   isUniqueViolation,
+  omit,
   type Operation,
   TransactionService,
 } from '../../common/index.js';
 import { AuditService } from '../audit/index.js';
 import type { Entity, EntityEdit, NewEntity } from './entities.dto.js';
+import { byName } from './fields.js';
 import { invalidTaxIdMessage, isValidTaxId, normalizeTaxId } from './tax-id.js';
-
-/** A ordem dos nomes em português, que põe "Ágata" junto de "Ana", e não depois de "Zélia". */
-const byName = new Intl.Collator('pt-BR');
 
 /** A entidade como o Prisma a lê, com as operações ligadas. */
 interface EntityRow {
@@ -25,11 +24,6 @@ interface EntityRow {
   readonly active: boolean;
   readonly version: number;
   readonly operations: readonly { readonly operation: Operation }[];
-}
-
-/** O registro da tabela `entity`, sem as operações, que são de outra tabela, para a auditoria. */
-function withoutOperations(row: EntityRow): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(row).filter(([column]) => column !== 'operations'));
 }
 
 /** A entidade como a rota a devolve, com as operações em ordem alfabética. */
@@ -225,8 +219,8 @@ export class EntitiesService {
       tableName: 'entity',
       recordId: before.id,
       entityId: before.id,
-      before: withoutOperations(before),
-      after: withoutOperations(after),
+      before: omit(before, 'operations'),
+      after: omit(after, 'operations'),
     });
     return after;
   }

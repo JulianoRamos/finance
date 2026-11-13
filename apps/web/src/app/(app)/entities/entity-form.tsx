@@ -7,10 +7,9 @@ import type { Entity, EntityType } from '@/api/entities';
 
 import { ErrorNotice, FieldError, SubmitButton, TextField } from '../../_access/fields';
 import { SECONDARY_BUTTON } from '../../_shell/buttons';
+import { INITIAL_FORM_STATE } from '../../_shell/form-state';
 import { createEntityAction, type EntityFormState, updateEntityAction } from './actions';
 import { formatTaxId, TYPE_NAMES } from './tax-id-format';
-
-const INITIAL: EntityFormState = { values: null, message: null, conflict: false, fields: {} };
 
 const CHOICE = `flex cursor-pointer items-start gap-3 rounded-md border border-hairline p-3 hover:border-hairline-strong has-checked:border-accent has-checked:bg-accent-soft has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent`;
 const CONTROL = 'mt-1 size-4 flex-none accent-accent outline-none';
@@ -68,7 +67,10 @@ function TypeChoice({
  * campos voltam ao que foi enviado, que a ação devolve.
  */
 export function EntityForm({ entity }: Readonly<{ entity?: Entity }>) {
-  const [state, action] = useActionState(entity ? updateEntityAction : createEntityAction, INITIAL);
+  const [state, action] = useActionState<EntityFormState, FormData>(
+    entity ? updateEntityAction : createEntityAction,
+    INITIAL_FORM_STATE,
+  );
   const values = state.values ?? {
     type: entity?.type ?? null,
     name: entity?.name ?? '',

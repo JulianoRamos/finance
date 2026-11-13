@@ -3,6 +3,7 @@ export { UNAUTHENTICATED_RESPONSE } from './api-responses.js';
 export { type Clock, CLOCK } from './clock.js';
 export { CommonModule } from './common.module.js';
 export { CONFIG, type Config, readConfig } from './config.js';
+export { omit } from './omit.js';
 export { PrismaService } from './prisma.service.js';
 export {
   AuditAction,

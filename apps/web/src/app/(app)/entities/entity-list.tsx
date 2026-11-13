@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { FOCUS_RING } from '../../_access/access-screen';
 import { inputClass } from '../../_access/fields';
 import { GHOST_BUTTON } from '../../_shell/buttons';
+import { LIST_ITEM, LIST_ITEM_SELECTED, NewListItem } from '../../_shell/list-item';
 import { stripTaxId } from './tax-id-format';
 
 /** Uma entidade como a lista a mostra, já formatada. */
@@ -48,19 +49,6 @@ function searchFilter(query: string): (item: EntityListItem) => boolean {
     folded(item.name).includes(name) || (document !== '' && (item.taxId?.toLowerCase().includes(document) ?? false));
 }
 
-const ITEM = 'flex flex-col gap-1 rounded-sm px-3 py-2';
-const SELECTED = 'bg-accent-soft ring-1 ring-accent ring-inset';
-
-/** O item da entidade em criação, marcado no topo da lista (design-system.md, seção 4.1). */
-function NewEntityItem() {
-  return (
-    <li aria-current="true" className={`${ITEM} ${SELECTED} text-ink`}>
-      <span className="font-medium">Nova entidade</span>
-      <span className="text-body-sm">Ainda não salva</span>
-    </li>
-  );
-}
-
 /**
  * A Coluna da tela (design-system.md, seção 4.1): a busca no topo e as entidades, 10 por vez, com a
  * aberta marcada e, na criação, o item da nova no topo. A lista vem inteira da api, e a busca a filtra
@@ -82,7 +70,7 @@ export function EntityList({ items }: Readonly<{ items: readonly EntityListItem[
     // Sem nenhuma entidade, não há o que buscar; na criação, a lista traz só o item da nova.
     return creating ? (
       <ul className="flex flex-col gap-1">
-        <NewEntityItem />
+        <NewListItem label="Nova entidade" detail="Ainda não salva" />
       </ul>
     ) : (
       <p className="px-3 py-2 text-body-sm text-mute">Nenhuma entidade ainda.</p>
@@ -110,7 +98,7 @@ export function EntityList({ items }: Readonly<{ items: readonly EntityListItem[
       </div>
       {found.length === 0 && <p className="px-3 py-2 text-body-sm text-mute">Nenhuma entidade encontrada.</p>}
       <ul className="flex flex-col gap-1">
-        {creating && <NewEntityItem />}
+        {creating && <NewListItem label="Nova entidade" detail="Ainda não salva" />}
         {shown.map((item) => {
           const selected = item.id === segment;
           return (
@@ -118,7 +106,7 @@ export function EntityList({ items }: Readonly<{ items: readonly EntityListItem[
               <Link
                 href={`/entities/${item.id}`}
                 aria-current={selected ? 'page' : undefined}
-                className={`${ITEM} ${selected ? SELECTED : 'hover:bg-surface-subtle'} ${item.active ? 'text-ink' : 'text-mute'} ${FOCUS_RING}`}
+                className={`${LIST_ITEM} ${selected ? LIST_ITEM_SELECTED : 'hover:bg-surface-subtle'} ${item.active ? 'text-ink' : 'text-mute'} ${FOCUS_RING}`}
               >
                 <span className="flex items-start justify-between gap-2 font-medium">
                   <span className="min-w-0 wrap-anywhere">{item.name}</span>

@@ -16,3 +16,6 @@ export const GHOST_BUTTON = `${BASE} text-body hover:bg-surface-subtle`;
 
 /** O destrutivo: a ação que a confirmação repete. */
 export const DESTRUCTIVE_BUTTON = `${BASE} bg-negative-strong text-on-negative`;
+
+/** O fantasma destrutivo: a ação que tira algo, à esquerda do rodapé da edição, que abre a confirmação. */
+export const GHOST_DESTRUCTIVE_BUTTON = `${BASE} text-negative hover:bg-negative-soft`;

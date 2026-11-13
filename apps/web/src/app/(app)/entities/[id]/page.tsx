@@ -1,8 +1,10 @@
 import Link from 'next/link';
 
+import { getEntity } from '@/api/entities';
+
 import { PRIMARY_BUTTON } from '../../../_shell/buttons';
-import { EntityLoadError } from '../entity-load-error';
-import { loadEntity } from '../load-entity';
+import { LoadError } from '../../../_shell/load-error';
+import { loadOrNotFound } from '../../../_shell/load-or-not-found';
 import { formatTaxId, TYPE_NAMES } from '../tax-id-format';
 import { ActivationForm } from './activation-form';
 import { OperationSwitch } from './operation-switch';
@@ -11,8 +13,9 @@ const PANEL = 'flex flex-col gap-6 rounded-md border border-hairline bg-surface 
 
 /** O detalhe da entidade: o nome, o tipo e o documento completo, as operações e as ações. */
 export default async function EntityDetail({ params }: PageProps<'/entities/[id]'>) {
-  const entity = await loadEntity((await params).id);
-  if (!entity) return <EntityLoadError />;
+  const { id } = await params;
+  const entity = await loadOrNotFound(() => getEntity(id));
+  if (!entity) return <LoadError>Não foi possível carregar a entidade.</LoadError>;
   const document = entity.taxId ? formatTaxId(entity.type, entity.taxId) : 'Sem documento';
 
   return (
