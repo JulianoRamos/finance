@@ -47,10 +47,11 @@ model Session {
   lastUsedAt DateTime  @map("last_used_at") @db.Timestamptz
   /// O prazo máximo: o login mais SESSION_MAX_DAYS.
   expiresAt  DateTime  @map("expires_at") @db.Timestamptz
-  /// Quando a sessão foi encerrada (uso de um link de recuperação; depois, sair e a troca de senha).
-  /// Nulo enquanto aberta.
+  /// Quando a sessão foi encerrada: ao sair, pela lista de sessões, pela troca de senha (as outras) ou
+  /// pelo uso de um link de recuperação (todas). Nulo enquanto aberta.
   endedAt    DateTime? @map("ended_at") @db.Timestamptz
-  /// O User-Agent do navegador que fez o login, para a lista de sessões. Nulo quando não veio.
+  /// O User-Agent do navegador que fez o login. A lista de sessões mostra o navegador e o sistema lidos
+  /// dele. Nulo quando não veio.
   userAgent  String?   @map("user_agent")
   /// O endereço de origem do login (regra 6.1).
   origin     String

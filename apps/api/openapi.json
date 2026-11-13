@@ -112,6 +112,44 @@
         "tags": [
           "sessions"
         ]
+      },
+      "get": {
+        "operationId": "SessionsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "As sessões ativas do usuário da sessão corrente, e só dele: a corrente primeiro, depois as outras do último uso mais recente ao mais antigo. Sem paginação: a lista é curta, porque uma sessão vence em até 30 dias (LLD, seção 5, \"Listas\").",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionSummary"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "As sessões ativas do usuário.",
+        "tags": [
+          "sessions"
+        ]
       }
     },
     "/v1/sessions/current": {
@@ -146,6 +184,34 @@
           }
         ],
         "summary": "A sessão corrente e o usuário dela.",
+        "tags": [
+          "sessions"
+        ]
+      },
+      "delete": {
+        "operationId": "SessionsController_endCurrent",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "A sessão corrente foi encerrada: o token dela não vale mais."
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Sai: encerra a sessão corrente.",
         "tags": [
           "sessions"
         ]
@@ -299,6 +365,147 @@
         "summary": "Usa um link de recuperação: define a senha e entra. Rota pública.",
         "tags": [
           "recovery-links"
+        ]
+      }
+    },
+    "/v1/sessions/{id}": {
+      "delete": {
+        "operationId": "SessionsController_end",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da sessão, como a lista de sessões o devolve.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A sessão foi encerrada na hora: o token dela não vale mais."
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a sessão não existe, é de outro usuário ou já não está ativa. A resposta é a mesma nos três casos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Encerra uma sessão ativa do próprio usuário.",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/v1/users/me/password": {
+      "put": {
+        "operationId": "UsersController_changePassword",
+        "parameters": [
+          {
+            "name": "X-Forwarded-For",
+            "in": "header",
+            "description": "O endereço do navegador, que a web repassa. A api conta as tentativas por ele (regra 6.1); sem o cabeçalho, vale o endereço da conexão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePassword"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "A senha foi trocada e as outras sessões do usuário foram encerradas. A sessão corrente continua aberta."
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: a senha atual falta, a nova tem menos de 12 ou mais de 256 caracteres, ou a confirmação é diferente (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`INVALID_CURRENT_PASSWORD`: a senha atual não confere. A falha conta no limite de tentativas do e-mail e da origem (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`TOO_MANY_ATTEMPTS`: falhas demais da senha do e-mail ou da origem (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Troca a senha do usuário da sessão corrente.",
+        "tags": [
+          "users"
         ]
       }
     }
@@ -476,6 +683,80 @@
           }
         },
         "required": [
+          "password",
+          "passwordConfirmation"
+        ]
+      },
+      "SessionSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "browser": {
+            "type": "string",
+            "nullable": true,
+            "description": "O navegador, lido do User-Agent do login, como \"Chrome\" ou \"Safari\". Nulo quando o User-Agent não veio ou não é de um navegador conhecido.",
+            "example": "Chrome"
+          },
+          "platform": {
+            "type": "string",
+            "nullable": true,
+            "description": "O sistema ou o aparelho, lido do User-Agent do login, como \"macOS\", \"Windows\" ou \"iPhone\". Nulo quando não é reconhecido.",
+            "example": "macOS"
+          },
+          "origin": {
+            "type": "string",
+            "description": "O endereço de origem do login (regra 6.1).",
+            "example": "192.0.2.10"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "O instante do login."
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "O último uso, gravado no máximo uma vez por minuto."
+          },
+          "current": {
+            "type": "boolean",
+            "description": "Se é a sessão do token que fez o pedido."
+          }
+        },
+        "required": [
+          "id",
+          "browser",
+          "platform",
+          "origin",
+          "createdAt",
+          "lastUsedAt",
+          "current"
+        ]
+      },
+      "ChangePassword": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "description": "A senha atual.",
+            "maxLength": 256
+          },
+          "password": {
+            "type": "string",
+            "description": "A senha nova.",
+            "minLength": 12,
+            "maxLength": 256
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "description": "A senha nova, repetida (regra 6.1)."
+          }
+        },
+        "required": [
+          "currentPassword",
           "password",
           "passwordConfirmation"
         ]
