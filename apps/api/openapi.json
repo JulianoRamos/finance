@@ -32,6 +32,275 @@
           "health"
         ]
       }
+    },
+    "/v1/sessions": {
+      "post": {
+        "operationId": "SessionsController_create",
+        "parameters": [
+          {
+            "name": "X-Forwarded-For",
+            "in": "header",
+            "description": "O endereço do navegador, que a web repassa. A api conta as tentativas por ele (regra 6.1); sem o cabeçalho, vale o endereço da conexão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "User-Agent",
+            "in": "header",
+            "description": "O User-Agent do navegador, que a web repassa, guardado na sessão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O login abriu a sessão. O token só é devolvido aqui.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o e-mail ou a senha faltam, não são texto ou passam do tamanho máximo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`INVALID_CREDENTIALS`: o e-mail ou a senha não conferem, ou o usuário está desativado ou sem senha. A mensagem é a mesma em todos os casos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`TOO_MANY_ATTEMPTS`: tentativas demais do e-mail ou da origem (regra 6.1). A mensagem não diz se o e-mail existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Entra com e-mail e senha e abre uma sessão. Rota pública.",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/v1/sessions/current": {
+      "get": {
+        "operationId": "SessionsController_current",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "A sessão vale. O uso renova o prazo de inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentSession"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "A sessão corrente e o usuário dela.",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/v1/recovery-links/{token}": {
+      "get": {
+        "operationId": "RecoveryLinksController_find",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "O token do link de recuperação, como está no link.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Forwarded-For",
+            "in": "header",
+            "description": "O endereço do navegador, que a web repassa. A api conta as tentativas por ele (regra 6.1); sem o cabeçalho, vale o endereço da conexão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O link vale.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryLink"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o link não existe, já foi usado ou venceu.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`TOO_MANY_ATTEMPTS`: tentativas demais da origem (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Confere um link de recuperação antes de pedir a senha. Rota pública.",
+        "tags": [
+          "recovery-links"
+        ]
+      }
+    },
+    "/v1/recovery-links/{token}/use": {
+      "post": {
+        "operationId": "RecoveryLinksController_use",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "O token do link de recuperação, como está no link.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Forwarded-For",
+            "in": "header",
+            "description": "O endereço do navegador, que a web repassa. A api conta as tentativas por ele (regra 6.1); sem o cabeçalho, vale o endereço da conexão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "User-Agent",
+            "in": "header",
+            "description": "O User-Agent do navegador, que a web repassa, guardado na sessão.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPassword"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A senha foi definida, as outras sessões do usuário foram encerradas e uma sessão nova foi aberta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: a senha tem menos de 12 ou mais de 256 caracteres, ou a confirmação é diferente (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o link não existe, já foi usado ou venceu.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`TOO_MANY_ATTEMPTS`: tentativas demais da origem (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Usa um link de recuperação: define a senha e entra. Rota pública.",
+        "tags": [
+          "recovery-links"
+        ]
+      }
     }
   },
   "info": {
@@ -43,6 +312,13 @@
   "tags": [],
   "servers": [],
   "components": {
+    "securitySchemes": {
+      "session": {
+        "type": "http",
+        "description": "O token da sessão, que a web lê do cookie e manda em Authorization: Bearer (LLD, seção 5).",
+        "scheme": "bearer"
+      }
+    },
     "schemas": {
       "DatabaseState": {
         "type": "string",
@@ -66,6 +342,142 @@
         },
         "required": [
           "database"
+        ]
+      },
+      "Login": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "O e-mail do usuário. Comparado sem distinguir maiúsculas.",
+            "example": "ana@exemplo.com",
+            "maxLength": 320
+          },
+          "password": {
+            "type": "string",
+            "description": "A senha.",
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "SessionToken": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "O token opaco da sessão, que a web guarda no cookie httpOnly. Não é devolvido de novo."
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "O prazo máximo da sessão (o login mais SESSION_MAX_DAYS)."
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt"
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "O código estável do erro, em UPPER_SNAKE_CASE, que o cliente confere.",
+            "example": "INVALID_INPUT"
+          },
+          "message": {
+            "type": "string",
+            "description": "O texto para o usuário, em português. Pode mudar."
+          },
+          "fields": {
+            "type": "object",
+            "description": "Na entrada inválida: o motivo de cada campo recusado.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "SessionUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "managesAccess": {
+            "type": "boolean",
+            "description": "Se gere usuários e acessos (regra 6.1)."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "managesAccess"
+        ]
+      },
+      "CurrentSession": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SessionUser"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "O prazo máximo da sessão."
+          }
+        },
+        "required": [
+          "user",
+          "expiresAt"
+        ]
+      },
+      "RecoveryLink": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "O e-mail do usuário que vai definir a senha."
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "SetPassword": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "A senha nova.",
+            "minLength": 12,
+            "maxLength": 256
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "description": "A senha nova, repetida (regra 6.1)."
+          }
+        },
+        "required": [
+          "password",
+          "passwordConfirmation"
         ]
       }
     }

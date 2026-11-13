@@ -111,7 +111,11 @@
   --spacing-6: 24px;
   --spacing-8: 32px;
   --spacing-10: 40px;
+  --spacing-11: 44px;
   --spacing-16: 64px;
+
+  /* 2.3 Larguras. */
+  --container-form: 400px;
 
   /* 2.4 Raio e elevação. O nível 0 é só a borda `hairline`. */
   --radius-sm: 6px;

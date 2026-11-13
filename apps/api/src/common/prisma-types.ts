@@ -11,4 +11,9 @@ export type JsonValue = Prisma.InputJsonValue | null;
 /** Um objeto que o Prisma grava numa coluna jsonb. */
 export type JsonObject = Prisma.InputJsonObject;
 
-export { AuditAction } from '../generated/prisma/client.js';
+export { AuditAction, LoginStep } from '../generated/prisma/client.js';
+
+/** Se o erro é a violação de um único do banco (P2002 do Prisma), como um e-mail que já existe. */
+export function isUniqueViolation(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+}

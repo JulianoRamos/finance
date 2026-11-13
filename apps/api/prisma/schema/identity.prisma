@@ -1,0 +1,117 @@
+// O módulo Identidade (LLD, seção 4.2, e regra 6.1): os usuários, as sessões de login, os links de
+// recuperação do acesso e as tentativas de login. O segundo fator (os campos do TOTP e os códigos de
+// recuperação) e as permissões por entidade nascem nos tickets deles.
+
+/// Uma pessoa que acessa o sistema com login próprio.
+/// CHECK escrito à mão na migração (user_email_lowercase_check): o e-mail é gravado em minúsculas, então
+/// o único dele vale sem distinguir maiúsculas.
+/// "user" é palavra reservada do PostgreSQL: o SQL escrito à mão o escreve entre aspas.
+model User {
+  /// uuidv7, gerado pelo banco.
+  id            String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// O nome, como aparece na interface.
+  name          String
+  /// O login. Em minúsculas e sem espaços nas pontas (CHECK escrito à mão na migração).
+  email         String   @unique(map: "user_email_key")
+  /// O hash argon2id da senha. Nulo até o usuário defini-la pelo link de recuperação.
+  passwordHash  String?  @map("password_hash")
+  /// Se gere usuários e acessos (regra 6.1). O comando create-user cria o usuário com ela.
+  managesAccess Boolean  @default(false) @map("manages_access")
+  /// O usuário desativado não entra (regra 6.1).
+  active        Boolean  @default(true)
+  createdAt     DateTime @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @map("updated_at") @db.Timestamptz
+  /// O bloqueio otimista da edição do usuário (regra 6.20).
+  version       Int      @default(1)
+
+  sessions             Session[]
+  recoveryLinks        RecoveryLink[] @relation("RecoveryLinkUser")
+  createdRecoveryLinks RecoveryLink[] @relation("RecoveryLinkCreatedBy")
+
+  @@map("user")
+}
+
+/// Uma sessão de login. O token só existe com o cliente: o banco guarda o hash dele.
+/// Vale enquanto ended_at for nulo, expires_at não tiver passado e o último uso tiver menos de
+/// SESSION_IDLE_DAYS (regra 6.1).
+model Session {
+  /// uuidv7, gerado pelo banco.
+  id         String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// O dono da sessão. RESTRICT: o usuário é desativado, e não excluído.
+  userId     String    @map("user_id") @db.Uuid
+  /// O SHA-256 do token aleatório de 256 bits, em hexadecimal.
+  tokenHash  String    @unique(map: "session_token_hash_key") @map("token_hash")
+  /// O instante do login.
+  createdAt  DateTime  @map("created_at") @db.Timestamptz
+  /// O último uso, atualizado no máximo uma vez por minuto.
+  lastUsedAt DateTime  @map("last_used_at") @db.Timestamptz
+  /// O prazo máximo: o login mais SESSION_MAX_DAYS.
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz
+  /// Quando a sessão foi encerrada (uso de um link de recuperação; depois, sair e a troca de senha).
+  /// Nulo enquanto aberta.
+  endedAt    DateTime? @map("ended_at") @db.Timestamptz
+  /// O User-Agent do navegador que fez o login, para a lista de sessões. Nulo quando não veio.
+  userAgent  String?   @map("user_agent")
+  /// O endereço de origem do login (regra 6.1).
+  origin     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  /// As sessões de um usuário, para encerrá-las e listá-las.
+  @@index([userId], map: "session_user_idx")
+  @@map("session")
+}
+
+/// Um link de recuperação do acesso: vale 1 hora e uma vez só, e define a senha (regra 6.1). O token só
+/// existe no link: o banco guarda o hash dele.
+model RecoveryLink {
+  /// uuidv7, gerado pelo banco.
+  id          String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// O usuário que vai definir a senha. RESTRICT: o usuário é desativado, e não excluído.
+  userId      String    @map("user_id") @db.Uuid
+  /// O SHA-256 do token aleatório de 256 bits, em hexadecimal.
+  tokenHash   String    @unique(map: "recovery_link_token_hash_key") @map("token_hash")
+  /// Quem gerou o link. Nulo quando veio de um comando no servidor (create-user, recover-access).
+  createdById String?   @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @map("created_at") @db.Timestamptz
+  /// A criação mais 1 hora.
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz
+  /// Quando o link foi usado. Nulo enquanto não usado.
+  usedAt      DateTime? @map("used_at") @db.Timestamptz
+
+  user      User  @relation("RecoveryLinkUser", fields: [userId], references: [id], onDelete: Restrict)
+  createdBy User? @relation("RecoveryLinkCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([userId], map: "recovery_link_user_idx")
+  @@map("recovery_link")
+}
+
+/// A etapa da autenticação em que a tentativa foi feita.
+enum LoginStep {
+  password
+  second_factor
+  recovery
+
+  @@map("login_step")
+}
+
+/// Uma tentativa de autenticação, para o limite de tentativas por e-mail e por origem (regra 6.1). Sem
+/// chave estrangeira: a tentativa com um e-mail que não existe conta do mesmo jeito.
+model LoginAttempt {
+  /// uuidv7, gerado pelo banco.
+  id          String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// O e-mail tentado, em minúsculas. Nulo quando a tentativa não chega a um e-mail, como o uso de um
+  /// link de recuperação que não existe.
+  email       String?
+  /// O endereço de origem da tentativa.
+  origin      String
+  step        LoginStep
+  succeeded   Boolean
+  attemptedAt DateTime  @map("attempted_at") @db.Timestamptz
+
+  /// As falhas recentes de um e-mail.
+  @@index([email, attemptedAt], map: "login_attempt_email_idx")
+  /// As falhas recentes de uma origem.
+  @@index([origin, attemptedAt], map: "login_attempt_origin_idx")
+  @@map("login_attempt")
+}
