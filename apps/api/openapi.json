@@ -217,6 +217,67 @@
         ]
       }
     },
+    "/v1/sessions/{id}": {
+      "delete": {
+        "operationId": "SessionsController_end",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da sessão, como a lista de sessões o devolve.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A sessão foi encerrada na hora: o token dela não vale mais."
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a sessão não existe, é de outro usuário ou já não está ativa. A resposta é a mesma nos três casos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Encerra uma sessão ativa do próprio usuário.",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
     "/v1/recovery-links/{token}": {
       "get": {
         "operationId": "RecoveryLinksController_find",
@@ -365,67 +426,6 @@
         "summary": "Usa um link de recuperação: define a senha e entra. Rota pública.",
         "tags": [
           "recovery-links"
-        ]
-      }
-    },
-    "/v1/sessions/{id}": {
-      "delete": {
-        "operationId": "SessionsController_end",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "O id da sessão, como a lista de sessões o devolve.",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "A sessão foi encerrada na hora: o token dela não vale mais."
-          },
-          "400": {
-            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "`NOT_FOUND`: a sessão não existe, é de outro usuário ou já não está ativa. A resposta é a mesma nos três casos.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "session": []
-          }
-        ],
-        "summary": "Encerra uma sessão ativa do próprio usuário.",
-        "tags": [
-          "sessions"
         ]
       }
     },
@@ -656,37 +656,6 @@
           "expiresAt"
         ]
       },
-      "RecoveryLink": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "description": "O e-mail do usuário que vai definir a senha."
-          }
-        },
-        "required": [
-          "email"
-        ]
-      },
-      "SetPassword": {
-        "type": "object",
-        "properties": {
-          "password": {
-            "type": "string",
-            "description": "A senha nova.",
-            "minLength": 12,
-            "maxLength": 256
-          },
-          "passwordConfirmation": {
-            "type": "string",
-            "description": "A senha nova, repetida (regra 6.1)."
-          }
-        },
-        "required": [
-          "password",
-          "passwordConfirmation"
-        ]
-      },
       "SessionSummary": {
         "type": "object",
         "properties": {
@@ -734,6 +703,37 @@
           "createdAt",
           "lastUsedAt",
           "current"
+        ]
+      },
+      "RecoveryLink": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "O e-mail do usuário que vai definir a senha."
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "SetPassword": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "A senha nova.",
+            "minLength": 12,
+            "maxLength": 256
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "description": "A senha nova, repetida (regra 6.1)."
+          }
+        },
+        "required": [
+          "password",
+          "passwordConfirmation"
         ]
       },
       "ChangePassword": {

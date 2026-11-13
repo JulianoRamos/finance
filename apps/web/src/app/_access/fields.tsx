@@ -6,7 +6,17 @@ import { useFormStatus } from 'react-dom';
 import { FOCUS_RING } from './access-screen';
 import { Icon } from './icon';
 
-const INPUT = `h-11 w-full rounded-sm border border-field-border bg-surface px-3 text-body-lg text-ink hover:border-body aria-invalid:border-negative-strong md:text-body-md ${FOCUS_RING}`;
+/**
+ * O tamanho dos controles: o das telas de acesso, de 44px (design-system.md, seção 4.1), ou o da
+ * estrutura do app, com o campo de 40px no celular e 36px a partir do tablet (seção 4.3) e o botão de
+ * formulário de 40px (seção 4.2).
+ */
+export type ControlSize = 'access' | 'app';
+
+const INPUT_HEIGHT: Record<ControlSize, string> = { access: 'h-11', app: 'h-10 md:h-9' };
+const BUTTON_HEIGHT: Record<ControlSize, string> = { access: 'h-11', app: 'h-10' };
+
+const INPUT = `w-full rounded-sm border border-field-border bg-surface px-3 text-body-lg text-ink hover:border-body aria-invalid:border-negative-strong md:text-body-md ${FOCUS_RING}`;
 
 interface FieldProps {
   readonly id: string;
@@ -17,6 +27,8 @@ interface FieldProps {
   readonly help?: string;
   /** O motivo da recusa, abaixo do campo. */
   readonly error?: string | undefined;
+  /** O tamanho do campo; o padrão é o das telas de acesso. */
+  readonly size?: ControlSize;
 }
 
 /** O rótulo, o campo, a ajuda e o erro (design-system.md, seção 4.3), com o que vai à direita do campo. */
@@ -30,6 +42,7 @@ function Field({
   type,
   defaultValue,
   trailing,
+  size = 'access',
 }: FieldProps & { readonly type: string; readonly defaultValue?: string; readonly trailing?: ReactNode }) {
   const describedBy = [help && `${id}-help`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
   return (
@@ -47,7 +60,7 @@ function Field({
           defaultValue={defaultValue}
           aria-describedby={describedBy}
           aria-invalid={error ? true : undefined}
-          className={trailing ? `${INPUT} pr-10` : INPUT}
+          className={`${INPUT} ${INPUT_HEIGHT[size]} ${trailing ? 'pr-10' : ''}`}
         />
         {trailing}
       </div>
@@ -94,14 +107,14 @@ export function PasswordField({ showLabel, ...props }: FieldProps & { readonly s
 }
 
 /** O botão principal do formulário, que não aceita outro clique enquanto o envio corre. */
-export function SubmitButton({ children }: Readonly<{ children: ReactNode }>) {
+export function SubmitButton({ size = 'access', children }: Readonly<{ size?: ControlSize; children: ReactNode }>) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
       disabled={pending}
       aria-disabled={pending}
-      className={`h-11 rounded-sm bg-primary text-label text-on-primary hover:bg-primary-hover disabled:cursor-wait ${FOCUS_RING}`}
+      className={`${BUTTON_HEIGHT[size]} rounded-sm bg-primary px-3 text-label text-on-primary hover:bg-primary-hover disabled:cursor-wait ${FOCUS_RING}`}
     >
       {children}
     </button>

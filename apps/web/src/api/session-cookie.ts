@@ -18,3 +18,8 @@ export async function storeSession(session: { token: string; expiresAt: string }
     expires: new Date(session.expiresAt),
   });
 }
+
+/** Apaga o cookie da sessão. */
+export async function clearSession(): Promise<void> {
+  (await cookies()).delete({ name: SESSION_COOKIE, path: '/' });
+}

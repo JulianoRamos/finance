@@ -122,3 +122,8 @@ export async function loginAs(app: INestApplication<Server>, email: string, pass
   const response = await postLogin(app, email, password).expect(201);
   return (response.body as { token: string }).token;
 }
+
+/** O pedido da sessão corrente com o token, para o teste conferir a resposta. */
+export function getCurrentSession(app: INestApplication<Server>, token: string) {
+  return request(app.getHttpServer()).get('/v1/sessions/current').auth(token, { type: 'bearer' });
+}

@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
 import { createPendingTestUser, createTestUser, signIn, uniqueOrigin } from './support/users';
+import { screenAlert } from './support/screen';
 
 // A acessibilidade automática da validação visual (design-system.md, seção 9): nenhuma violação séria
 // ou crítica das regras da WCAG 2.2 AA, nos dois temas (seção 7).
@@ -27,6 +28,33 @@ const SCREENS: readonly Screen[] = [
     },
   },
   {
+    name: 'Minha conta',
+    open: async (page, baseURL) => {
+      await signIn(page.context(), await createTestUser(), baseURL);
+      await page.goto('/profile');
+      await expect(page.getByRole('table', { name: 'Sessões ativas' })).toBeVisible();
+    },
+  },
+  {
+    name: 'o menu da conta aberto',
+    open: async (page, baseURL) => {
+      const user = await createTestUser();
+      await signIn(page.context(), user, baseURL);
+      await page.goto('/');
+      await page.getByRole('button', { name: user.name }).click();
+      await expect(page.getByRole('menuitem', { name: 'Sair' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a barra lateral recolhida',
+    open: async (page, baseURL) => {
+      await signIn(page.context(), await createTestUser(), baseURL);
+      await page.context().addCookies([{ name: 'sidebar', value: 'collapsed', url: baseURL }]);
+      await page.goto('/profile');
+      await expect(page.getByRole('button', { name: 'Abrir a barra lateral' })).toBeVisible();
+    },
+  },
+  {
     name: 'o login',
     open: async (page) => {
       await page.goto('/login');
@@ -41,7 +69,7 @@ const SCREENS: readonly Screen[] = [
       await page.getByLabel('E-mail').fill(`ninguem-${crypto.randomUUID()}@exemplo.com`);
       await page.getByLabel('Senha', { exact: true }).fill('senha-errada-123');
       await page.getByRole('button', { name: 'Entrar' }).click();
-      await expect(page.getByRole('alert')).toHaveText('E-mail ou senha incorretos. Confira os dois e tente de novo.');
+      await expect(screenAlert(page)).toHaveText('E-mail ou senha incorretos. Confira os dois e tente de novo.');
     },
   },
   {

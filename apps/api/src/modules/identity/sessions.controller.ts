@@ -1,10 +1,13 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiTags,
   ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
@@ -12,8 +15,9 @@ import {
 import type { Request } from 'express';
 
 import { ApiError, Public } from '../../common/index.js';
+import { UNAUTHENTICATED_RESPONSE } from './api-responses.js';
 import { ApiClientHeaders } from './client-headers.js';
-import { CurrentSession, Login, SessionToken } from './identity.dto.js';
+import { CurrentSession, Login, SessionId, SessionSummary, SessionToken } from './identity.dto.js';
 import { originOf, userAgentOf } from './request-origin.js';
 import { CurrentSessionOf } from './session.guard.js';
 import { type AuthenticatedSession, SessionsService } from './sessions.service.js';
@@ -53,12 +57,50 @@ export class SessionsController {
   @ApiBearerAuth('session')
   @ApiOperation({ summary: 'A sessão corrente e o usuário dela.' })
   @ApiOkResponse({ type: CurrentSession, description: 'A sessão vale. O uso renova o prazo de inatividade.' })
-  @ApiUnauthorizedResponse({
-    type: ApiError,
-    description:
-      '`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.',
-  })
+  @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
   current(@CurrentSessionOf() session: AuthenticatedSession): CurrentSession {
     return { user: session.user, expiresAt: session.expiresAt };
+  }
+
+  @Get()
+  @ApiBearerAuth('session')
+  @ApiOperation({ summary: 'As sessões ativas do usuário.' })
+  @ApiOkResponse({
+    type: SessionSummary,
+    isArray: true,
+    description:
+      'As sessões ativas do usuário da sessão corrente, e só dele: a corrente primeiro, depois as outras do último uso mais recente ao mais antigo. Sem paginação: a lista é curta, porque uma sessão vence em até 30 dias (LLD, seção 5, "Listas").',
+  })
+  @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
+  list(@CurrentSessionOf() session: AuthenticatedSession): Promise<SessionSummary[]> {
+    return this.sessions.listActive(session.user.id, session.id);
+  }
+
+  // Declarada antes da ':id', para o caminho "current" não ser lido como um id.
+  @Delete('current')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth('session')
+  @ApiOperation({ summary: 'Sai: encerra a sessão corrente.' })
+  @ApiNoContentResponse({ description: 'A sessão corrente foi encerrada: o token dela não vale mais.' })
+  @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
+  endCurrent(@CurrentSessionOf() session: AuthenticatedSession): Promise<void> {
+    return this.sessions.endCurrent(session);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth('session')
+  @ApiOperation({ summary: 'Encerra uma sessão ativa do próprio usuário.' })
+  @ApiParam({ name: 'id', format: 'uuid', description: 'O id da sessão, como a lista de sessões o devolve.' })
+  @ApiNoContentResponse({ description: 'A sessão foi encerrada na hora: o token dela não vale mais.' })
+  @ApiBadRequestResponse({ type: ApiError, description: '`INVALID_INPUT`: o id não é um UUID (em `fields`).' })
+  @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
+  @ApiNotFoundResponse({
+    type: ApiError,
+    description:
+      '`NOT_FOUND`: a sessão não existe, é de outro usuário ou já não está ativa. A resposta é a mesma nos três casos.',
+  })
+  end(@Param() params: SessionId, @CurrentSessionOf() session: AuthenticatedSession): Promise<void> {
+    return this.sessions.end(session.user.id, params.id);
   }
 }
