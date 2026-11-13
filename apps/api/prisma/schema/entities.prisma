@@ -1,6 +1,6 @@
 // O módulo Entidades (LLD, seção 4.3, e regra 6.2): as pessoas físicas e jurídicas cujas finanças o
-// sistema controla e as operações ligadas em cada empresa. Os grupos financeiros e as participações
-// societárias nascem nos tickets deles.
+// sistema controla, as operações ligadas em cada empresa e os grupos financeiros, com a Visão Familiar.
+// As participações societárias nascem no ticket delas.
 
 /// O tipo da entidade. Não muda depois da criação (regra 6.2).
 enum EntityType {
@@ -44,6 +44,7 @@ model Entity {
   version   Int        @default(1)
 
   operations EntityOperation[]
+  groups     FinancialGroupMember[]
 
   @@map("entity")
 }
@@ -66,4 +67,54 @@ model EntityOperation {
   /// Uma operação liga uma vez só em cada empresa.
   @@unique([entityId, operation], map: "entity_operation_entity_operation_key")
   @@map("entity_operation")
+}
+
+/// Um conjunto de entidades consultado de forma consolidada, no seletor de contexto
+/// (GLOSSARY.md, Grupo financeiro). A Visão Familiar é o grupo com `isFamilyView`, criado pela
+/// migração que cria a tabela, e não por um pedido: ela existe em todo banco, uma vez só (regra 6.2).
+/// Índice único parcial escrito à mão na migração (financial_group_family_view_key): só um grupo com
+/// is_family_view verdadeiro.
+/// CHECK escrito à mão na migração (financial_group_name_check): o nome não é vazio nem só de espaços.
+model FinancialGroup {
+  /// uuidv7, gerado pelo banco.
+  id           String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// O nome, como o usuário quer vê-lo, sem espaços nas pontas. Não é único. O da Visão Familiar não
+  /// muda: a api recusa a mudança (regra 6.2).
+  name         String
+  /// Verdadeiro só na Visão Familiar, que só aceita pessoa física e não é renomeada nem excluída
+  /// (regra 6.2). Não muda depois da criação.
+  isFamilyView Boolean  @default(false) @map("is_family_view")
+  createdAt    DateTime @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @map("updated_at") @db.Timestamptz
+  /// O bloqueio otimista da edição do nome e dos membros (regra 6.20).
+  version      Int      @default(1)
+
+  members FinancialGroupMember[]
+
+  @@map("financial_group")
+}
+
+/// Uma entidade num grupo financeiro. Sair do grupo apaga a linha, e não a entidade.
+/// Na Visão Familiar, só pessoa física: a api recusa a empresa (regra 6.2). Uma entidade desativada
+/// não entra num grupo, e a que já estava nele continua até sair (regra 6.2).
+/// Tem id próprio, e não só a chave (financial_group_id, entity_id), porque a auditoria guarda o id do
+/// registro.
+model FinancialGroupMember {
+  /// uuidv7, gerado pelo banco.
+  id               String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// O grupo. RESTRICT: a exclusão do grupo apaga antes os membros, um a um, com a auditoria.
+  financialGroupId String   @map("financial_group_id") @db.Uuid
+  /// A entidade. RESTRICT: a entidade é desativada, e não excluída.
+  entityId         String   @map("entity_id") @db.Uuid
+  /// Quando a entidade entrou no grupo.
+  createdAt        DateTime @map("created_at") @db.Timestamptz
+
+  financialGroup FinancialGroup @relation(fields: [financialGroupId], references: [id], onDelete: Restrict)
+  entity         Entity         @relation(fields: [entityId], references: [id], onDelete: Restrict)
+
+  /// Uma entidade entra uma vez só em cada grupo.
+  @@unique([financialGroupId, entityId], map: "financial_group_member_group_entity_key")
+  /// A busca dos grupos de uma entidade, que o seletor de contexto e a permissão por entidade fazem.
+  @@index([entityId], map: "financial_group_member_entity_id_idx")
+  @@map("financial_group_member")
 }

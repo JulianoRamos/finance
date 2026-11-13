@@ -1053,6 +1053,344 @@
           "entities"
         ]
       }
+    },
+    "/v1/financial-groups": {
+      "get": {
+        "operationId": "FinancialGroupsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Todos os grupos, numa lista inteira, sem `cursor` (LLD, seção 5): a Visão Familiar primeiro, e os outros pelo nome, em ordem alfabética.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FinancialGroup"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista os grupos financeiros.",
+        "tags": [
+          "financial-groups"
+        ]
+      },
+      "post": {
+        "operationId": "FinancialGroupsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewFinancialGroup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O grupo foi criado, na versão 1, com os membros pedidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o nome falta, é vazio ou passa de 120 caracteres, ou os membros faltam, não são uma lista de UUIDs ou se repetem (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`INACTIVE_ENTITY`: uma entidade desativada entraria no grupo (regra 6.2). `ENTITY_NOT_FOUND`: um dos ids não é de nenhuma entidade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Cria um grupo financeiro.",
+        "tags": [
+          "financial-groups"
+        ]
+      }
+    },
+    "/v1/financial-groups/{id}": {
+      "get": {
+        "operationId": "FinancialGroupsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do grupo.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O grupo, com os membros.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o grupo não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lê um grupo financeiro.",
+        "tags": [
+          "financial-groups"
+        ]
+      },
+      "put": {
+        "operationId": "FinancialGroupsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do grupo.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinancialGroupEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "O grupo com o nome e os membros novos, na versão seguinte.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a versão falta, o nome falta, é vazio ou passa de 120 caracteres, ou os membros faltam, não são uma lista de UUIDs ou se repetem (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o grupo não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: o grupo mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`FAMILY_VIEW_PROTECTED`: o nome enviado não é o da Visão Familiar, que não é renomeada (regra 6.2). `FAMILY_VIEW_INDIVIDUALS_ONLY`: uma pessoa jurídica entraria na Visão Familiar (regra 6.2). `INACTIVE_ENTITY`: uma entidade desativada entraria no grupo (regra 6.2). `ENTITY_NOT_FOUND`: um dos ids não é de nenhuma entidade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Edita o nome e os membros de um grupo financeiro.",
+        "tags": [
+          "financial-groups"
+        ]
+      },
+      "delete": {
+        "operationId": "FinancialGroupsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do grupo.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "O grupo e os membros dele foram excluídos. As entidades e os números delas não mudam (regra 6.2)."
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o grupo não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`FAMILY_VIEW_PROTECTED`: a Visão Familiar não é excluída (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Exclui um grupo financeiro.",
+        "tags": [
+          "financial-groups"
+        ]
+      }
     }
   },
   "info": {
@@ -1458,6 +1796,138 @@
         "required": [
           "version",
           "active"
+        ]
+      },
+      "FinancialGroupMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id da entidade."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company"
+            ],
+            "description": "Pessoa física (`individual`) ou jurídica (`company`)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da entidade.",
+            "example": "Ana Lima"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na entidade desativada depois de entrar no grupo: ela continua nele até sair, e não entra de novo (regra 6.2)."
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name",
+          "active"
+        ]
+      },
+      "FinancialGroup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome do grupo.",
+            "example": "Tudo da Ana"
+          },
+          "isFamilyView": {
+            "type": "boolean",
+            "description": "Verdadeiro só na Visão Familiar, que já vem criada, só aceita pessoas físicas e não é renomeada nem excluída (regra 6.2)."
+          },
+          "members": {
+            "description": "As entidades do grupo, pelo nome, em ordem alfabética.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialGroupMember"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Quando o grupo foi criado."
+          },
+          "version": {
+            "type": "integer",
+            "description": "A versão, que a edição manda de volta (regra 6.20).",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "isFamilyView",
+          "members",
+          "createdAt",
+          "version"
+        ]
+      },
+      "NewFinancialGroup": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "O nome do grupo, como o usuário quer vê-lo, com até 120 caracteres. A api tira os espaços das pontas. Não é único.",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Tudo da Ana"
+          },
+          "memberIds": {
+            "uniqueItems": true,
+            "description": "Os ids das entidades do grupo, a lista inteira, sem repetir. Pode ser vazia. Uma entidade desativada não entra, e a que já estava no grupo pode continuar (regra 6.2). Na Visão Familiar, só pessoas físicas.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "memberIds"
+        ]
+      },
+      "FinancialGroupEdit": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome do grupo, como o usuário quer vê-lo, com até 120 caracteres. A api tira os espaços das pontas. Não é único. Na Visão Familiar, tem de ser o atual: a api recusa a mudança com 422 `FAMILY_VIEW_PROTECTED` (regra 6.2).",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Tudo da Ana"
+          },
+          "memberIds": {
+            "uniqueItems": true,
+            "description": "Os ids das entidades do grupo, a lista inteira, sem repetir. Pode ser vazia. Uma entidade desativada não entra, e a que já estava no grupo pode continuar (regra 6.2). Na Visão Familiar, só pessoas físicas.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "name",
+          "memberIds"
         ]
       }
     }
