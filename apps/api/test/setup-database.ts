@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 
-import { PrismaService } from '../src/common/index.js';
+import { PrismaService, readConfig } from '../src/common/index.js';
 
 /**
  * A tabela do comando de prova da auditoria (test/support/), só do banco de teste: ainda não há tabela
@@ -33,7 +33,7 @@ export default async function setupDatabase(): Promise<void> {
     env: { ...process.env, DATABASE_OWNER_URL: ownerUrl },
     stdio: 'inherit',
   });
-  const owner = new PrismaService({ databaseUrl: ownerUrl, port: 0 });
+  const owner = new PrismaService({ ...readConfig(process.env), databaseUrl: ownerUrl });
   try {
     for (const statement of RESET_AUDIT_PROBE) await owner.$executeRawUnsafe(statement);
   } finally {

@@ -16,13 +16,13 @@ import {
 
 import type { NextFunction, Request, Response } from 'express';
 
-import { setCurrentUser, TransactionService } from '../../src/common/index.js';
+import { Public, setCurrentUser, TransactionService } from '../../src/common/index.js';
 import { type AuditEntry, AuditModule, AuditService } from '../../src/modules/audit/index.js';
 
 /** O nome da tabela de prova, criada pela preparação da suíte (test/setup-database.ts). */
 export const AUDIT_PROBE_TABLE = 'audit_probe';
 
-/** O cabeçalho com que o teste põe um usuário no contexto, enquanto não há autenticação (KAN-9). */
+/** O cabeçalho com que o teste põe um usuário no contexto, sem passar pela autenticação. */
 export const PROBE_USER_HEADER = 'probe-user-id';
 
 interface ProbeRow extends Record<string, unknown> {
@@ -109,6 +109,7 @@ class AuditProbeService {
 
 /** A rota de prova, que chama o comando de prova como uma rota de domínio chama o serviço dela. */
 @Controller('audit-probe')
+@Public()
 class AuditProbeController {
   constructor(private readonly probe: AuditProbeService) {}
 
@@ -148,7 +149,7 @@ class AuditProbeController {
 }
 
 /**
- * Põe no contexto o usuário do cabeçalho de prova, no lugar em que a autenticação vai pô-lo (KAN-9).
+ * Põe no contexto o usuário do cabeçalho de prova, como a autenticação faz numa rota protegida.
  */
 function probeUserMiddleware(request: Request, _response: Response, next: NextFunction): void {
   setCurrentUser(request.header(PROBE_USER_HEADER) ?? null);

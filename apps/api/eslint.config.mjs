@@ -62,10 +62,25 @@ export default tseslint.config(
               from: { element: { type: 'root' } },
               allow: { to: [{ element: { type: 'root' } }, index('common'), index('module')] },
             },
-            // Os comandos e os testes montam a app pela raiz.
+            // Os comandos e os testes montam a app pela raiz. Os testes chamam os comandos pela função
+            // que o executável deles chama.
             {
-              from: { element: { type: ['cli', 'test'] } },
-              allow: { to: [{ element: { type: 'root' } }, index('common'), index('module')] },
+              from: { element: { type: 'cli' } },
+              allow: {
+                to: [{ element: { type: 'root' } }, { element: { type: 'cli' } }, index('common'), index('module')],
+              },
+            },
+            {
+              from: { element: { type: 'test' } },
+              allow: {
+                to: [
+                  { element: { type: 'root' } },
+                  { element: { type: 'test' } },
+                  { element: { type: 'cli', fileInternalPath: 'commands.ts' } },
+                  index('common'),
+                  index('module'),
+                ],
+              },
             },
           ],
         },

@@ -7,6 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { configureApp } from '../app.js';
 import { AppModule } from '../app.module.js';
+import { ApiError } from '../common/index.js';
 
 // Gera a especificação OpenAPI a partir dos controladores, sem abrir a porta nem conectar ao banco.
 //
@@ -17,9 +18,10 @@ import { AppModule } from '../app.module.js';
 
 const USAGE = 'Uso: generate-spec [--check] <arquivo>';
 
-// A app é montada sem nunca abrir conexão, mas a configuração exige a do banco. Sem ela, como num
-// contêiner sem o ambiente da api, vale um endereço que não é usado.
+// A app é montada sem nunca abrir conexão, mas a configuração exige a do banco e o endereço público.
+// Sem eles, como num contêiner sem o ambiente da api, valem endereços que não são usados.
 process.env.DATABASE_URL ??= 'postgresql://no-database/generate-spec';
+process.env.PUBLIC_URL ??= 'http://no-web.invalid';
 
 async function generate(): Promise<string> {
   const app = await NestFactory.create(AppModule, { logger: ['error'] });
@@ -28,8 +30,14 @@ async function generate(): Promise<string> {
     .setTitle('finance')
     .setDescription('A api do finance. O contrato das rotas: LLD, seção 5.')
     .setVersion('1')
+    .addSecurity('session', {
+      type: 'http',
+      description: 'O token da sessão, que a web lê do cookie e manda em Authorization: Bearer (LLD, seção 5).',
+      scheme: 'bearer',
+    })
     .build();
-  const document = SwaggerModule.createDocument(app, config);
+  // O corpo de erro comum entra nos esquemas uma vez, e não pelo primeiro controlador que o declara.
+  const document = SwaggerModule.createDocument(app, config, { extraModels: [ApiError] });
   await app.close();
   return `${JSON.stringify(document, null, 2)}\n`;
 }

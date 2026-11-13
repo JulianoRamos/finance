@@ -78,7 +78,7 @@
             }
           },
           "400": {
-            "description": "`INVALID_INPUT`: o e-mail ou a senha faltam ou não são texto.",
+            "description": "`INVALID_INPUT`: o e-mail ou a senha faltam, não são texto ou passam do tamanho máximo.",
             "content": {
               "application/json": {
                 "schema": {
@@ -344,42 +344,19 @@
           "database"
         ]
       },
-      "ApiError": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "O código estável do erro, em UPPER_SNAKE_CASE, que o cliente confere.",
-            "example": "INVALID_INPUT"
-          },
-          "message": {
-            "type": "string",
-            "description": "O texto para o usuário, em português. Pode mudar."
-          },
-          "fields": {
-            "type": "object",
-            "description": "Na entrada inválida: o motivo de cada campo recusado.",
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "code",
-          "message"
-        ]
-      },
       "Login": {
         "type": "object",
         "properties": {
           "email": {
             "type": "string",
             "description": "O e-mail do usuário. Comparado sem distinguir maiúsculas.",
-            "example": "ana@exemplo.com"
+            "example": "ana@exemplo.com",
+            "maxLength": 320
           },
           "password": {
             "type": "string",
-            "description": "A senha."
+            "description": "A senha.",
+            "maxLength": 256
           }
         },
         "required": [
@@ -403,6 +380,31 @@
         "required": [
           "token",
           "expiresAt"
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "O código estável do erro, em UPPER_SNAKE_CASE, que o cliente confere.",
+            "example": "INVALID_INPUT"
+          },
+          "message": {
+            "type": "string",
+            "description": "O texto para o usuário, em português. Pode mudar."
+          },
+          "fields": {
+            "type": "object",
+            "description": "Na entrada inválida: o motivo de cada campo recusado.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message"
         ]
       },
       "SessionUser": {

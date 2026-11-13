@@ -110,7 +110,12 @@ Base de 4px.
 | `space-6` | 24px | Interior de cartão, entre grupos |
 | `space-8` | 32px | Entre seções |
 | `space-10` | 40px | Margem da página no desktop |
+| `space-11` | 44px | Altura dos campos e do botão principal das telas de acesso, área de toque no celular |
 | `space-16` | 64px | Estado vazio |
+
+| Largura | Valor | Uso |
+| --- | --- | --- |
+| `container-form` | 400px | Largura máxima do formulário das telas de acesso (seção 4.1) |
 
 ### 2.4 Raio, borda e elevação
 

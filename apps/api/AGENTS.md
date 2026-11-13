@@ -20,6 +20,7 @@ Tudo roda no contêiner `api`, da raiz do repositório, com o ambiente no ar (`A
 | Gerar o cliente do Prisma | `api pnpm prisma generate` (o contêiner gera ao subir; gere de novo depois de mudar o schema) |
 | Criar uma migração | `api pnpm prisma migrate dev --name <nome>` |
 | Aplicar as migrações | `api pnpm prisma migrate deploy` (o contêiner já aplica ao subir) |
+| Rodar um comando do servidor | `api pnpm cli create-user "<nome>" <email>` ou `api pnpm cli recover-access <email>` (sobre o `dist/`, que o modo de observação compila) |
 
 Depois de mudar um controlador ou um DTO, gere a cópia da especificação e faça o commit dela junto: a verificação completa reprova quando a cópia difere da gerada, e a `web` gera os tipos do cliente a partir dela.
 
@@ -30,7 +31,10 @@ Depois de mudar um controlador ou um DTO, gere a cópia da especificação e fa�
 - **Versões presas.** O TypeScript fica na linha 6, porque o `typescript-eslint` e o `@nestjs/swagger` ainda não aceitam o 7, e o ESLint na linha 9, a mesma da `web`, cujos plugins do Next ainda não aceitam o 10.
 - **Prisma.** O cliente é gerado em `src/generated/prisma/`, fora do Git, a partir do schema em `prisma/schema/` (um arquivo por módulo). A configuração da linha de comando é o `prisma.config.ts`. A aplicação recebe a conexão da configuração em `src/common/`, e não lê o `prisma.config.ts`.
 - **Configuração.** As variáveis de ambiente são lidas e validadas uma vez, em `src/common/config.ts`, e chegam aos serviços pelo token `CONFIG`. Nenhum outro arquivo lê `process.env`.
-- **Montagem.** O `configureApp`, em `src/app.ts`, é o que vale em todo lugar onde a app é montada (o servidor, os testes e o comando da especificação): o prefixo `/v1` e o que vier depois, como pipes e filtros globais.
+- **Montagem.** O `configureApp`, em `src/app.ts`, é o que vale em todo lugar onde a app é montada (o servidor, os testes e o comando da especificação): o prefixo `/v1`, o contexto da requisição e o `ValidationPipe` global, que responde à entrada inválida com 400 `INVALID_INPUT`.
+- **Rotas protegidas por padrão.** O guard global do módulo Identidade exige a sessão em toda rota. A rota pública é marcada com o `@Public()`, do `common`, no método ou no controlador; o guard só lê a marca.
+- **Relógio.** Todo instante que um módulo grava ou confere vem do `Clock` (token `CLOCK`, do `common`), e nunca de `new Date()` direto. A exceção é o instante da auditoria, que é o da transação, do banco.
+- **Comandos do servidor.** O `src/cli/main.ts` monta o contexto da app e chama o `runCommand`, de `src/cli/commands.ts`, que recebe a app, os argumentos e onde escrever, e devolve o código de saída. Cada execução abre o próprio contexto da requisição, sem usuário.
 
 ## Camadas e imports
 
@@ -68,7 +72,8 @@ O mecanismo (o contexto da requisição, a transação, o antes e o depois, os p
 
 ## Erros
 
-- Um erro que a rota devolve sai como `HttpException` com o status e o corpo do contrato (`docs/lld.md`, seção 5, que registra também a exceção da rota de saúde). O corpo nunca traz a mensagem de uma exceção do driver, da biblioteca ou do sistema: ela vai só para o log, pelo `Logger` do Nest.
+- Um erro que a rota devolve sai como `HttpException` com o status e o corpo do contrato (`docs/lld.md`, seção 5, que registra também a exceção da rota de saúde), montado pelo `apiError(status, code, message)`, do `common`. A resposta de erro é declarada no controlador com o tipo `ApiError`.
+- Um pedido recusado fora de uma rota, como num comando, sai como uma classe de erro do módulo (`IdentityError`), cuja mensagem é para quem pediu. O corpo nunca traz a mensagem de uma exceção do driver, da biblioteca ou do sistema: ela vai só para o log, pelo `Logger` do Nest.
 - Uma espera por recurso externo (o banco, um arquivo) tem prazo, e o estouro do prazo é tratado como a falha do recurso. Os prazos do banco valem para toda consulta e ficam no driver, em `src/common/prisma.service.ts`, e não em cada serviço.
 
 ## Testes
@@ -76,5 +81,7 @@ O mecanismo (o contexto da requisição, a transação, o antes e o depois, os p
 - **Unitários:** `src/**/<arquivo>.test.ts`, ao lado do código, para as regras de domínio como funções puras, sem banco.
 - **Integração:** `test/<subject>.int.test.ts`, contra a app inteira montada com o `Test.createTestingModule` e o `configureApp`, chamada pelo `supertest`, e contra o PostgreSQL real do banco `finance_test` (`DATABASE_URL_TEST`). As migrações rodam nele antes da suíte (`test/setup-database.ts`). Um teste nunca usa o banco de desenvolvimento.
 - **Dependência trocada no teste:** pelo `overrideProvider` do módulo de teste, como a configuração com outra conexão, e nunca com mock de um colaborador interno.
+- **Prazos no teste:** a app de teste do `test/support/app.ts` troca o relógio pelo `TestClock`, que o teste avança. Um prazo é provado avançando o relógio, nunca esperando nem escrevendo no banco por fora.
+- **Dados de um teste:** cada teste cria os próprios usuários, com e-mail e origem (`X-Forwarded-For`) únicos (`uniqueEmail`, `uniqueOrigin`), para o limite de tentativas de um não bloquear outro. O usuário nasce pelo comando, com o `runCommandIn`, como o operador o cria.
 - **Teste de aceite:** o ID do critério vai na tag (`{ tags: ['@KAN-7-CA1'] }`), no formato da skill de plano. O `strictTags` fica desligado no `vitest.config.ts`, porque as tags são os IDs, conferidos pelo conferidor do aceite.
 - **O relatório** que a verificação completa confere é o `reports/vitest.json`, gravado pelo `pnpm test:report`.

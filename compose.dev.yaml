@@ -101,6 +101,8 @@ services:
       DATABASE_OWNER_URL: postgresql://finance:finance@db:5432/finance
       DATABASE_OWNER_URL_TEST: postgresql://finance:finance@db:5432/finance_test
       PORT: "3001"
+      # O endereço público da web, com que os comandos montam o link de recuperação.
+      PUBLIC_URL: http://localhost:${WEB_PORT:-3000}
     command: [sh, -c, "pnpm prisma generate && pnpm prisma migrate deploy && exec pnpm dev"]
     depends_on:
       db:
@@ -121,6 +123,11 @@ services:
       <<: *app-env
       API_URL: http://api:3001
       NEXT_TELEMETRY_DISABLED: "1"
+      # O cookie da sessão sem Secure: o desenvolvimento é em http.
+      COOKIE_SECURE: "false"
+      # Só para a preparação dos testes de ponta a ponta, que gravam o usuário de teste no banco de
+      # desenvolvimento com o papel da api (e2e/support/).
+      E2E_DATABASE_URL: postgresql://finance_app:finance_app@db:5432/finance
     ports:
       - "${WEB_PORT:-3000}:3000"
     command: ["pnpm", "dev"]
