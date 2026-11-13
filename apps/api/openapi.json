@@ -508,6 +508,551 @@
           "users"
         ]
       }
+    },
+    "/v1/entities": {
+      "get": {
+        "operationId": "EntitiesController_list",
+        "parameters": [
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "`true` traz só as entidades ativas, as que aparecem nas escolhas; `false`, só as desativadas. Sem o parâmetro, traz todas.",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Todas as entidades do filtro, numa lista inteira, sem `cursor` (LLD, seção 5): as ativas primeiro, e cada grupo pelo nome, em ordem alfabética.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Entity"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o `active` não é `true` nem `false` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista as entidades.",
+        "tags": [
+          "entities"
+        ]
+      },
+      "post": {
+        "operationId": "EntitiesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewEntity"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A entidade foi criada, ativa, na versão 1, com as operações pedidas ligadas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o tipo falta ou não é conhecido, o nome falta, é vazio ou passa de 120 caracteres, o documento não é um CPF (pessoa física) ou um CNPJ (pessoa jurídica) com os dígitos verificadores certos, ou uma operação não é conhecida ou se repete (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`DUPLICATE_TAX_ID`: o documento já é de outra entidade, ativa ou desativada. `OPERATION_REQUIRES_COMPANY`: a pessoa física veio com uma operação (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Cadastra uma entidade.",
+        "tags": [
+          "entities"
+        ]
+      }
+    },
+    "/v1/entities/{id}": {
+      "get": {
+        "operationId": "EntitiesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da entidade.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A entidade, ativa ou desativada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a entidade não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lê uma entidade.",
+        "tags": [
+          "entities"
+        ]
+      },
+      "put": {
+        "operationId": "EntitiesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da entidade.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A entidade com os dados novos e a versão seguinte. As operações não mudam por esta rota.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a versão falta, o tipo falta ou não é conhecido, o nome falta, é vazio ou passa de 120 caracteres, ou o documento não é um CPF ou um CNPJ válido para o tipo (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a entidade não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a entidade mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`ENTITY_TYPE_IMMUTABLE`: o tipo enviado não é o da entidade, que não muda depois da criação (regra 6.2). `DUPLICATE_TAX_ID`: o documento já é de outra entidade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Edita o nome e o documento de uma entidade.",
+        "tags": [
+          "entities"
+        ]
+      }
+    },
+    "/v1/entities/{id}/active": {
+      "put": {
+        "operationId": "EntitiesController_setActive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da entidade.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityActivation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A entidade desativada ou reativada, com a versão seguinte. Pedir o estado que ela já tem responde 200 sem mudar a versão. Desativar não desliga as operações nem apaga nada (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, ou o `active` ou a versão faltam (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a entidade não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a entidade mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Desativa ou reativa uma entidade.",
+        "tags": [
+          "entities"
+        ]
+      }
+    },
+    "/v1/entities/{id}/operations/{operation}": {
+      "put": {
+        "operationId": "EntitiesController_enableOperation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da entidade.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "operation",
+            "required": true,
+            "in": "path",
+            "description": "A operação. Por enquanto, só a de clínica.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "clinic"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A entidade com a operação ligada. Ligar uma operação já ligada responde igual, sem mudar nada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, ou a operação não é conhecida (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a entidade não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`OPERATION_REQUIRES_COMPANY`: a entidade é uma pessoa física (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Liga uma operação numa empresa.",
+        "tags": [
+          "entities"
+        ]
+      },
+      "delete": {
+        "operationId": "EntitiesController_disableOperation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da entidade.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "operation",
+            "required": true,
+            "in": "path",
+            "description": "A operação. Por enquanto, só a de clínica.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "clinic"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A entidade sem a operação. Desligar esconde as funções dela e não apaga nenhum registro (regra 6.2). Desligar uma operação já desligada responde igual, sem mudar nada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, ou a operação não é conhecida (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a entidade não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Desliga uma operação numa empresa.",
+        "tags": [
+          "entities"
+        ]
+      }
     }
   },
   "info": {
@@ -759,6 +1304,160 @@
           "currentPassword",
           "password",
           "passwordConfirmation"
+        ]
+      },
+      "Entity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company"
+            ],
+            "description": "Pessoa física (`individual`) ou jurídica (`company`). Não muda depois da criação (regra 6.2)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da entidade.",
+            "example": "Clínica Exemplo"
+          },
+          "taxId": {
+            "type": "string",
+            "nullable": true,
+            "description": "O CPF ou o CNPJ, só com os caracteres, sem a pontuação. Nulo quando a entidade não tem documento. A web o formata, e mascara o CPF nas listas.",
+            "example": "00000000000191"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na entidade desativada, que some das escolhas e continua nos registros (regra 6.2)."
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "clinic"
+              ]
+            },
+            "description": "As operações ligadas, em ordem alfabética. Sempre vazia na pessoa física (regra 6.2).",
+            "example": [
+              "clinic"
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "description": "A versão, que a edição e a desativação mandam de volta (regra 6.20).",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name",
+          "taxId",
+          "active",
+          "operations",
+          "version"
+        ]
+      },
+      "NewEntity": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company"
+            ],
+            "description": "Pessoa física (`individual`) ou jurídica (`company`). Não muda depois da criação (regra 6.2)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas.",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Clínica Exemplo"
+          },
+          "taxId": {
+            "type": "string",
+            "nullable": true,
+            "description": "O CPF (pessoa física) ou o CNPJ (pessoa jurídica, também o alfanumérico), com ou sem a pontuação. Opcional: nulo ou vazio fica sem documento. A api confere os dígitos verificadores e o guarda só com os caracteres, com as letras em maiúsculas. Único entre todas as entidades.",
+            "example": "00.000.000/0001-91"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "clinic"
+              ]
+            },
+            "uniqueItems": true,
+            "description": "As operações a ligar na criação. Opcional, e só na pessoa jurídica (regra 6.2)."
+          }
+        },
+        "required": [
+          "type",
+          "name"
+        ]
+      },
+      "EntityEdit": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company"
+            ],
+            "description": "O tipo da entidade, que tem de ser o atual: a api recusa a mudança com 422 `ENTITY_TYPE_IMMUTABLE` (regra 6.2)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas.",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Clínica Exemplo"
+          },
+          "taxId": {
+            "type": "string",
+            "nullable": true,
+            "description": "O CPF (pessoa física) ou o CNPJ (pessoa jurídica, também o alfanumérico), com ou sem a pontuação. Opcional: nulo ou vazio fica sem documento. A api confere os dígitos verificadores e o guarda só com os caracteres, com as letras em maiúsculas. Único entre todas as entidades.",
+            "example": "00.000.000/0001-91"
+          }
+        },
+        "required": [
+          "version",
+          "type",
+          "name"
+        ]
+      },
+      "EntityActivation": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso desativa a entidade; verdadeiro a reativa."
+          }
+        },
+        "required": [
+          "version",
+          "active"
         ]
       }
     }
