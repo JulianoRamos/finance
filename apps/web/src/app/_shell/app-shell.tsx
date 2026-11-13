@@ -26,12 +26,19 @@ export function AppShell({
   );
 }
 
-/** O cabeçalho da página: o título e a frase, que rolam com o conteúdo. */
-export function PageHeader({ title, children }: Readonly<{ title: string; children?: ReactNode }>) {
+/** O cabeçalho da página: o título, a frase e, à direita, as ações da página, que rolam com o conteúdo. */
+export function PageHeader({
+  title,
+  actions,
+  children,
+}: Readonly<{ title: string; actions?: ReactNode; children?: ReactNode }>) {
   return (
-    <header className="flex flex-col gap-1 px-4 pt-8 lg:px-10">
-      <h1 className="text-heading-lg text-ink">{title}</h1>
-      {children && <p className="wrap-anywhere">{children}</p>}
+    <header className="flex flex-wrap items-end justify-between gap-4 px-4 pt-8 lg:px-10">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-heading-lg text-ink">{title}</h1>
+        {children && <p className="wrap-anywhere">{children}</p>}
+      </div>
+      {actions}
     </header>
   );
 }

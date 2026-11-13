@@ -11,8 +11,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-import { ApiError } from '../../common/index.js';
-import { UNAUTHENTICATED_RESPONSE } from './api-responses.js';
+import { ApiError, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
 import { ApiClientHeaders } from './client-headers.js';
 import { ChangePassword } from './identity.dto.js';
 import { PasswordChangeService } from './password-change.service.js';

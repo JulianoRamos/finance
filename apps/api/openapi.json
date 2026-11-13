@@ -906,10 +906,10 @@
             "in": "path",
             "description": "A operação. Por enquanto, só a de clínica.",
             "schema": {
-              "type": "string",
               "enum": [
                 "clinic"
-              ]
+              ],
+              "type": "string"
             }
           }
         ],
@@ -994,10 +994,10 @@
             "in": "path",
             "description": "A operação. Por enquanto, só a de clínica.",
             "schema": {
-              "type": "string",
               "enum": [
                 "clinic"
-              ]
+              ],
+              "type": "string"
             }
           }
         ],
@@ -1338,16 +1338,16 @@
           },
           "operations": {
             "type": "array",
+            "description": "As operações ligadas, em ordem alfabética. Sempre vazia na pessoa física (regra 6.2).",
+            "example": [
+              "clinic"
+            ],
             "items": {
               "type": "string",
               "enum": [
                 "clinic"
               ]
-            },
-            "description": "As operações ligadas, em ordem alfabética. Sempre vazia na pessoa física (regra 6.2).",
-            "example": [
-              "clinic"
-            ]
+            }
           },
           "version": {
             "type": "integer",
@@ -1391,14 +1391,14 @@
           },
           "operations": {
             "type": "array",
+            "uniqueItems": true,
+            "description": "As operações a ligar na criação. Opcional, e só na pessoa jurídica (regra 6.2).",
             "items": {
               "type": "string",
               "enum": [
                 "clinic"
               ]
-            },
-            "uniqueItems": true,
-            "description": "As operações a ligar na criação. Opcional, e só na pessoa jurídica (regra 6.2)."
+            }
           }
         },
         "required": [
