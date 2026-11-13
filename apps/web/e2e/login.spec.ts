@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { createTestUser, uniqueOrigin } from './support/users';
+import { screenAlert } from './support/screen';
 
 const INVALID_CREDENTIALS = 'E-mail ou senha incorretos. Confira os dois e tente de novo.';
 
@@ -34,12 +35,12 @@ test('dados errados mostram o mesmo aviso, exista ou não o e-mail', { tag: '@KA
   await page.getByLabel('E-mail').fill(user.email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-errada-123');
   await submit();
-  await expect(page.getByRole('alert')).toHaveText(INVALID_CREDENTIALS);
+  await expect(screenAlert(page)).toHaveText(INVALID_CREDENTIALS);
 
   await page.getByLabel('E-mail').fill(`ninguem-${user.email}`);
   await page.getByLabel('Senha', { exact: true }).fill(user.password);
   await submit();
-  await expect(page.getByRole('alert')).toHaveText(INVALID_CREDENTIALS);
+  await expect(screenAlert(page)).toHaveText(INVALID_CREDENTIALS);
 
   await expect(page).toHaveURL('/login');
 });

@@ -270,7 +270,7 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 - **Identificador da requisição:** o cabeçalho `X-Request-Id`, um UUID, opcional em toda rota. A `web` gera um a cada requisição do navegador e o manda em toda chamada à `api` feita nela. A `api` usa o recebido quando ele é um UUID e gera outro quando falta ou não é; o identificador vai para o registro de auditoria (seção 4.4). Como vale para todas as rotas, ele fica nesta convenção, e não em cada rota do `openapi.json`.
 - **Dinheiro e quantidades** trafegam como string decimal (`"1234.56"`), e nunca como número JSON. **Datas de calendário** como `"AAAA-MM-DD"`, e instantes em ISO 8601 com fuso.
 - **Edição:** o corpo traz a `version` lida, e a rota devolve `409 VERSION_CONFLICT` quando ela mudou.
-- **Listas:** paginadas por `cursor` e `limit` (padrão 50, máximo 200).
+- **Listas:** paginadas por `cursor` e `limit` (padrão 50, máximo 200). A exceção é a lista das sessões ativas do usuário, que vem inteira: ela é curta, porque cada sessão vence em até 30 dias (regra 6.1).
 - **Erro:** o corpo é `{ "code": "<STABLE_CODE>", "message": "<texto para o usuário>", "fields": { "<field>": "<reason>" } }`, com `fields` só na entrada inválida. O `code` é estável, em inglês e em `UPPER_SNAKE_CASE`, e é o que o cliente confere; a `message` pode mudar. Os códigos comuns:
 
 | Status | Código | Quando |
@@ -292,6 +292,8 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 ### 6.1 Acesso
 
 - **Sessão:** expira depois de 7 dias sem uso e, de qualquer forma, 30 dias depois da criação. O `last_used_at` é atualizado no máximo uma vez por minuto. A troca de senha encerra as outras sessões do usuário.
+  - **Sessões ativas:** o usuário vê e encerra só as próprias. A sessão de outro usuário, a que não existe e a que já não está ativa respondem igual, 404 `NOT_FOUND`. A lista mostra o navegador e o sistema lidos do `user_agent` e a origem como foi gravada, sem localizar o endereço.
+  - **Troca de senha:** pede a senha atual. A senha atual errada responde 422 `INVALID_CURRENT_PASSWORD` e conta como falha do e-mail do usuário, na etapa `password`, e da origem, no mesmo limite de tentativas do login: uma sessão roubada não serve para adivinhar a senha.
 - **Limite de tentativas:** 5 falhas por e-mail em 15 minutos bloqueiam aquela etapa por 15 minutos; 20 falhas por origem em 15 minutos bloqueiam a origem. A resposta do bloqueio não diz se o e-mail existe.
   - **Contagem:** as falhas ficam no `login_attempt`, as de e-mail e as de origem, e o bloqueio dura 15 minutos a partir da falha que atingiu o limite. A tentativa feita durante o bloqueio não é conferida nem contada. O sucesso não zera as falhas. A tentativa é gravada como falha antes de a senha ou o link ser conferido, e vira sucesso depois; cada uma só conta as falhas gravadas antes dela, para tentativas simultâneas não passarem juntas do limite.
   - **Igual para quem não existe:** o e-mail que não existe conta falhas e é bloqueado como um que existe, e o login confere a senha contra um hash fixo quando não há usuário, para o tempo da resposta não dizer se o e-mail existe.

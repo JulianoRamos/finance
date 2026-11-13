@@ -103,19 +103,26 @@ Base de 4px.
 
 | Token | Valor | Uso típico |
 | --- | --- | --- |
+| `space-0` | 0 | Zera um espaço: a largura mínima de um item que encolhe, o topo de um elemento fixo |
 | `space-1` | 4px | Ícone e texto, selo |
 | `space-2` | 8px | Entre controles próximos, célula compacta |
 | `space-3` | 12px | Campo, célula de tabela |
 | `space-4` | 16px | Interior de cartão no celular, entre campos |
 | `space-6` | 24px | Interior de cartão, entre grupos |
-| `space-8` | 32px | Entre seções |
+| `space-8` | 32px | Entre seções, botão padrão no desktop |
+| `space-9` | 36px | Campo de texto, item de menu, botão de ícone da barra superior |
 | `space-10` | 40px | Margem da página no desktop |
 | `space-11` | 44px | Altura dos campos e do botão principal das telas de acesso, área de toque no celular |
-| `space-16` | 64px | Estado vazio |
+| `space-12` | 48px | Logo, seletor de contexto e botão da conta na barra lateral, linha de tabela com botão |
+| `space-14` | 56px | Altura da barra superior |
+| `space-16` | 64px | Estado vazio, largura da barra lateral recolhida |
 
 | Largura | Valor | Uso |
 | --- | --- | --- |
 | `container-form` | 400px | Largura máxima do formulário das telas de acesso (seção 4.1) |
+| `container-menu` | 288px | Largura dos menus da barra lateral (seção 4.5) |
+| `container-sidebar` | 280px | Largura da barra lateral aberta (seção 4.1) |
+| `container-section` | 560px | Largura máxima de uma seção de formulário dentro de um cartão e dos diálogos (seção 4.5) |
 
 ### 2.4 Raio, borda e elevação
 

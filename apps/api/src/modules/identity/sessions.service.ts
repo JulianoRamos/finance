@@ -2,11 +2,12 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 
 import { apiError, type Clock, CLOCK, CONFIG, type Config, TransactionService } from '../../common/index.js';
 import { normalizeEmail } from './email.js';
-import type { SessionToken } from './identity.dto.js';
+import type { SessionSummary, SessionToken } from './identity.dto.js';
 import { LoginAttemptsService } from './login-attempts.service.js';
 import { verifyPassword } from './passwords.js';
 import { isSessionValid, sessionExpiresAt, shouldRecordUse } from './session-rules.js';
 import { hashToken, newToken } from './tokens.js';
+import { readUserAgent } from './user-agent.js';
 import { UsersService } from './users.service.js';
 
 /** A mensagem do login recusado, a mesma exista ou não o e-mail (LLD, seção 5). */
@@ -74,9 +75,67 @@ export class SessionsService {
   }
 
   /** Encerra todas as sessões abertas do usuário. */
-  async endAll(userId: string): Promise<void> {
+  endAll(userId: string): Promise<void> {
+    return this.endOpen({ userId });
+  }
+
+  /**
+   * As sessões que valem do usuário (regra 6.1): a corrente primeiro, depois as outras do último uso
+   * mais recente ao mais antigo.
+   */
+  async listActive(userId: string, currentId: string): Promise<SessionSummary[]> {
+    const now = this.clock.now();
+    const rows = await this.transactions.client.session.findMany({
+      where: { userId, endedAt: null, expiresAt: { gte: now } },
+      orderBy: [{ lastUsedAt: 'desc' }, { id: 'desc' }],
+    });
+    return rows
+      .filter((row) => isSessionValid(row, now, this.config.sessionIdleDays))
+      .map((row) => ({
+        id: row.id,
+        ...readUserAgent(row.userAgent),
+        origin: row.origin,
+        createdAt: row.createdAt,
+        lastUsedAt: row.lastUsedAt,
+        current: row.id === currentId,
+      }))
+      .sort((a, b) => Number(b.current) - Number(a.current));
+  }
+
+  /**
+   * Encerra a sessão do id, quando ela é do usuário e vale. A que não existe, a de outro usuário e a que
+   * já não vale respondem igual, 404 (regra 6.1).
+   */
+  async end(userId: string, sessionId: string): Promise<void> {
+    const notFound = () => apiError(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Esta sessão já foi encerrada.');
+    const now = this.clock.now();
+    const session = await this.transactions.client.session.findFirst({ where: { id: sessionId, userId } });
+    if (!session || !isSessionValid(session, now, this.config.sessionIdleDays)) throw notFound();
+    // Só encerra a que ninguém encerrou entre a leitura e a gravação.
+    const ended = await this.transactions.client.session.updateMany({
+      where: { id: sessionId, userId, endedAt: null },
+      data: { endedAt: now },
+    });
+    if (ended.count === 0) throw notFound();
+  }
+
+  /**
+   * Encerra a sessão corrente, que o guard acabou de conferir. Se outro pedido a encerrou nesse meio
+   * tempo, ela já está como devia: sair não falha.
+   */
+  endCurrent(session: AuthenticatedSession): Promise<void> {
+    return this.endOpen({ userId: session.user.id, id: session.id });
+  }
+
+  /** Encerra as sessões abertas do usuário, menos a do id dado. */
+  endOthers(userId: string, keepId: string): Promise<void> {
+    return this.endOpen({ userId, id: { not: keepId } });
+  }
+
+  /** Encerra, agora, as sessões abertas que o filtro escolhe. */
+  private async endOpen(filter: { userId: string; id?: string | { not: string } }): Promise<void> {
     await this.transactions.client.session.updateMany({
-      where: { userId, endedAt: null },
+      where: { ...filter, endedAt: null },
       data: { endedAt: this.clock.now() },
     });
   }

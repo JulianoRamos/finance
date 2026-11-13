@@ -1,17 +1,14 @@
 import 'server-only';
 
+import { cache } from 'react';
+
+import { type ApiError, type CommandResult, commandResult, contractError, UNAVAILABLE } from './api-error';
 import { api, API_TIMEOUT_MS } from './client';
 import type { components } from './schema';
 
-type ApiError = components['schemas']['ApiError'];
 type SessionToken = components['schemas']['SessionToken'];
 export type SessionUser = components['schemas']['SessionUser'];
-
-/** A recusa quando a api não responde como o contrato diz. */
-const UNAVAILABLE: ApiError = {
-  code: 'UNAVAILABLE',
-  message: 'Não foi possível falar com o servidor. Tente de novo em instantes.',
-};
+export type SessionSummary = components['schemas']['SessionSummary'];
 
 /** O resultado de um pedido que abre uma sessão: o token, ou o erro do contrato. */
 export type SessionResult = { ok: true; session: SessionToken } | ({ ok: false } & ApiError);
@@ -23,8 +20,7 @@ async function sessionResult(
   try {
     const { data, error } = await call(AbortSignal.timeout(API_TIMEOUT_MS));
     if (data) return { ok: true, session: data };
-    const body = error as Partial<ApiError> | undefined;
-    return body?.code && body.message ? { ok: false, ...(body as ApiError) } : { ok: false, ...UNAVAILABLE };
+    return { ok: false, ...contractError(error) };
   } catch {
     return { ok: false, ...UNAVAILABLE };
   }
@@ -42,7 +38,8 @@ export function login(email: string, password: string): Promise<SessionResult> {
 export type CurrentSession =
   { status: 'authenticated'; user: SessionUser } | { status: 'unauthenticated' } | { status: 'unavailable' };
 
-export async function currentSession(): Promise<CurrentSession> {
+/** A sessão do cookie, pedida uma vez por requisição, mesmo que o layout e a página a peçam. */
+export const currentSession = cache(async (): Promise<CurrentSession> => {
   try {
     const { data, response } = await api.GET('/v1/sessions/current', {
       cache: 'no-store',
@@ -53,6 +50,36 @@ export async function currentSession(): Promise<CurrentSession> {
   } catch {
     return { status: 'unavailable' };
   }
+});
+
+/**
+ * As sessões ativas do usuário do cookie, a corrente primeiro; `unauthenticated` quando não há uma
+ * sessão válida; ou `unavailable` quando a api não respondeu como o contrato diz.
+ */
+export type SessionList =
+  { status: 'ok'; sessions: SessionSummary[] } | { status: 'unauthenticated' } | { status: 'unavailable' };
+
+export async function listSessions(): Promise<SessionList> {
+  try {
+    const { data, response } = await api.GET('/v1/sessions', {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    });
+    if (data) return { status: 'ok', sessions: data };
+    return { status: response.status === 401 ? 'unauthenticated' : 'unavailable' };
+  } catch {
+    return { status: 'unavailable' };
+  }
+}
+
+/** Encerra uma sessão ativa do usuário do cookie. */
+export function endSession(id: string): Promise<CommandResult> {
+  return commandResult((signal) => api.DELETE('/v1/sessions/{id}', { params: { path: { id } }, signal }));
+}
+
+/** Sai: encerra a sessão do cookie na api. */
+export function endCurrentSession(): Promise<CommandResult> {
+  return commandResult((signal) => api.DELETE('/v1/sessions/current', { signal }));
 }
 
 /**
