@@ -181,7 +181,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 - **Telas de acesso** (entrar, definir a senha, recuperar o acesso): fora da estrutura do app, em duas colunas. À esquerda, um painel em `ink` (texto em `on-primary`, frase de apoio no valor escuro de `body`) com o nome do produto, a composição de blocos da capa do design system e uma frase; à direita, sobre `canvas`, o formulário centralizado com largura máxima de 400px, título em `heading-lg` e subtítulo centralizados, campos e botão principal de 44px de altura, e uma linha de rodapé em `body-sm` `mute`. No celular, o painel vai para o topo, menor. Não há login por outro serviço, "manter conectado" nem termos de uso: a sessão tem prazo fixo (LLD, regra 6.1).
 - **Cabeçalho da página:** abaixo da barra superior, sobre o fundo do corpo, com o título em `heading-lg`, uma frase em `body-md`, as ações da página à direita e, abaixo, os filtros, quando a tela tem. Ele rola com o conteúdo, e o caminho na barra superior continua dizendo onde se está.
 - **Corpo:** fundo `surface-subtle`, margem `space-10` nas laterais e `space-8` entre os painéis, que são cartões (seção 4.4). O conteúdo ocupa a largura toda da tela.
-  - **Coluna:** a lista, com a busca no topo, numa base de 300px. O item selecionado fica em `accent-soft`, com contorno `accent`.
+  - **Coluna:** a lista, com a busca no topo, numa base de 300px. O item selecionado fica em `accent-soft`, com contorno `accent`. A lista mostra 10 itens por vez, com "Carregar mais"; a que vem inteira da `api` é filtrada pela busca na própria tela, e o item aberto continua à vista mesmo depois dos 10 primeiros.
   - **Conteúdo:** o detalhe do item, numa base de 520px, com o dobro da largura da Coluna.
   - Uma tela sem lista usa só o Conteúdo. Sem espaço para os dois lado a lado, o Conteúdo desce para baixo da Coluna.
 - **Criar e editar:** o formulário ocupa o painel de Conteúdo, no lugar do detalhe, e a lista continua visível. Na criação, um item com o nome da ação e "Ainda não salvo" aparece selecionado no topo da lista. As ações ficam no rodapé do painel, com a principal à direita e, na edição, a destrutiva à esquerda. Uma ação pequena sobre uma parte do detalhe, como registrar ou encerrar uma participação, abre um formulário curto dentro da própria seção, sobre `canvas`.
@@ -201,7 +201,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 | Destrutivo | Fundo `negative-strong`, texto `on-negative` | Excluir, cancelar um registro. Sempre com confirmação |
 | Ícone | Quadrado do tamanho do botão, ícone centralizado | Ações compactas, sempre com `aria-label` e dica |
 
-- Tamanhos: 32px (padrão no desktop), 40px (formulário e celular) e 28px (dentro de tabela). No celular, a área de toque tem ao menos 44px.
+- Tamanhos: 32px (padrão no desktop, também no formulário), 40px (celular) e 28px (dentro de tabela). No celular, a área de toque tem ao menos 44px.
 - Raio `radius-sm`, texto `label`, espaço horizontal `space-3`.
 - **Carregando:** o rótulo vira um indicador girando, a largura não muda, e o botão não aceita outro clique.
 

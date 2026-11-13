@@ -51,7 +51,7 @@ test/                              os testes de integração
 - **Um módulo só é importado pelo `index.ts` dele.** Dentro do módulo, os arquivos se importam livremente.
 - **O `common` não conhece os módulos,** e é o único que importa o cliente gerado do Prisma. Os módulos o usam pelo `index.ts` dele.
 - **A montagem, os comandos e os testes** importam os módulos e o `common` pelo `index.ts`, e a montagem pela raiz de `src/`.
-- **Quem pode chamar quem** entre os módulos está no `docs/lld.md`, seção 3, e a tabela entra no lint junto com o segundo módulo de domínio.
+- **Quem pode chamar quem** entre os módulos está no `docs/lld.md`, seção 3. O lint confere essa tabela, com os módulos que já existem: um módulo novo entra nela, no `eslint.config.mjs`, no ticket que o cria.
 
 O `eslint-plugin-boundaries` confere essas regras no lint (`eslint.config.mjs`).
 

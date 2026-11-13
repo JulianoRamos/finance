@@ -127,3 +127,25 @@ export async function loginAs(app: INestApplication<Server>, email: string, pass
 export function getCurrentSession(app: INestApplication<Server>, token: string) {
   return request(app.getHttpServer()).get('/v1/sessions/current').auth(token, { type: 'bearer' });
 }
+
+/** O token de um usuário novo, criado pelo comando, com a senha definida e a sessão aberta pelo login. */
+export async function newSession(app: INestApplication<Server>): Promise<string> {
+  const email = uniqueEmail();
+  await newUserWithPassword(app, email);
+  return loginAs(app, email);
+}
+
+/**
+ * Um pedido com o token da sessão e, quando dado, o identificador da requisição, que a auditoria
+ * grava.
+ */
+export function authedRequest(
+  app: INestApplication<Server>,
+  token: string,
+  method: 'get' | 'post' | 'put' | 'delete',
+  url: string,
+  requestId?: string,
+) {
+  const pending = request(app.getHttpServer())[method](url).auth(token, { type: 'bearer' });
+  return requestId ? pending.set('X-Request-Id', requestId) : pending;
+}

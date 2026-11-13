@@ -8,7 +8,7 @@ import { DropdownMenu } from 'radix-ui';
 import { FOCUS_RING } from '../_access/access-screen';
 import { Hint } from './hint';
 import { MENU_ITEM, MENU_PANEL } from './menu';
-import { PAGE_TITLES, SETTINGS } from './pages';
+import { isWithin, pageTitleOf, SETTINGS } from './pages';
 import { SIDEBAR_COOKIE } from './sidebar-state';
 
 const ICON_BUTTON = `size-9 flex-none cursor-pointer items-center justify-center rounded-sm text-body hover:bg-surface-subtle ${FOCUS_RING}`;
@@ -42,7 +42,7 @@ function SidebarToggle({ expanded }: Readonly<{ expanded: boolean }>) {
 
 /** O caminho da página atual. */
 function Breadcrumb() {
-  const title = PAGE_TITLES[usePathname()];
+  const title = pageTitleOf(usePathname());
   if (!title) return null;
   return (
     <nav aria-label="Caminho">
@@ -57,14 +57,19 @@ function Breadcrumb() {
   );
 }
 
-/** A engrenagem e o menu das configurações, só quando há um cadastro para mostrar. */
+/**
+ * A engrenagem e o menu das configurações, só quando há um cadastro para mostrar. Numa tela de
+ * configuração, a engrenagem e o item dela ficam marcados.
+ */
 function SettingsMenu() {
+  const pathname = usePathname();
   if (SETTINGS.length === 0) return null;
+  const inSettings = SETTINGS.some(({ href }) => isWithin(pathname, href));
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger
         aria-label="Configurações"
-        className={`inline-flex ${ICON_BUTTON} aria-expanded:bg-accent-soft`}
+        className={`inline-flex ${ICON_BUTTON} aria-expanded:bg-accent-soft ${inSettings ? 'bg-accent-soft' : ''}`}
       >
         <Settings size={16} strokeWidth={1.5} aria-hidden="true" />
       </DropdownMenu.Trigger>
@@ -74,8 +79,8 @@ function SettingsMenu() {
             Configurações
           </DropdownMenu.Label>
           {SETTINGS.map(({ href, label, icon: Icon }) => (
-            <DropdownMenu.Item key={href} asChild className={MENU_ITEM}>
-              <Link href={href}>
+            <DropdownMenu.Item key={href} asChild className={`${MENU_ITEM} aria-[current=page]:bg-accent-soft`}>
+              <Link href={href} aria-current={isWithin(pathname, href) ? 'page' : undefined}>
                 <Icon size={16} strokeWidth={1.5} aria-hidden="true" />
                 {label}
               </Link>

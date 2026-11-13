@@ -1,0 +1,69 @@
+// O módulo Entidades (LLD, seção 4.3, e regra 6.2): as pessoas físicas e jurídicas cujas finanças o
+// sistema controla e as operações ligadas em cada empresa. Os grupos financeiros e as participações
+// societárias nascem nos tickets deles.
+
+/// O tipo da entidade. Não muda depois da criação (regra 6.2).
+enum EntityType {
+  /// Pessoa física.
+  individual
+  /// Pessoa jurídica.
+  company
+
+  @@map("entity_type")
+}
+
+/// O conjunto de funções de um segmento que se liga numa empresa (GLOSSARY.md, Operação).
+enum Operation {
+  /// A operação de clínica: clientes, procedimentos, atendimentos, pacotes, estoque e compras.
+  clinic
+
+  @@map("operation")
+}
+
+/// Uma pessoa física ou jurídica cujas finanças o sistema controla.
+/// Não é excluída: é desativada, e some das escolhas sem sumir dos números do passado (regra 6.2).
+/// CHECK escrito à mão na migração (entity_name_check): o nome não é vazio nem só de espaços.
+/// CHECK escrito à mão na migração (entity_tax_id_check): o documento é nulo, ou tem 11 algarismos
+/// (CPF) na pessoa física, ou 12 letras maiúsculas ou algarismos seguidos de 2 algarismos (CNPJ,
+/// também o alfanumérico) na pessoa jurídica. Os dígitos verificadores são conferidos pela api.
+model Entity {
+  /// uuidv7, gerado pelo banco.
+  id        String     @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// Pessoa física ou jurídica. A api recusa a edição que o muda (regra 6.2).
+  type      EntityType
+  /// O nome, como o usuário quer vê-lo, sem espaços nas pontas.
+  name      String
+  /// O CPF ou o CNPJ, só com os caracteres, sem a pontuação, e com as letras do CNPJ em maiúsculas.
+  /// Opcional. Único entre todas as entidades, ativas ou não; os nulos não se repetem entre si.
+  taxId     String?    @unique(map: "entity_tax_id_key") @map("tax_id")
+  /// A entidade desativada some das escolhas e continua nos registros (regra 6.2).
+  active    Boolean    @default(true)
+  createdAt DateTime   @map("created_at") @db.Timestamptz
+  updatedAt DateTime   @map("updated_at") @db.Timestamptz
+  /// O bloqueio otimista da edição e da desativação (regra 6.20).
+  version   Int        @default(1)
+
+  operations EntityOperation[]
+
+  @@map("entity")
+}
+
+/// Uma operação ligada numa empresa. Desligar apaga a linha, e não os registros da operação, que
+/// continuam ligados à entidade; religar cria a linha de novo (regra 6.2).
+/// Só pessoa jurídica tem operações: a api recusa a ligação numa pessoa física (regra 6.2).
+/// Tem id próprio, e não só a chave (entity_id, operation), porque a auditoria guarda o id do registro.
+model EntityOperation {
+  /// uuidv7, gerado pelo banco.
+  id        String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// A empresa. RESTRICT: a entidade é desativada, e não excluída.
+  entityId  String    @map("entity_id") @db.Uuid
+  operation Operation
+  /// Quando a operação foi ligada pela última vez.
+  createdAt DateTime  @map("created_at") @db.Timestamptz
+
+  entity Entity @relation(fields: [entityId], references: [id], onDelete: Restrict)
+
+  /// Uma operação liga uma vez só em cada empresa.
+  @@unique([entityId, operation], map: "entity_operation_entity_operation_key")
+  @@map("entity_operation")
+}

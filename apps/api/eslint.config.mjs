@@ -18,6 +18,19 @@ const elements = [
 
 const index = (type) => ({ element: { type, fileInternalPath: 'index.ts' } });
 
+// Quem pode chamar quem entre os módulos (LLD, seção 3), com as pastas dos módulos que já existem.
+// Um módulo fora da tabela, como o health, não chama nenhum outro.
+const calls = {
+  identity: ['entities', 'audit'],
+  entities: ['audit'],
+  audit: [],
+};
+
+/** O index.ts de um dos módulos dados. */
+const moduleIndex = (names) => ({
+  element: { type: 'module', captured: { name: names }, fileInternalPath: 'index.ts' },
+});
+
 export default tseslint.config(
   { ignores: ['dist/', '.openapi/', 'reports/', 'src/generated/'] },
   js.configs.recommended,
@@ -53,8 +66,14 @@ export default tseslint.config(
         {
           default: 'disallow',
           policies: [
-            // Um módulo usa o common e os outros módulos só pelo index.ts.
-            { from: { element: { type: 'module' } }, allow: { to: [index('common'), index('module')] } },
+            // Um módulo usa o common pelo index.ts, e os outros módulos, os que a tabela permite, também.
+            { from: { element: { type: 'module' } }, allow: { to: index('common') } },
+            ...Object.entries(calls)
+              .filter(([, callees]) => callees.length > 0)
+              .map(([name, callees]) => ({
+                from: { element: { type: 'module', captured: { name } } },
+                allow: { to: moduleIndex(callees) },
+              })),
             // O common é a base: não conhece os módulos. Só ele usa o cliente gerado do Prisma.
             { from: { element: { type: 'common' } }, allow: { to: { element: { type: 'generated' } } } },
             // A montagem da app junta os módulos.

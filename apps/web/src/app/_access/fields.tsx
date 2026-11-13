@@ -3,20 +3,26 @@
 import { type ReactNode, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
+import { PRIMARY_BUTTON } from '../_shell/buttons';
 import { FOCUS_RING } from './access-screen';
 import { Icon } from './icon';
 
 /**
  * O tamanho dos controles: o das telas de acesso, de 44px (design-system.md, seção 4.1), ou o da
- * estrutura do app, com o campo de 40px no celular e 36px a partir do tablet (seção 4.3) e o botão de
- * formulário de 40px (seção 4.2).
+ * estrutura do app, com o campo de 40px no celular e 36px a partir do tablet (seção 4.3) e os botões
+ * de `_shell/buttons.ts` (seção 4.2).
  */
 export type ControlSize = 'access' | 'app';
 
 const INPUT_HEIGHT: Record<ControlSize, string> = { access: 'h-11', app: 'h-10 md:h-9' };
-const BUTTON_HEIGHT: Record<ControlSize, string> = { access: 'h-11', app: 'h-10' };
 
-const INPUT = `w-full rounded-sm border border-field-border bg-surface px-3 text-body-lg text-ink hover:border-body aria-invalid:border-negative-strong md:text-body-md ${FOCUS_RING}`;
+/** A aparência de um campo de texto do tamanho dado, também para um campo fora de `Field`, como a busca. */
+export function inputClass(size: ControlSize): string {
+  return `w-full rounded-sm border border-field-border bg-surface px-3 text-body-lg text-ink hover:border-body aria-invalid:border-negative-strong md:text-body-md ${INPUT_HEIGHT[size]} ${FOCUS_RING}`;
+}
+
+/** O botão principal das telas de acesso, de 44px; o do app é o `PRIMARY_BUTTON`. */
+const ACCESS_PRIMARY_BUTTON = `h-11 rounded-sm bg-primary px-3 text-label text-on-primary hover:bg-primary-hover disabled:cursor-wait ${FOCUS_RING}`;
 
 interface FieldProps {
   readonly id: string;
@@ -29,6 +35,20 @@ interface FieldProps {
   readonly error?: string | undefined;
   /** O tamanho do campo; o padrão é o das telas de acesso. */
   readonly size?: ControlSize;
+  /** Se o campo é obrigatório; o padrão é que seja. */
+  readonly required?: boolean;
+  readonly placeholder?: string | undefined;
+  readonly inputMode?: 'numeric' | 'text';
+}
+
+/** O motivo da recusa, abaixo do campo ou do grupo de campos. */
+export function FieldError({ id, error }: Readonly<{ id: string; error: string | undefined }>) {
+  if (!error) return null;
+  return (
+    <p id={id} className="text-body-sm text-negative">
+      {error}
+    </p>
+  );
 }
 
 /** O rótulo, o campo, a ajuda e o erro (design-system.md, seção 4.3), com o que vai à direita do campo. */
@@ -43,6 +63,9 @@ function Field({
   defaultValue,
   trailing,
   size = 'access',
+  required = true,
+  placeholder,
+  inputMode,
 }: FieldProps & { readonly type: string; readonly defaultValue?: string; readonly trailing?: ReactNode }) {
   const describedBy = [help && `${id}-help`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
   return (
@@ -55,12 +78,14 @@ function Field({
           id={id}
           name={name}
           type={type}
-          required
+          required={required}
+          placeholder={placeholder}
+          inputMode={inputMode}
           autoComplete={autoComplete}
           defaultValue={defaultValue}
           aria-describedby={describedBy}
           aria-invalid={error ? true : undefined}
-          className={`${INPUT} ${INPUT_HEIGHT[size]} ${trailing ? 'pr-10' : ''}`}
+          className={`${inputClass(size)} ${trailing ? 'pr-10' : ''}`}
         />
         {trailing}
       </div>
@@ -69,13 +94,14 @@ function Field({
           {help}
         </p>
       )}
-      {error && (
-        <p id={`${id}-error`} className="text-body-sm text-negative">
-          {error}
-        </p>
-      )}
+      <FieldError id={`${id}-error`} error={error} />
     </div>
   );
+}
+
+/** Um campo de texto. */
+export function TextField(props: FieldProps & { readonly defaultValue?: string }) {
+  return <Field {...props} type="text" />;
 }
 
 /** Um campo de e-mail. */
@@ -114,7 +140,7 @@ export function SubmitButton({ size = 'access', children }: Readonly<{ size?: Co
       type="submit"
       disabled={pending}
       aria-disabled={pending}
-      className={`${BUTTON_HEIGHT[size]} rounded-sm bg-primary px-3 text-label text-on-primary hover:bg-primary-hover disabled:cursor-wait ${FOCUS_RING}`}
+      className={size === 'app' ? PRIMARY_BUTTON : ACCESS_PRIMARY_BUTTON}
     >
       {children}
     </button>
