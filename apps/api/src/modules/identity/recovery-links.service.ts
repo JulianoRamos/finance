@@ -36,8 +36,8 @@ export class RecoveryLinksService {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  /** Cria um link de recuperação do usuário, na transação do comando, e devolve o token dele. */
-  create(userId: string): Promise<string> {
+  /** Cria um link de recuperação do usuário, na transação do comando, e devolve o token e o prazo dele. */
+  create(userId: string): Promise<{ token: string; expiresAt: Date }> {
     return this.transactions.run(async () => {
       const token = newToken();
       const now = this.clock.now();
@@ -58,7 +58,7 @@ export class RecoveryLinksService {
         before: null,
         after: link,
       });
-      return token;
+      return { token, expiresAt: link.expiresAt };
     });
   }
 

@@ -144,6 +144,9 @@ test(
       groups.push(await createTestGroup(user, [], `${prefix} Grupo ${String(index).padStart(2, '0')}`));
       await createTestIndividual(user, `${prefix} Pessoa ${String(index).padStart(2, '0')}`);
     }
+    // A escolha traz só as entidades do usuário (regra 6.1): uma fora da busca faz o total sem ela ser outro,
+    // e "1–10 de 12" só aparece com a resposta da busca.
+    await createTestIndividual(user);
     await signIn(page.context(), user, baseURL ?? '');
     const list = groupList(page);
     const groupSearch = list.getByRole('searchbox', { name: 'Buscar grupo' });

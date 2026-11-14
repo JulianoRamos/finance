@@ -12,19 +12,26 @@ export function AppShell({
   user,
   sidebarExpanded,
   children,
-}: Readonly<{ user: { name: string; email: string }; sidebarExpanded: boolean; children: ReactNode }>) {
+}: Readonly<{
+  user: { name: string; email: string; managesAccess: boolean };
+  sidebarExpanded: boolean;
+  children: ReactNode;
+}>) {
   return (
     <HintProvider>
       <div className="flex min-h-screen bg-surface-subtle">
         <Sidebar user={user} expanded={sidebarExpanded} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar sidebarExpanded={sidebarExpanded} />
+          <TopBar sidebarExpanded={sidebarExpanded} managesAccess={user.managesAccess} />
           <main className="flex flex-1 flex-col">{children}</main>
         </div>
       </div>
     </HintProvider>
   );
 }
+
+/** O painel do Conteúdo das telas com a lista ao lado: o detalhe ou o formulário (design-system.md, seção 4.1). */
+export const PANEL = 'flex flex-col gap-6 rounded-md border border-hairline bg-surface p-4 md:p-6';
 
 /** O cabeçalho da página: o título, a frase e, à direita, as ações da página, que rolam com o conteúdo. */
 export function PageHeader({

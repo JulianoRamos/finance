@@ -2,11 +2,12 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, Min, ValidateBy, type ValidationOptions } from 'class-validator';
 
-import { searchPattern, type Sql, sql } from '../../common/index.js';
+import { searchPattern, type Sql, sql } from './page.js';
 
-// O que as entidades e os grupos financeiros têm em comum: o nome, a versão lida e a ordem pelo nome.
+// O que os registros com nome e versão têm em comum (entidades, grupos financeiros e usuários): o nome,
+// a versão lida, a ordem pelo nome e a busca nele.
 
-/** O limite de cima do nome de uma entidade ou de um grupo, sem os espaços das pontas. */
+/** O limite de cima do nome de uma entidade, de um grupo ou de um usuário, sem os espaços das pontas. */
 export const NAME_MAX_LENGTH = 120;
 
 /** A ordem dos nomes em português, que põe "Ágata" junto de "Ana", e não depois de "Zélia". */

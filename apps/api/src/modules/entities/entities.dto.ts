@@ -12,8 +12,16 @@ import {
   ValidateBy,
 } from 'class-validator';
 
-import { EntityType, Operation, PageInfo, PageQuery, SearchQuery } from '../../common/index.js';
-import { IsName, NAME_MAX_LENGTH, VersionRead } from './fields.js';
+import {
+  EntityType,
+  IsName,
+  NAME_MAX_LENGTH,
+  Operation,
+  PageInfo,
+  PageQuery,
+  SearchQuery,
+  VersionRead,
+} from '../../common/index.js';
 import { invalidTaxIdMessage, isValidTaxId, normalizeTaxId } from './tax-id.js';
 
 const TYPE_DESCRIPTION =

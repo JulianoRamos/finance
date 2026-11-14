@@ -162,3 +162,47 @@ export function authedRequest(
   const pending = request(app.getHttpServer())[method](url).auth(token, { type: 'bearer' });
   return requestId ? pending.set('X-Request-Id', requestId) : pending;
 }
+
+/** Um usuário, como o contrato o descreve. */
+export interface User {
+  readonly id: string;
+  readonly name: string;
+  readonly email: string;
+  readonly managesAccess: boolean;
+  readonly active: boolean;
+  readonly passwordSet: boolean;
+  readonly version: number;
+}
+
+/** O usuário cadastrado pela rota e o token do link que ela devolveu. */
+export interface CreatedUser {
+  readonly user: User;
+  readonly linkToken: string;
+}
+
+/** Cadastra um usuário pela rota, com o token de quem gere acessos, e devolve ele e o token do link. */
+export async function newUserByRoute(
+  app: INestApplication<Server>,
+  managerToken: string,
+  body: { name?: string; email?: string; managesAccess?: boolean; permissions?: unknown[] } = {},
+): Promise<CreatedUser> {
+  const response = await authedRequest(app, managerToken, 'post', '/v1/users')
+    .send({ name: 'Bruno Teste', email: uniqueEmail(), managesAccess: false, ...body })
+    .expect(201);
+  const created = response.body as { user: User; recoveryLink: { url: string } };
+  return { user: created.user, linkToken: linkTokenOf(created.recoveryLink.url) };
+}
+
+/**
+ * Cadastra um usuário pela rota, como quem gere acessos o faz pela tela, define a senha dele pelo link e
+ * devolve o usuário e o token da sessão aberta pelo login.
+ */
+export async function newSessionByRoute(
+  app: INestApplication<Server>,
+  managerToken: string,
+  body: { name?: string; managesAccess?: boolean; permissions?: unknown[] } = {},
+): Promise<{ user: User; token: string }> {
+  const { user, linkToken } = await newUserByRoute(app, managerToken, body);
+  await redeemLink(app, linkToken, TEST_PASSWORD).expect(201);
+  return { user, token: await loginAs(app, user.email) };
+}

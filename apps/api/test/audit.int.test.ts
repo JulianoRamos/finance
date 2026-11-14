@@ -133,7 +133,9 @@ describe('Auditoria', () => {
     await expect(audit.record(entry)).rejects.toThrow(refusal);
     // Numa requisição, sem a transação aberta.
     await expect(
-      runInRequestContext({ requestId: randomUUID(), userId: null, transaction: null }, () => audit.record(entry)),
+      runInRequestContext({ requestId: randomUUID(), userId: null, entityLevels: null, transaction: null }, () =>
+        audit.record(entry),
+      ),
     ).rejects.toThrow(refusal);
     expect(await auditOf(recordId)).toEqual([]);
   });

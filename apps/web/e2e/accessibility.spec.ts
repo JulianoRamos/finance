@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
 import { createTestCompany, openTestCompany, openTestGroup } from './support/entities';
-import { createPendingTestUser, createTestUser, signIn, uniqueOrigin } from './support/users';
+import { createPendingTestUser, createTestUser, openTestUser, signIn, uniqueOrigin } from './support/users';
 import { screenAlert } from './support/screen';
 
 // A acessibilidade automática da validação visual (design-system.md, seção 9): nenhuma violação séria
@@ -138,6 +138,48 @@ const SCREENS: readonly Screen[] = [
       const group = await openTestGroup(page, baseURL);
       await page.getByRole('button', { name: 'Excluir grupo' }).click();
       await expect(page.getByRole('alertdialog', { name: `Excluir o grupo ${group.name}?` })).toBeVisible();
+    },
+  },
+  {
+    name: 'o detalhe de um usuário, com o link de recuperação gerado',
+    open: async (page, baseURL) => {
+      await openTestUser(page, baseURL);
+      await page.getByRole('button', { name: 'Gerar link de recuperação' }).click();
+      await expect(page.getByRole('textbox', { name: 'Link de recuperação' })).toBeVisible();
+    },
+  },
+  {
+    name: 'o novo usuário',
+    open: async (page, baseURL) => {
+      await signIn(page.context(), await createTestUser({ managesAccess: true }), baseURL);
+      await page.goto('/users/new');
+      await expect(page.getByRole('button', { name: 'Criar e gerar link' })).toBeVisible();
+    },
+  },
+  {
+    name: 'o usuário criado',
+    open: async (page, baseURL) => {
+      await signIn(page.context(), await createTestUser({ managesAccess: true }), baseURL);
+      await page.goto('/users/new');
+      await page.getByLabel('Nome').fill('Bruno Teste');
+      await page.getByLabel('E-mail').fill(`e2e-${crypto.randomUUID()}@exemplo.com`);
+      await page.getByRole('button', { name: 'Criar e gerar link' }).click();
+      await expect(page.getByRole('textbox', { name: 'Link para definir a senha' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a edição de um usuário',
+    open: async (page, baseURL) => {
+      await openTestUser(page, baseURL, '/edit');
+      await expect(page.getByRole('button', { name: 'Salvar alterações' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a confirmação de desativar o usuário',
+    open: async (page, baseURL) => {
+      const user = await openTestUser(page, baseURL);
+      await page.getByRole('button', { name: 'Desativar usuário' }).click();
+      await expect(page.getByRole('alertdialog', { name: `Desativar ${user.name}?` })).toBeVisible();
     },
   },
   {

@@ -10,5 +10,7 @@ import { FinancialGroupsService } from './financial-groups.service.js';
   imports: [AuditModule],
   controllers: [EntitiesController, FinancialGroupsController],
   providers: [EntitiesService, FinancialGroupsService],
+  // A Identidade lê as entidades para a tabela de permissões (LLD, seção 3).
+  exports: [EntitiesService],
 })
 export class EntitiesModule {}

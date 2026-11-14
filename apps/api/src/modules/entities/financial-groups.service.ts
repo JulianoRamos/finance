@@ -2,9 +2,12 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 
 import {
   apiError,
+  byName,
   type Clock,
   CLOCK,
   type EntityType,
+  NAME_COLLATION,
+  nameMatches,
   omit,
   type PageRequest,
   readPage,
@@ -12,7 +15,6 @@ import {
   TransactionService,
 } from '../../common/index.js';
 import { AuditService } from '../audit/index.js';
-import { byName, NAME_COLLATION, nameMatches } from './fields.js';
 import type {
   FinancialGroup,
   FinancialGroupEdit,

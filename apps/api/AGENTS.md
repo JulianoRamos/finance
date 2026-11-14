@@ -73,7 +73,8 @@ O mecanismo (o contexto da requisição, a transação, o antes e o depois, os p
 ## Erros
 
 - Um erro que a rota devolve sai como `HttpException` com o status e o corpo do contrato (`docs/lld.md`, seção 5, que registra também a exceção da rota de saúde), montado pelo `apiError(status, code, message)`, do `common`. A resposta de erro é declarada no controlador com o tipo `ApiError`.
-- Um pedido recusado fora de uma rota, como num comando, sai como uma classe de erro do módulo (`IdentityError`), cuja mensagem é para quem pediu. O corpo nunca traz a mensagem de uma exceção do driver, da biblioteca ou do sistema: ela vai só para o log, pelo `Logger` do Nest.
+- Um pedido recusado fora de uma rota, como num comando, sai como uma classe de erro do módulo (`IdentityError`), cuja mensagem é para quem pediu.
+- Uma recusa de um serviço que a rota e o comando dividem, como o e-mail repetido no cadastro, sai como a classe de erro do módulo com o código do contrato (`new IdentityError(mensagem, 'DUPLICATE_EMAIL')`). O filtro global do módulo (`IdentityErrorFilter`) a responde na rota como 422 com esse código, e o comando mostra só a mensagem. A recusa sem código, que é só do comando, chega à rota como erro interno. O corpo nunca traz a mensagem de uma exceção do driver, da biblioteca ou do sistema: ela vai só para o log, pelo `Logger` do Nest.
 - Uma espera por recurso externo (o banco, um arquivo) tem prazo, e o estouro do prazo é tratado como a falha do recurso. Os prazos do banco valem para toda consulta e ficam no driver, em `src/common/prisma.service.ts`, e não em cada serviço.
 
 ## Testes

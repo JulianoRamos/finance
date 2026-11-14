@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
 
-import type { BrowserContext } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 import pg from 'pg';
 
 // A preparação do usuário dos testes de ponta a ponta. Não há rota pública que crie usuário, e o
@@ -35,8 +35,16 @@ export interface PendingTestUser {
   readonly linkToken: string;
 }
 
-/** Grava um usuário com e-mail próprio, sem senha, e um link de recuperação dele, que vale 1 hora. */
-export async function createPendingTestUser(): Promise<PendingTestUser> {
+/** O que a preparação do usuário de teste pode mudar: se ele gere acessos (regra 6.1). */
+export interface TestUserOptions {
+  readonly managesAccess?: boolean;
+}
+
+/**
+ * Grava um usuário com e-mail próprio, sem senha, e um link de recuperação dele, que vale 1 hora. Por
+ * padrão, ele não gere acessos.
+ */
+export async function createPendingTestUser({ managesAccess = false }: TestUserOptions = {}): Promise<PendingTestUser> {
   const suffix = randomUUID();
   const name = `Ana Teste ${suffix.slice(0, 8)}`;
   const email = `e2e-${suffix}@exemplo.com`;
@@ -46,8 +54,8 @@ export async function createPendingTestUser(): Promise<PendingTestUser> {
   await client.connect();
   try {
     const { rows } = await client.query<{ id: string }>(
-      'INSERT INTO "user" (name, email, created_at, updated_at) VALUES ($1, $2, now(), now()) RETURNING id',
-      [name, email],
+      'INSERT INTO "user" (name, email, manages_access, created_at, updated_at) VALUES ($1, $2, $3, now(), now()) RETURNING id',
+      [name, email, managesAccess],
     );
     await client.query(
       "INSERT INTO recovery_link (user_id, token_hash, created_at, expires_at) VALUES ($1, $2, now(), now() + interval '1 hour')",
@@ -60,8 +68,8 @@ export async function createPendingTestUser(): Promise<PendingTestUser> {
 }
 
 /** Cria um usuário com e-mail próprio e define a senha dele pelo link de recuperação. */
-export async function createTestUser(): Promise<TestUser> {
-  const { name, email, linkToken: token } = await createPendingTestUser();
+export async function createTestUser(options: TestUserOptions = {}): Promise<TestUser> {
+  const { name, email, linkToken: token } = await createPendingTestUser(options);
   const password = 'senha-de-teste-123';
   const response = await fetch(`${requiredEnv('API_URL')}/v1/recovery-links/${token}/use`, {
     method: 'POST',
@@ -90,4 +98,28 @@ export async function signIn(context: BrowserContext, user: TestUser, baseURL: s
   await context.addCookies([
     { name: 'session', value: user.sessionToken, url: baseURL, httpOnly: true, sameSite: 'Lax' },
   ]);
+}
+
+/** O id do usuário do e-mail, lido pela api com a sessão de quem gere acessos. */
+export async function userIdOf(manager: TestUser, email: string): Promise<string> {
+  const response = await fetch(`${requiredEnv('API_URL')}/v1/users?q=${encodeURIComponent(email)}`, {
+    headers: { Authorization: `Bearer ${manager.sessionToken}` },
+  });
+  if (response.status !== 200) throw new Error(`A lista dos usuários respondeu ${String(response.status)}.`);
+  const { items } = (await response.json()) as { items: { id: string; email: string }[] };
+  const found = items.find((item) => item.email === email);
+  if (!found) throw new Error(`A lista dos usuários não trouxe ${email}.`);
+  return found.id;
+}
+
+/**
+ * Entra com um usuário novo que gere acessos e abre, na tela Usuários e acessos, outro usuário novo, com
+ * a senha definida, no caminho dado abaixo dele.
+ */
+export async function openTestUser(page: Page, baseURL: string, subpath = ''): Promise<TestUser> {
+  const manager = await createTestUser({ managesAccess: true });
+  const user = await createTestUser();
+  await signIn(page.context(), manager, baseURL);
+  await page.goto(`/users/${await userIdOf(manager, user.email)}${subpath}`);
+  return user;
 }
