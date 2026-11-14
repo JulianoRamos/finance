@@ -109,8 +109,8 @@ Base de 4px.
 | `space-3` | 12px | Campo, célula de tabela |
 | `space-4` | 16px | Interior de cartão no celular, entre campos |
 | `space-6` | 24px | Interior de cartão, entre grupos |
-| `space-8` | 32px | Entre seções, botão padrão no desktop |
-| `space-9` | 36px | Campo de texto, item de menu, botão de ícone da barra superior |
+| `space-8` | 32px | Entre seções |
+| `space-9` | 36px | Campo de texto, botão padrão no desktop, item de menu, botão de ícone da barra superior |
 | `space-10` | 40px | Margem da página no desktop |
 | `space-11` | 44px | Altura dos campos e do botão principal das telas de acesso, área de toque no celular |
 | `space-12` | 48px | Logo, seletor de contexto e botão da conta na barra lateral, linha de tabela com botão |
@@ -181,7 +181,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 - **Telas de acesso** (entrar, definir a senha, recuperar o acesso): fora da estrutura do app, em duas colunas. À esquerda, um painel em `ink` (texto em `on-primary`, frase de apoio no valor escuro de `body`) com o nome do produto, a composição de blocos da capa do design system e uma frase; à direita, sobre `canvas`, o formulário centralizado com largura máxima de 400px, título em `heading-lg` e subtítulo centralizados, campos e botão principal de 44px de altura, e uma linha de rodapé em `body-sm` `mute`. No celular, o painel vai para o topo, menor. Não há login por outro serviço, "manter conectado" nem termos de uso: a sessão tem prazo fixo (LLD, regra 6.1).
 - **Cabeçalho da página:** abaixo da barra superior, sobre o fundo do corpo, com o título em `heading-lg`, uma frase em `body-md`, as ações da página à direita e, abaixo, os filtros, quando a tela tem. Ele rola com o conteúdo, e o caminho na barra superior continua dizendo onde se está.
 - **Corpo:** fundo `surface-subtle`, margem `space-10` nas laterais e `space-8` entre os painéis, que são cartões (seção 4.4). O conteúdo ocupa a largura toda da tela.
-  - **Coluna:** a lista, com a busca no topo, numa base de 300px. O item selecionado fica em `accent-soft`, com contorno `accent`. A lista mostra 10 itens por vez, com "Carregar mais"; a que vem inteira da `api` é filtrada pela busca na própria tela, e o item aberto continua à vista mesmo depois dos 10 primeiros.
+  - **Coluna:** a lista, com a busca no topo, numa base de 300px. O item selecionado fica em `accent-soft`, com contorno `accent`. A lista mostra 10 itens por página, com a Paginação no rodapé (seção 4.4). A busca e os filtros pedem à `api` a lista filtrada, e a tela nunca filtra o que já leu. O item aberto fica marcado quando está na página mostrada; fora dela, só o Conteúdo o mostra. A lista e o Conteúdo cabem na altura da tela no desktop, sem rolar a página.
   - **Conteúdo:** o detalhe do item, numa base de 520px, com o dobro da largura da Coluna.
   - Uma tela sem lista usa só o Conteúdo. Sem espaço para os dois lado a lado, o Conteúdo desce para baixo da Coluna.
 - **Criar e editar:** o formulário ocupa o painel de Conteúdo, no lugar do detalhe, e a lista continua visível. Na criação, um item com o nome da ação e "Ainda não salvo" aparece selecionado no topo da lista. As ações ficam no rodapé do painel, com a principal à direita e, na edição, a destrutiva à esquerda. Uma ação pequena sobre uma parte do detalhe, como registrar ou encerrar uma participação, abre um formulário curto dentro da própria seção, sobre `canvas`.
@@ -202,7 +202,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 | Fantasma destrutivo | Sem fundo nem borda, texto `negative`; fundo `negative-soft` com o ponteiro em cima | A ação destrutiva à esquerda do rodapé da edição, como "Excluir grupo", que abre a confirmação com o botão Destrutivo |
 | Ícone | Quadrado do tamanho do botão, ícone centralizado | Ações compactas, sempre com `aria-label` e dica |
 
-- Tamanhos: 32px (padrão no desktop, também no formulário), 40px (celular) e 28px (dentro de tabela). No celular, a área de toque tem ao menos 44px.
+- Tamanhos: 36px (padrão no desktop, também no formulário, a mesma altura do campo), 40px (celular) e 28px (dentro de tabela). No celular, a área de toque tem ao menos 44px.
 - Raio `radius-sm`, texto `label`, espaço horizontal `space-3`.
 - **Carregando:** o rótulo vira um indicador girando, a largura não muda, e o botão não aceita outro clique.
 
@@ -211,7 +211,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 - **Campo de texto:** fundo `surface`, borda `field-border`, raio `radius-sm`, altura 36px (40px no celular), rótulo acima em `label`, ajuda e erro abaixo em `body-sm`.
 - **Campo de valor:** prefixo `R$`, alinhado à direita, números tabulares e teclado numérico no celular. Aceita "1234,56" e "1.234,56", e formata ao sair do campo. Nunca guarda o valor como número de ponto flutuante: entrega a string decimal do contrato.
 - **Campo de data:** digitação em `dd/mm/aaaa` com calendário ao lado. Atalhos "Hoje" e "Ontem" nos lançamentos.
-- **Seleção e busca:** lista simples até 10 opções; acima disso, com busca. A categoria mostra a árvore, com o caminho do pai ("Casa › Energia").
+- **Seleção e busca:** lista simples até 10 opções; acima disso, com busca e com a Paginação de 10 em 10 (seção 4.4), as duas pela `api`. Numa escolha de vários itens, como os membros de um grupo ou as permissões por entidade, o que foi marcado continua marcado ao trocar de busca ou de página. A categoria mostra a árvore, com o caminho do pai ("Casa › Energia").
 - **Caixa de seleção, rádio e chave:** 16px, com rótulo clicável. A chave liga algo na hora, como uma operação da empresa; a caixa vale ao salvar.
 - **Envio de arquivo:** área tracejada com "Arraste o arquivo ou escolha", os formatos aceitos e o tamanho máximo, e a lista dos arquivos com o progresso.
 - **Formulário:** uma coluna no celular e até duas no desktop. As ações ficam no fim, com a principal à direita no desktop, e fixas no rodapé no celular.
@@ -219,7 +219,8 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 ### 4.4 Exibição de dados
 
 - **Valor:** o componente que aplica a seção 3 (sinal, cor, centavos, números tabulares). Nenhuma tela formata dinheiro por conta própria.
-- **Tabela:** fundo `surface`, borda `hairline` e raio `radius-md` no contorno; cabeçalho em `label` `mute` sobre `surface-subtle`, fixo ao rolar; linhas de 40px (32px na versão compacta) com divisória `hairline`; números e valores alinhados à direita; a linha muda para `surface-subtle` ao passar o ponteiro; seleção com caixa na primeira coluna. Totais numa linha final em `label`. As listas paginam por "Carregar mais", seguindo o cursor do contrato.
+- **Tabela:** fundo `surface`, borda `hairline` e raio `radius-md` no contorno; cabeçalho em `label` `mute` sobre `surface-subtle`, fixo ao rolar; linhas de 40px (32px na versão compacta) com divisória `hairline`; números e valores alinhados à direita; a linha muda para `surface-subtle` ao passar o ponteiro; seleção com caixa na primeira coluna. As ações de uma linha ficam num menu, aberto por um botão de ícone "mais" (⋯) de 28px no fim dela, com o nome acessível "Ações de <item>"; a destrutiva vai por último, em `negative`. Totais numa linha final em `label`. Pagina de 10 em 10, com a Paginação no rodapé.
+- **Paginação:** no rodapé da lista ou da tabela, com a divisória `hairline` em cima: à esquerda, o intervalo e o total em `body-sm` `mute`, com números tabulares ("1–10 de 37"); à direita, os botões de ícone "Página anterior" e "Próxima página", secundários, de 36px, desabilitados na primeira e na última página. Vale a página e o total do contrato (LLD, seção 5).
 - **Tabela no celular:** vira uma lista de itens, cada um com a descrição e o valor na primeira linha e os metadados (data, conta, categoria) na segunda.
 - **Cartão:** fundo `surface`, borda `hairline`, raio `radius-md`, interior `space-6` (`space-4` no celular).
 - **Cartão de indicador:** o rótulo em `label` `mute`, o número em `kpi` e, abaixo, a comparação com o período anterior em `body-sm`.
