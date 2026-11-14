@@ -6,14 +6,17 @@ import { redirect } from 'next/navigation';
 import { endSession } from '@/api/sessions';
 import { changePassword } from '@/api/users';
 
+import type { CommandMessage } from '../../_shell/confirm-dialog';
+
 import { formText } from '../../_access/form-text';
 
-/** Encerra a sessão do id do formulário e mostra a lista de novo. */
-export async function endSessionAction(form: FormData): Promise<void> {
-  const result = await endSession(formText(form, 'id'));
+/** Encerra a sessão do id e lê de novo a página mostrada, com o total novo; devolve a recusa, se houve. */
+export async function endSessionAction(_previous: CommandMessage, { id }: { id: string }): Promise<CommandMessage> {
+  const result = await endSession(id);
   if (!result.ok && result.code === 'UNAUTHENTICATED') redirect('/login');
-  // A sessão que já não estava ativa (404) também sai da lista, que é lida de novo.
   revalidatePath('/profile');
+  // A sessão que já não estava ativa (404) só sai da lista, que é lida de novo.
+  return { message: result.ok || result.code === 'NOT_FOUND' ? null : result.message };
 }
 
 /** O que o formulário da troca de senha mostra depois de um envio. */

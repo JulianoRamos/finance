@@ -1,11 +1,12 @@
-import type { SessionSummary } from '@/api/sessions';
+import type { SessionPage, SessionSummary } from '@/api/sessions';
 
-import { FOCUS_RING } from '../../_access/access-screen';
 import { deviceText, formatInstant } from '../../_shell/format';
-import { endSessionAction } from './actions';
+import { mapPage } from '../../_shell/list-page';
+import { SessionActions } from './session-actions';
+import { SessionsPagination } from './sessions-pagination';
 
 const HEAD = 'bg-surface-subtle px-3 py-2 text-left text-label text-mute whitespace-nowrap';
-const CELL = 'h-12 border-t border-hairline px-3 whitespace-nowrap';
+const CELL = 'h-10 border-t border-hairline px-3 whitespace-nowrap';
 
 /** O que a tabela e a lista mostram de cada sessão. */
 interface SessionView {
@@ -37,32 +38,18 @@ function CurrentBadge({ className = '' }: Readonly<{ className?: string }>) {
   );
 }
 
-/** O botão secundário de encerrar a sessão, com a altura dada. */
-function EndSessionButton({ session, height }: Readonly<{ session: SessionView; height: string }>) {
-  return (
-    <form action={endSessionAction}>
-      <input type="hidden" name="id" value={session.id} />
-      <button
-        type="submit"
-        aria-label={`Encerrar a sessão ${session.device}`}
-        className={`${height} cursor-pointer rounded-sm border border-hairline-strong bg-surface px-3 text-label text-ink hover:bg-surface-subtle ${FOCUS_RING}`}
-      >
-        Encerrar
-      </button>
-    </form>
-  );
-}
-
 /**
- * As sessões ativas do usuário, a atual marcada e as outras com o botão de encerrar: uma tabela a
- * partir do tablet e, no celular, uma lista (design-system.md, seção 4.4).
+ * Uma página das sessões ativas do usuário, a atual marcada e as outras com o menu de ações: uma tabela
+ * quando cabe e, numa área estreita, uma lista, com a Paginação no rodapé (design-system.md, seção 4.4).
  */
-export function SessionsTable({ sessions, labelledBy }: Readonly<{ sessions: SessionSummary[]; labelledBy: string }>) {
-  const views = sessions.map(viewOf);
+export function SessionsTable({ page, labelledBy }: Readonly<{ page: SessionPage; labelledBy: string }>) {
+  const shown = mapPage(page, viewOf);
   return (
-    <>
-      <ul aria-labelledby={labelledBy} className="flex flex-col rounded-md border border-hairline md:hidden">
-        {views.map((session) => (
+    // A tabela só aparece quando cabe: abaixo de `container-table`, como no celular ou na coluna ao lado da
+    // troca de senha, as sessões vêm na lista (design-system.md, seção 4.4).
+    <div className="@container flex flex-col overflow-hidden rounded-md border border-hairline">
+      <ul aria-labelledby={labelledBy} className="flex flex-col @table:hidden">
+        {shown.items.map((session) => (
           <li
             key={session.id}
             className="flex items-center justify-between gap-3 border-t border-hairline p-3 first:border-t-0"
@@ -76,11 +63,11 @@ export function SessionsTable({ sessions, labelledBy }: Readonly<{ sessions: Ses
                 {session.origin} · {session.lastUse}
               </span>
             </div>
-            {!session.current && <EndSessionButton session={session} height="h-11" />}
+            {!session.current && <SessionActions id={session.id} device={session.device} size="list" />}
           </li>
         ))}
       </ul>
-      <div className="relative hidden overflow-x-auto rounded-md border border-hairline md:block">
+      <div className="relative hidden overflow-x-auto @table:block">
         <table aria-labelledby={labelledBy} className="w-full border-collapse">
           <thead>
             <tr>
@@ -99,7 +86,7 @@ export function SessionsTable({ sessions, labelledBy }: Readonly<{ sessions: Ses
             </tr>
           </thead>
           <tbody>
-            {views.map((session) => (
+            {shown.items.map((session) => (
               <tr key={session.id} className="hover:bg-surface-subtle">
                 <td className={`${CELL} text-ink`}>
                   {session.device}
@@ -119,7 +106,7 @@ export function SessionsTable({ sessions, labelledBy }: Readonly<{ sessions: Ses
                       <span className="sr-only">Sem ação</span>
                     </span>
                   ) : (
-                    <EndSessionButton session={session} height="h-8" />
+                    <SessionActions id={session.id} device={session.device} size="table" />
                   )}
                 </td>
               </tr>
@@ -127,6 +114,9 @@ export function SessionsTable({ sessions, labelledBy }: Readonly<{ sessions: Ses
           </tbody>
         </table>
       </div>
-    </>
+      <div className="px-3 pb-3">
+        <SessionsPagination page={shown} />
+      </div>
+    </div>
   );
 }

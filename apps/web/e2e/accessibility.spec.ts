@@ -33,6 +33,16 @@ const SCREENS: readonly Screen[] = [
     open: async (page, baseURL) => {
       await signIn(page.context(), await createTestUser(), baseURL);
       await page.goto('/profile');
+      // Na largura padrão, a coluna das sessões, ao lado da troca de senha, mostra a lista.
+      await expect(page.getByRole('list', { name: 'Sessões ativas' })).toBeVisible();
+    },
+  },
+  {
+    name: 'Minha conta em tela larga',
+    open: async (page, baseURL) => {
+      await page.setViewportSize({ width: 1600, height: 900 });
+      await signIn(page.context(), await createTestUser(), baseURL);
+      await page.goto('/profile');
       await expect(page.getByRole('table', { name: 'Sessões ativas' })).toBeVisible();
     },
   },

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, Req } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -14,9 +14,9 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-import { ApiError, Public, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
+import { ApiError, PageQuery, pageRequest, Public, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
 import { ApiClientHeaders } from './client-headers.js';
-import { CurrentSession, Login, SessionId, SessionSummary, SessionToken } from './identity.dto.js';
+import { CurrentSession, Login, SessionId, SessionPage, SessionToken } from './identity.dto.js';
 import { originOf, userAgentOf } from './request-origin.js';
 import { CurrentSessionOf } from './session.guard.js';
 import { type AuthenticatedSession, SessionsService } from './sessions.service.js';
@@ -65,14 +65,18 @@ export class SessionsController {
   @ApiBearerAuth('session')
   @ApiOperation({ summary: 'As sessões ativas do usuário.' })
   @ApiOkResponse({
-    type: SessionSummary,
-    isArray: true,
+    type: SessionPage,
     description:
-      'As sessões ativas do usuário da sessão corrente, e só dele: a corrente primeiro, depois as outras do último uso mais recente ao mais antigo. Sem paginação: a lista é curta, porque uma sessão vence em até 30 dias (LLD, seção 5, "Listas").',
+      'A página das sessões ativas do usuário da sessão corrente, e só dele, com o total (LLD, seção 5): a corrente primeiro, depois as outras do último uso mais recente ao mais antigo.',
+  })
+  @ApiBadRequestResponse({
+    type: ApiError,
+    description:
+      '`INVALID_INPUT`: a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
   })
   @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
-  list(@CurrentSessionOf() session: AuthenticatedSession): Promise<SessionSummary[]> {
-    return this.sessions.listActive(session.user.id, session.id);
+  list(@Query() query: PageQuery, @CurrentSessionOf() session: AuthenticatedSession): Promise<SessionPage> {
+    return this.sessions.listActive(session.user.id, session.id, pageRequest(query));
   }
 
   // Declarada antes da ':id', para o caminho "current" não ser lido como um id.

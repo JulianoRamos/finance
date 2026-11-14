@@ -1,3 +1,5 @@
+import { type Sql, sql } from '../../common/index.js';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** O último uso é gravado no máximo uma vez por minuto (regra 6.1). */
 const TOUCH_INTERVAL_MS = 60 * 1000;
@@ -17,8 +19,20 @@ export function isSessionValid(session: SessionTimes, now: Date, idleDays: numbe
   return (
     session.endedAt === null &&
     now.getTime() <= session.expiresAt.getTime() &&
-    now.getTime() - session.lastUsedAt.getTime() <= idleDays * DAY_MS
+    session.lastUsedAt.getTime() >= oldestValidUse(now, idleDays).getTime()
   );
+}
+
+/** O último uso mais antigo com que uma sessão ainda vale no instante dado: os dias de inatividade antes dele. */
+function oldestValidUse(now: Date, idleDays: number): Date {
+  return new Date(now.getTime() - idleDays * DAY_MS);
+}
+
+/** A condição SQL, sobre a tabela `session`, das sessões que valem no instante dado: a mesma regra da `isSessionValid`. */
+export function validSessionCondition(now: Date, idleDays: number): Sql {
+  // Os instantes vão em ISO 8601, com o fuso: um Date vai ao banco sem ele, lido no fuso da sessão do banco.
+  const since = oldestValidUse(now, idleDays).toISOString();
+  return sql`ended_at IS NULL AND expires_at >= ${now.toISOString()}::timestamptz AND last_used_at >= ${since}::timestamptz`;
 }
 
 /** O prazo máximo da sessão aberta no instante dado: o login mais os dias do prazo máximo (regra 6.1). */

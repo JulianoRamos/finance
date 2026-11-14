@@ -9,6 +9,8 @@ import {
   type ValidationOptions,
 } from 'class-validator';
 
+import { PageInfo } from '../../common/index.js';
+
 /** A senha: pelo menos 12 caracteres, sem outra regra de composição (regra 6.1). */
 const PASSWORD_MIN_LENGTH = 12;
 /** O limite de cima da senha, para o hash não receber um texto sem fim. */
@@ -130,6 +132,11 @@ export class SessionSummary {
 
   @ApiProperty({ description: 'Se é a sessão do token que fez o pedido.' })
   current!: boolean;
+}
+
+export class SessionPage extends PageInfo {
+  @ApiProperty({ type: SessionSummary, isArray: true, description: 'As sessões da página, na ordem da lista.' })
+  items!: SessionSummary[];
 }
 
 export class SessionId {
