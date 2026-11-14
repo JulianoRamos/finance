@@ -6,5 +6,8 @@ export const MENU_PANEL =
 export const MENU_ITEM =
   'flex h-9 cursor-pointer items-center gap-2 rounded-sm px-2 text-ink outline-none data-highlighted:bg-surface-subtle';
 
+/** Um item de menu destrutivo, por último no menu, em `negative` (design-system.md, seção 4.5). */
+export const MENU_ITEM_DESTRUCTIVE = `${MENU_ITEM} text-negative`;
+
 /** A divisória entre os grupos de um menu. */
 export const MENU_SEPARATOR = 'h-px bg-hairline';

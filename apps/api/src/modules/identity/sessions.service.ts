@@ -1,11 +1,22 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 
-import { apiError, type Clock, CLOCK, CONFIG, type Config, TransactionService } from '../../common/index.js';
+import {
+  apiError,
+  type Clock,
+  CLOCK,
+  CONFIG,
+  type Config,
+  type Page,
+  type PageRequest,
+  readPage,
+  sql,
+  TransactionService,
+} from '../../common/index.js';
 import { normalizeEmail } from './email.js';
 import type { SessionSummary, SessionToken } from './identity.dto.js';
 import { LoginAttemptsService } from './login-attempts.service.js';
 import { verifyPassword } from './passwords.js';
-import { isSessionValid, sessionExpiresAt, shouldRecordUse } from './session-rules.js';
+import { isSessionValid, sessionExpiresAt, shouldRecordUse, validSessionCondition } from './session-rules.js';
 import { hashToken, newToken } from './tokens.js';
 import { readUserAgent } from './user-agent.js';
 import { UsersService } from './users.service.js';
@@ -80,26 +91,33 @@ export class SessionsService {
   }
 
   /**
-   * As sessões que valem do usuário (regra 6.1): a corrente primeiro, depois as outras do último uso
-   * mais recente ao mais antigo.
+   * A página das sessões que valem do usuário (regra 6.1): a corrente primeiro, depois as outras do
+   * último uso mais recente ao mais antigo, filtradas no banco.
    */
-  async listActive(userId: string, currentId: string): Promise<SessionSummary[]> {
+  listActive(userId: string, currentId: string, request: PageRequest): Promise<Page<SessionSummary>> {
     const now = this.clock.now();
-    const rows = await this.transactions.client.session.findMany({
-      where: { userId, endedAt: null, expiresAt: { gte: now } },
-      orderBy: [{ lastUsedAt: 'desc' }, { id: 'desc' }],
-    });
-    return rows
-      .filter((row) => isSessionValid(row, now, this.config.sessionIdleDays))
-      .map((row) => ({
-        id: row.id,
-        ...readUserAgent(row.userAgent),
-        origin: row.origin,
-        createdAt: row.createdAt,
-        lastUsedAt: row.lastUsedAt,
-        current: row.id === currentId,
-      }))
-      .sort((a, b) => Number(b.current) - Number(a.current));
+    const client = this.transactions.client;
+    return readPage(
+      client,
+      sql`SELECT id, last_used_at FROM session
+        WHERE user_id = ${userId}::uuid AND ${validSessionCondition(now, this.config.sessionIdleDays)}`,
+      sql`id = ${currentId}::uuid DESC, last_used_at DESC`,
+      request,
+      async (ids) =>
+        (
+          await client.session.findMany({
+            where: { id: { in: ids } },
+            select: { id: true, userAgent: true, origin: true, createdAt: true, lastUsedAt: true },
+          })
+        ).map((row) => ({
+          id: row.id,
+          ...readUserAgent(row.userAgent),
+          origin: row.origin,
+          createdAt: row.createdAt,
+          lastUsedAt: row.lastUsedAt,
+          current: row.id === currentId,
+        })),
+    );
   }
 
   /**

@@ -2,13 +2,22 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { type ApiError, type CommandResult, commandResult, contractError, UNAVAILABLE } from './api-error';
+import {
+  type ApiError,
+  type CommandResult,
+  commandResult,
+  contractError,
+  type ReadResult,
+  readResult,
+  UNAVAILABLE,
+} from './api-error';
 import { api, API_TIMEOUT_MS } from './client';
 import type { components } from './schema';
 
 type SessionToken = components['schemas']['SessionToken'];
 export type SessionUser = components['schemas']['SessionUser'];
 export type SessionSummary = components['schemas']['SessionSummary'];
+export type SessionPage = components['schemas']['SessionPage'];
 
 /** O resultado de um pedido que abre uma sessão: o token, ou o erro do contrato. */
 export type SessionResult = { ok: true; session: SessionToken } | ({ ok: false } & ApiError);
@@ -53,23 +62,11 @@ export const currentSession = cache(async (): Promise<CurrentSession> => {
 });
 
 /**
- * As sessões ativas do usuário do cookie, a corrente primeiro; `unauthenticated` quando não há uma
- * sessão válida; ou `unavailable` quando a api não respondeu como o contrato diz.
+ * A página das sessões ativas do usuário do cookie, de 10 em 10, a corrente primeiro; `unauthenticated`
+ * quando não há uma sessão válida; ou `unavailable` quando a api não respondeu como o contrato diz.
  */
-export type SessionList =
-  { status: 'ok'; sessions: SessionSummary[] } | { status: 'unauthenticated' } | { status: 'unavailable' };
-
-export async function listSessions(): Promise<SessionList> {
-  try {
-    const { data, response } = await api.GET('/v1/sessions', {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
-    });
-    if (data) return { status: 'ok', sessions: data };
-    return { status: response.status === 401 ? 'unauthenticated' : 'unavailable' };
-  } catch {
-    return { status: 'unavailable' };
-  }
+export function listSessions(page: number): Promise<ReadResult<SessionPage>> {
+  return readResult((init) => api.GET('/v1/sessions', { params: { query: { page } }, ...init }));
 }
 
 /** Encerra uma sessão ativa do usuário do cookie. */

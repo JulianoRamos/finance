@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { DropdownMenu } from 'radix-ui';
 
-import { FOCUS_RING } from '../_access/access-screen';
+import { GHOST_ICON_BUTTON } from './buttons';
 import { Hint } from './hint';
 import { MENU_ITEM, MENU_PANEL } from './menu';
 import { isWithin, pageTitleOf, SETTINGS } from './pages';
 import { SIDEBAR_COOKIE } from './sidebar-state';
 
-const ICON_BUTTON = `size-9 flex-none cursor-pointer items-center justify-center rounded-sm text-body hover:bg-surface-subtle ${FOCUS_RING}`;
+const ICON_BUTTON = `size-9 ${GHOST_ICON_BUTTON}`;
 
 /** Um ano, em segundos: o cookie da barra lateral é uma preferência, e não uma sessão. */
 const ONE_YEAR_S = 365 * 24 * 60 * 60;

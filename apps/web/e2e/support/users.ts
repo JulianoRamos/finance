@@ -75,6 +75,16 @@ export async function createTestUser(): Promise<TestUser> {
   return { name, email, password, sessionToken };
 }
 
+/** Abre mais uma sessão do usuário pela rota de login da api, de uma origem só do teste. */
+export async function openSessionByLogin(user: TestUser): Promise<void> {
+  const response = await fetch(`${requiredEnv('API_URL')}/v1/sessions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': uniqueOrigin() },
+    body: JSON.stringify({ email: user.email, password: user.password }),
+  });
+  if (response.status !== 201) throw new Error(`O login do usuário de teste respondeu ${String(response.status)}.`);
+}
+
 /** Entra com o usuário no contexto do navegador, pondo a sessão dele no cookie, como o login faz. */
 export async function signIn(context: BrowserContext, user: TestUser, baseURL: string): Promise<void> {
   await context.addCookies([

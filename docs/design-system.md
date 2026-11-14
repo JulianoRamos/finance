@@ -109,11 +109,12 @@ Base de 4px.
 | `space-3` | 12px | Campo, célula de tabela |
 | `space-4` | 16px | Interior de cartão no celular, entre campos |
 | `space-6` | 24px | Interior de cartão, entre grupos |
+| `space-7` | 28px | Botão de ícone dentro de tabela, como o "mais" (⋯) das ações da linha |
 | `space-8` | 32px | Entre seções |
 | `space-9` | 36px | Campo de texto, botão padrão no desktop, item de menu, botão de ícone da barra superior |
 | `space-10` | 40px | Margem da página no desktop |
 | `space-11` | 44px | Altura dos campos e do botão principal das telas de acesso, área de toque no celular |
-| `space-12` | 48px | Logo, seletor de contexto e botão da conta na barra lateral, linha de tabela com botão |
+| `space-12` | 48px | Logo, seletor de contexto e botão da conta na barra lateral |
 | `space-14` | 56px | Altura da barra superior |
 | `space-16` | 64px | Estado vazio, largura da barra lateral recolhida |
 
@@ -123,6 +124,7 @@ Base de 4px.
 | `container-menu` | 288px | Largura dos menus da barra lateral (seção 4.5) |
 | `container-sidebar` | 280px | Largura da barra lateral aberta (seção 4.1) |
 | `container-section` | 560px | Largura máxima de uma seção de formulário dentro de um cartão e dos diálogos (seção 4.5) |
+| `container-table` | 640px | Largura mínima da área de uma tabela: numa área mais estreita, ela vira a lista de itens (seção 4.4) |
 
 ### 2.4 Raio, borda e elevação
 
@@ -221,7 +223,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 - **Valor:** o componente que aplica a seção 3 (sinal, cor, centavos, números tabulares). Nenhuma tela formata dinheiro por conta própria.
 - **Tabela:** fundo `surface`, borda `hairline` e raio `radius-md` no contorno; cabeçalho em `label` `mute` sobre `surface-subtle`, fixo ao rolar; linhas de 40px (32px na versão compacta) com divisória `hairline`; números e valores alinhados à direita; a linha muda para `surface-subtle` ao passar o ponteiro; seleção com caixa na primeira coluna. As ações de uma linha ficam num menu, aberto por um botão de ícone "mais" (⋯) de 28px no fim dela, com o nome acessível "Ações de <item>"; a destrutiva vai por último, em `negative`. Totais numa linha final em `label`. Pagina de 10 em 10, com a Paginação no rodapé.
 - **Paginação:** no rodapé da lista ou da tabela, com a divisória `hairline` em cima: à esquerda, o intervalo e o total em `body-sm` `mute`, com números tabulares ("1–10 de 37"); à direita, os botões de ícone "Página anterior" e "Próxima página", secundários, de 36px, desabilitados na primeira e na última página. Vale a página e o total do contrato (LLD, seção 5).
-- **Tabela no celular:** vira uma lista de itens, cada um com a descrição e o valor na primeira linha e os metadados (data, conta, categoria) na segunda.
+- **Tabela estreita:** no celular, ou numa área com menos de `container-table` (640px), como uma coluna ao lado de outra, a tabela vira uma lista de itens, cada um com a descrição e o valor na primeira linha e os metadados (data, conta, categoria) na segunda.
 - **Cartão:** fundo `surface`, borda `hairline`, raio `radius-md`, interior `space-6` (`space-4` no celular).
 - **Cartão de indicador:** o rótulo em `label` `mute`, o número em `kpi` e, abaixo, a comparação com o período anterior em `body-sm`.
 - **Selo de situação:** raio `radius-full`, texto `body-sm` com peso 500, fundo `-soft` e texto do significado:

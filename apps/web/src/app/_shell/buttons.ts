@@ -21,6 +21,12 @@ export const DESTRUCTIVE_BUTTON = `${BASE} bg-negative-strong text-on-negative`;
 export const GHOST_DESTRUCTIVE_BUTTON = `${BASE} text-negative hover:bg-negative-soft`;
 
 /**
+ * O botão de ícone fantasma, das ações de linha e da barra superior: o ícone no centro, sem fundo nem
+ * borda, sempre com o `aria-label` e a dica. Quem usa dá o tamanho e o `display`.
+ */
+export const GHOST_ICON_BUTTON = `flex-none cursor-pointer items-center justify-center rounded-sm text-body hover:bg-surface-subtle ${FOCUS_RING}`;
+
+/**
  * O botão de ícone secundário: um quadrado do tamanho do botão, com o ícone no centro, sempre com o
  * `aria-label` e a dica. Desabilitado, o ícone fica em `faint`.
  */
