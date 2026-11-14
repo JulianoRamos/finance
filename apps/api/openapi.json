@@ -115,17 +115,48 @@
       },
       "get": {
         "operationId": "SessionsController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "As sessões ativas do usuário da sessão corrente, e só dele: a corrente primeiro, depois as outras do último uso mais recente ao mais antigo. Sem paginação: a lista é curta, porque uma sessão vence em até 30 dias (LLD, seção 5, \"Listas\").",
+            "description": "A página das sessões ativas do usuário da sessão corrente, e só dele, com o total (LLD, seção 5): a corrente primeiro, depois as outras do último uso mais recente ao mais antigo.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SessionSummary"
-                  }
+                  "$ref": "#/components/schemas/SessionPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -1655,6 +1686,39 @@
           "createdAt",
           "lastUsedAt",
           "current"
+        ]
+      },
+      "SessionPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "As sessões da página, na ordem da lista.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionSummary"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
         ]
       },
       "RecoveryLink": {
