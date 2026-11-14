@@ -1,6 +1,6 @@
 // O módulo Identidade (LLD, seção 4.2, e regra 6.1): os usuários, as sessões de login, os links de
-// recuperação do acesso e as tentativas de login. O segundo fator (os campos do TOTP e os códigos de
-// recuperação) e as permissões por entidade nascem nos tickets deles.
+// recuperação do acesso, as tentativas de login e as permissões por entidade. O segundo fator (os
+// campos do TOTP e os códigos de recuperação) nasce no ticket dele.
 
 /// Uma pessoa que acessa o sistema com login próprio.
 /// CHECK escrito à mão na migração (user_email_lowercase_check): o e-mail é gravado em minúsculas, então
@@ -17,7 +17,8 @@ model User {
   passwordHash  String?  @map("password_hash")
   /// Se gere usuários e acessos (regra 6.1). O comando create-user cria o usuário com ela.
   managesAccess Boolean  @default(false) @map("manages_access")
-  /// O usuário desativado não entra (regra 6.1).
+  /// O usuário desativado não entra, e as sessões dele são encerradas na hora. As permissões ficam, e
+  /// valem de novo na reativação (regra 6.1).
   active        Boolean  @default(true)
   createdAt     DateTime @map("created_at") @db.Timestamptz
   updatedAt     DateTime @map("updated_at") @db.Timestamptz
@@ -27,6 +28,7 @@ model User {
   sessions             Session[]
   recoveryLinks        RecoveryLink[] @relation("RecoveryLinkUser")
   createdRecoveryLinks RecoveryLink[] @relation("RecoveryLinkCreatedBy")
+  permissions          Permission[]
 
   @@map("user")
 }
@@ -115,4 +117,42 @@ model LoginAttempt {
   /// As falhas recentes de uma origem.
   @@index([origin, attemptedAt], map: "login_attempt_origin_idx")
   @@map("login_attempt")
+}
+
+/// O nível de uma permissão (regra 6.1). Sem permissão, não há linha: a entidade fica sem acesso.
+enum PermissionLevel {
+  /// Lê os dados da entidade.
+  view
+  /// Lê e altera os dados da entidade.
+  operate
+
+  @@map("permission_level")
+}
+
+/// A permissão de um usuário numa entidade (regra 6.1). Gravar `none` pela rota apaga a linha.
+/// Tem id próprio, e não só a chave (user_id, entity_id), porque a auditoria guarda o id do registro.
+/// Chave estrangeira escrita à mão na migração (permission_entity_id_fkey): entity_id referencia
+/// entity(id), com RESTRICT, sem relação no Prisma, porque a tabela entity é do módulo Entidades e uma
+/// consulta da Identidade não a lê (LLD, seção 3).
+/// Escrito à mão na migração (backfill): todo usuário com manages_access recebe operate em toda entidade
+/// que já existe, como o uso inicial prevê (regra 6.1).
+model Permission {
+  /// uuidv7, gerado pelo banco.
+  id        String          @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// O usuário. RESTRICT: o usuário é desativado, e não excluído.
+  userId    String          @map("user_id") @db.Uuid
+  /// A entidade, do módulo Entidades (chave estrangeira escrita à mão, RESTRICT: a entidade é
+  /// desativada, e não excluída).
+  entityId  String          @map("entity_id") @db.Uuid
+  level     PermissionLevel
+  createdAt DateTime        @map("created_at") @db.Timestamptz
+  updatedAt DateTime        @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  /// Uma permissão por usuário e entidade.
+  @@unique([userId, entityId], map: "permission_user_entity_key")
+  /// As permissões de uma entidade, para a chave estrangeira e para quem a vê.
+  @@index([entityId], map: "permission_entity_idx")
+  @@map("permission")
 }

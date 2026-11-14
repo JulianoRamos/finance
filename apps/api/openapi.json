@@ -588,7 +588,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A página das entidades do filtro, com o total (LLD, seção 5): as ativas primeiro, e cada grupo pelo nome, em ordem alfabética.",
+            "description": "A página das entidades do filtro em que o usuário tem `view` ou `operate`, com o total (LLD, seção 5): as ativas primeiro, e cada grupo pelo nome, em ordem alfabética. As outras não aparecem nem contam no total (regra 6.1).",
             "content": {
               "application/json": {
                 "schema": {
@@ -643,7 +643,7 @@
         },
         "responses": {
           "201": {
-            "description": "A entidade foi criada, ativa, na versão 1, com as operações pedidas ligadas.",
+            "description": "A entidade foi criada, ativa, na versão 1, com as operações pedidas ligadas. Quem a cadastra recebe `operate` nela, na mesma transação (regra 6.1).",
             "content": {
               "application/json": {
                 "schema": {
@@ -740,8 +740,8 @@
               }
             }
           },
-          "404": {
-            "description": "`NOT_FOUND`: a entidade não existe.",
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na entidade, ou ela não existe (regra 6.1).",
             "content": {
               "application/json": {
                 "schema": {
@@ -816,16 +816,6 @@
               }
             }
           },
-          "404": {
-            "description": "`NOT_FOUND`: a entidade não existe.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
           "409": {
             "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a entidade mudou desde a leitura (regra 6.20).",
             "content": {
@@ -838,6 +828,16 @@
           },
           "422": {
             "description": "`ENTITY_TYPE_IMMUTABLE`: o tipo enviado não é o da entidade, que não muda depois da criação (regra 6.2). `DUPLICATE_TAX_ID`: o documento já é de outra entidade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade (quem só tem `view` só lê), ou ela não existe (regra 6.1).",
             "content": {
               "application/json": {
                 "schema": {
@@ -914,8 +914,8 @@
               }
             }
           },
-          "404": {
-            "description": "`NOT_FOUND`: a entidade não existe.",
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a entidade mudou desde a leitura (regra 6.20).",
             "content": {
               "application/json": {
                 "schema": {
@@ -924,8 +924,8 @@
               }
             }
           },
-          "409": {
-            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a entidade mudou desde a leitura (regra 6.20).",
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade (quem só tem `view` só lê), ou ela não existe (regra 6.1).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1004,8 +1004,8 @@
               }
             }
           },
-          "404": {
-            "description": "`NOT_FOUND`: a entidade não existe.",
+          "422": {
+            "description": "`OPERATION_REQUIRES_COMPANY`: a entidade é uma pessoa física (regra 6.2).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1014,8 +1014,8 @@
               }
             }
           },
-          "422": {
-            "description": "`OPERATION_REQUIRES_COMPANY`: a entidade é uma pessoa física (regra 6.2).",
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade (quem só tem `view` só lê), ou ela não existe (regra 6.1).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1092,8 +1092,8 @@
               }
             }
           },
-          "404": {
-            "description": "`NOT_FOUND`: a entidade não existe.",
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade (quem só tem `view` só lê), ou ela não existe (regra 6.1).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1489,6 +1489,769 @@
         "summary": "Exclui um grupo financeiro.",
         "tags": [
           "financial-groups"
+        ]
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "operationId": "UsersController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "A busca: o texto procurado no nome e no e-mail, sem diferença de acento nem de maiúsculas, em qualquer posição. Vazia ou ausente, não filtra (LLD, seção 5).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página dos usuários do filtro, com o total (LLD, seção 5): os ativos primeiro, e cada grupo pelo nome, em ordem alfabética.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário da sessão não gere acessos (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista os usuários.",
+        "tags": [
+          "users"
+        ]
+      },
+      "post": {
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewUser"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O usuário criado, sem senha, e o link de recuperação com que ele a define, que vale 1 hora e uma vez só. O link não é devolvido de novo (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedUser"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o nome falta, é vazio ou passa de 120 caracteres, o e-mail não é válido ou passa de 320, ou as permissões não são uma lista de entidades sem repetição, cada uma com `none`, `view` ou `operate` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário da sessão não gere acessos (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`DUPLICATE_EMAIL`: o e-mail já é de outro usuário. `ENTITY_NOT_FOUND`: um dos ids das permissões não é de nenhuma entidade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Cadastra um usuário e gera o link para ele definir a senha.",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "operationId": "UsersController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do usuário.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O usuário, ativo ou desativado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário da sessão não gere acessos (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o usuário não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lê um usuário.",
+        "tags": [
+          "users"
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do usuário.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "O usuário editado, com a versão seguinte. A troca do e-mail encerra todas as sessões dele (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, ou a versão, o nome ou o e-mail faltam ou não são válidos (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário da sessão não gere acessos (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o usuário não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: o usuário mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`DUPLICATE_EMAIL`: o e-mail já é de outro usuário.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Edita o nome e o e-mail de um usuário.",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/v1/users/{id}/active": {
+      "put": {
+        "operationId": "UsersController_setActive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do usuário.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserActivation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "O usuário desativado ou reativado, com a versão seguinte. Desativar encerra todas as sessões dele na hora; as permissões ficam, e valem de novo na reativação (regra 6.1). Pedir o estado que ele já tem responde 200 sem mudar a versão.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, ou o `active` ou a versão faltam (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário da sessão não gere acessos (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o usuário não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: o usuário mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`SELF_ACCESS_CHANGE`: o usuário da sessão desativaria a si mesmo (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Desativa ou reativa um usuário.",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/v1/users/{id}/permissions": {
+      "get": {
+        "operationId": "UsersController_listPermissions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do usuário.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "A busca das entidades, a mesma da lista das entidades: o nome sem diferença de acento nem de maiúsculas, em qualquer posição, e, quando tem um algarismo, o CNPJ. Vazia ou ausente, não filtra (LLD, seção 5).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página de todas as entidades do filtro, ativas ou não, com o nível do usuário em cada uma, na ordem da lista das entidades: as ativas primeiro, e cada grupo pelo nome. A entidade sem permissão vem com `none`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityPermissionPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário da sessão não gere acessos (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o usuário não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista as permissões de um usuário por entidade.",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/v1/users/{id}/access": {
+      "put": {
+        "operationId": "UsersController_setAccess",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do usuário.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserAccess"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "O usuário com os acessos gravados, com a versão seguinte, mesmo quando só as permissões mudam. As entidades fora da lista não mudam.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a versão ou o `managesAccess` faltam, ou as permissões não são uma lista de entidades sem repetição, cada uma com `none`, `view` ou `operate` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário da sessão não gere acessos (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o usuário não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: o usuário mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`ENTITY_NOT_FOUND`: um dos ids das permissões não é de nenhuma entidade. `SELF_ACCESS_CHANGE`: o usuário da sessão tiraria de si mesmo o gerir acessos (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Grava o gerir acessos e as permissões por entidade de um usuário.",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/v1/users/{id}/recovery-links": {
+      "post": {
+        "operationId": "UsersController_createRecoveryLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do usuário.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "O link de recuperação do usuário, que vale 1 hora e uma vez só. Usá-lo define a senha nova e encerra todas as sessões dele (regra 6.1). O link não é devolvido de novo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedRecoveryLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário da sessão não gere acessos (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o usuário não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`INACTIVE_USER`: o usuário está desativado e não entra; ele é reativado antes (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Gera um link de recuperação para um usuário.",
+        "tags": [
+          "users"
         ]
       }
     }
@@ -2127,6 +2890,327 @@
           "version",
           "name",
           "memberIds"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome, como aparece na interface.",
+            "example": "Bruno Lima"
+          },
+          "email": {
+            "type": "string",
+            "description": "O e-mail, que é o login, em minúsculas.",
+            "example": "bruno@exemplo.com"
+          },
+          "managesAccess": {
+            "type": "boolean",
+            "description": "Se gere usuários e acessos: cadastra usuários, define permissões e gera links de recuperação (regra 6.1)."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso no usuário desativado, que não entra (regra 6.1)."
+          },
+          "passwordSet": {
+            "type": "boolean",
+            "description": "Falso até o usuário definir a senha pelo link de recuperação. A tela mostra o selo \"Senha não definida\"."
+          },
+          "version": {
+            "type": "integer",
+            "description": "A versão, que a edição, a desativação e a gravação dos acessos mandam de volta (regra 6.20).",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "managesAccess",
+          "active",
+          "passwordSet",
+          "version"
+        ]
+      },
+      "UserPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "Os usuários da página, na ordem da lista.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ]
+      },
+      "PermissionChange": {
+        "type": "object",
+        "properties": {
+          "entityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A entidade."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "none",
+              "view",
+              "operate"
+            ],
+            "description": "O nível na entidade: `view` lê, `operate` lê e altera, e `none` tira a permissão (regra 6.1)."
+          }
+        },
+        "required": [
+          "entityId",
+          "level"
+        ]
+      },
+      "NewUser": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "O nome, como aparece na interface. A api tira os espaços das pontas.",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Bruno Lima"
+          },
+          "email": {
+            "type": "string",
+            "description": "O e-mail, que é o login. Comparado e guardado em minúsculas, sem espaços nas pontas. Único entre todos os usuários, ativos ou não.",
+            "maxLength": 320,
+            "example": "bruno@exemplo.com"
+          },
+          "managesAccess": {
+            "type": "boolean",
+            "description": "Se o usuário gere acessos (regra 6.1)."
+          },
+          "permissions": {
+            "type": "array",
+            "description": "As permissões por entidade. Opcional: sem a lista, ou com `none`, o usuário fica sem acesso à entidade. Cada entidade aparece uma vez só.",
+            "items": {
+              "$ref": "#/components/schemas/PermissionChange"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "managesAccess"
+        ]
+      },
+      "GeneratedRecoveryLink": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "O link inteiro, com o endereço público da web (`PUBLIC_URL`) e o token: `<PUBLIC_URL>/set-password/<token>`. Só existe nesta resposta: o banco guarda o hash do token.",
+            "example": "https://finance.exemplo.com/set-password/<token>"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Até quando o link vale: 1 hora depois de gerado."
+          }
+        },
+        "required": [
+          "url",
+          "expiresAt"
+        ]
+      },
+      "CreatedUser": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "recoveryLink": {
+            "description": "O link com que o usuário define a senha.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeneratedRecoveryLink"
+              }
+            ]
+          }
+        },
+        "required": [
+          "user",
+          "recoveryLink"
+        ]
+      },
+      "UserEdit": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome, como aparece na interface. A api tira os espaços das pontas.",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Bruno Lima"
+          },
+          "email": {
+            "type": "string",
+            "description": "O e-mail, que é o login. Comparado e guardado em minúsculas, sem espaços nas pontas. Único entre todos os usuários, ativos ou não.",
+            "maxLength": 320,
+            "example": "bruno@exemplo.com"
+          }
+        },
+        "required": [
+          "version",
+          "name",
+          "email"
+        ]
+      },
+      "UserActivation": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso desativa o usuário; verdadeiro o reativa."
+          }
+        },
+        "required": [
+          "version",
+          "active"
+        ]
+      },
+      "UserAccess": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "managesAccess": {
+            "type": "boolean",
+            "description": "Se o usuário gere acessos. O usuário da sessão não o tira de si mesmo (422 `SELF_ACCESS_CHANGE`)."
+          },
+          "permissions": {
+            "type": "array",
+            "description": "As permissões que mudam. Só as entidades da lista mudam, e as outras ficam como estão; a tela manda as que o usuário alterou, em qualquer página da tabela. Cada entidade aparece uma vez só.",
+            "items": {
+              "$ref": "#/components/schemas/PermissionChange"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "managesAccess",
+          "permissions"
+        ]
+      },
+      "EntityPermission": {
+        "type": "object",
+        "properties": {
+          "entityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company"
+            ],
+            "description": "Pessoa física (`individual`) ou jurídica (`company`)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da entidade.",
+            "example": "Clínica Exemplo"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na entidade desativada, que continua na tabela."
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "none",
+              "view",
+              "operate"
+            ],
+            "description": "O nível do usuário na entidade, ou `none` sem permissão."
+          }
+        },
+        "required": [
+          "entityId",
+          "type",
+          "name",
+          "active",
+          "level"
+        ]
+      },
+      "EntityPermissionPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "As entidades da página, com o nível do usuário em cada uma.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityPermission"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
         ]
       }
     }

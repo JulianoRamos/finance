@@ -115,7 +115,7 @@ A pasta usa o termo do módulo em inglês, em `kebab-case`. A rota de saúde fic
 | `recovery_code` | `user_id`, `code_hash`, `used_at` | |
 | `recovery_link` | `user_id`, `token_hash`, `created_by_id`, `expires_at`, `used_at` | `token_hash` único. `created_by_id` nulo quando veio do comando no servidor |
 | `login_attempt` | `email`, `origin`, `step` (`password`, `second_factor`, `recovery`), `succeeded`, `attempted_at` | Índice por `email` e `attempted_at` |
-| `permission` | `user_id`, `entity_id`, `level` (`view`, `operate`) | Chave `(user_id, entity_id)` |
+| `permission` | `user_id`, `entity_id`, `level` (`view`, `operate`) | Única `(user_id, entity_id)`, com `id` próprio, que a auditoria guarda. Sem linha, o usuário não tem acesso à entidade. A chave estrangeira para `entity` é escrita à mão na migração, sem relação no Prisma, porque a tabela é do módulo Entidades |
 
 O `recovery_code` é o código de recuperação do segundo fator; o `recovery_link`, o link de recuperação do acesso. `user` é palavra reservada do PostgreSQL: o Prisma a escreve entre aspas, e o SQL escrito à mão na migração também precisa delas. O segredo do TOTP é cifrado com AES-256-GCM e a chave `TOTP_KEY`, porque precisa ser lido de volta. Senhas, tokens de sessão, links e códigos de recuperação são só hash: argon2id para a senha e os códigos de recuperação, SHA-256 para os tokens aleatórios de 256 bits.
 
@@ -304,9 +304,14 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 - **Senha:** pelo menos 12 caracteres e no máximo 256, sem outra regra de composição. A definição e a troca pedem a senha duas vezes. O login recusa uma senha acima de 256 caracteres e um e-mail acima de 320 (RFC 5321) antes de conferir, para o hash não receber uma entrada sem fim.
 - **Primeiro usuário:** o comando `create-user <nome> <email>` no servidor cria um usuário com `manages_access` e devolve um link de recuperação, com a mesma validade, para ele definir a senha. Os outros usuários são cadastrados pela interface, por quem tem `manages_access`, e recebem o link da mesma forma.
 - **Segundo fator:** a ativação confirma um código antes de valer e gera 10 códigos de recuperação, mostrados uma vez. Desativar pede a senha e um código.
-- **Permissão:** `view` lê, `operate` lê e escreve. Gerir usuários e permissões exige `manages_access`. No uso inicial, os dois usuários têm `operate` em todas as entidades e `manages_access`.
+- **Permissão:** `view` lê, `operate` lê e escreve. Gerir usuários e permissões exige `manages_access`. No uso inicial, os dois usuários têm `operate` em todas as entidades e `manages_access`; a migração que cria as permissões dá `operate` em toda entidade que já existe a todo usuário com `manages_access`.
+  - **Onde vale:** as permissões do usuário são lidas a cada requisição, depois da sessão, então uma mudança vale no pedido seguinte. As rotas da própria entidade exigem `view` para ler e `operate` para alterar, e respondem 403 `FORBIDDEN` sem o nível, também para um id que não existe, para a resposta não dizer se a entidade existe. A lista das entidades traz só as que o usuário vê, e o total conta só elas. O contexto financeiro aplica a mesma conferência a cada entidade dele.
+  - **Quem cadastra uma entidade** recebe `operate` nela, na mesma transação. Os outros usuários a recebem de quem gere acessos.
+  - **Rotas de usuários:** todas exigem `manages_access` e respondem 403 `FORBIDDEN` sem ela, salvo a troca da própria senha. A tabela de permissões de um usuário lista todas as entidades, ativas ou não, com a busca e a ordem da lista das entidades e o nível dele em cada uma (`none` sem permissão). A gravação dos acessos manda o `manages_access` e só as permissões que mudam, com a versão do usuário, que sobe a cada gravação; `none` apaga a linha.
+  - **A si mesmo:** quem gere acessos não se desativa nem tira de si o `manages_access`, e a recusa é 422 `SELF_ACCESS_CHANGE`. Como só quem gere acessos muda essas duas coisas, sempre sobra ao menos um usuário ativo que gere acessos.
+- **Cadastro pela interface:** o nome tem até 120 caracteres, sem espaços nas pontas, e o e-mail é único entre todos os usuários, ativos ou não; o repetido responde 422 `DUPLICATE_EMAIL`, também na edição. O cadastro devolve o link de recuperação inteiro, com o endereço de `PUBLIC_URL`, como o comando, e uma entidade das permissões que não existe responde 422 `ENTITY_NOT_FOUND`. A lista dos usuários traz os ativos primeiro, cada grupo pelo nome, e a busca acha o nome e o e-mail.
 - **Troca de e-mail:** o e-mail é o login e é trocado por quem tem `manages_access`. A troca encerra as sessões do usuário.
-- **Usuário desativado:** não entra, e as sessões dele são encerradas na hora. O histórico e as permissões ficam guardados, e ele pode ser reativado.
+- **Usuário desativado:** não entra, e as sessões dele são encerradas na hora. O histórico e as permissões ficam guardados, e ele pode ser reativado. O link de recuperação de um usuário desativado é recusado, pela rota com 422 `INACTIVE_USER` e pelo comando, até ele ser reativado.
 
 ### 6.2 Entidades e grupos
 
