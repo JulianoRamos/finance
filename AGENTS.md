@@ -133,7 +133,7 @@ O Jira é o gerenciador de issues do projeto, acessado pelo servidor MCP `atlass
 
 - **Site:** `finance12.atlassian.net`.
 - **Projeto:** `KAN`. As issues têm a chave `KAN-<n>`.
-- **Tipos de issue:** `Epic` para a spec; `História` para uma funcionalidade, `Erro` para um defeito e `Tarefa` para uma melhoria ou um ticket de preparação. São os tipos nativos do projeto, com os nomes em português que ele mostra (na API, `Story`, `Task` e `Erro`), e não labels. O `Subtask` não é usado.
+- **Tipos de issue:** `Epic` para a spec; `História` para uma funcionalidade, `Bug` para um defeito e `Tarefa` para uma melhoria ou um ticket de preparação. São os tipos nativos do projeto, com os nomes que ele mostra (na API, `Story`, `Task` e `Bug`), e não labels. O `Subtask` não é usado.
 - **Status:** `Tarefas pendentes`, `Em andamento`, `Em análise` e `Concluído`.
 - **Label de triagem:** `ready-for-agent`, para a issue já especificada, que um agente pode pegar sem triagem adicional.
 
@@ -141,7 +141,7 @@ O Jira é o gerenciador de issues do projeto, acessado pelo servidor MCP `atlass
 
 1. **Planejamento:** as decisões são fechadas com o usuário e registradas no documento dono delas: as de produto em `docs/` (LLD e, se houver termo novo, `GLOSSARY.md`), e as de prática de código no `AGENTS.md` do projeto.
 2. **Spec:** um `Epic` por funcionalidade, com o problema, a solução, as histórias de usuário, as decisões de implementação e de teste e o que fica fora de escopo.
-3. **Tickets:** issues filhas do `Epic` da spec (`História`, `Erro` ou `Tarefa`), e não subtasks. Cada ticket é uma fatia vertical, que atravessa banco, API, interface e testes e pode ser verificada sozinha. Tickets de preparação (ambiente, base de componentes) são a exceção e vêm primeiro.
+3. **Tickets:** issues filhas do `Epic` da spec (`História`, `Bug` ou `Tarefa`), e não subtasks. Cada ticket é uma fatia vertical, que atravessa banco, API, interface e testes e pode ser verificada sozinha. Tickets de preparação (ambiente, base de componentes) são a exceção e vêm primeiro.
 4. **Bloqueios:** as dependências entre tickets são o link nativo `Blocks` do Jira ("is blocked by"), criado com a issue bloqueada apontando para a que a bloqueia, e não texto na descrição.
 
 **Regras de escrita**
