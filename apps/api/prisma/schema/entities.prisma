@@ -26,6 +26,8 @@ enum Operation {
 /// CHECK escrito à mão na migração (entity_tax_id_check): o documento é nulo, ou tem 11 algarismos
 /// (CPF) na pessoa física, ou 12 letras maiúsculas ou algarismos seguidos de 2 algarismos (CNPJ,
 /// também o alfanumérico) na pessoa jurídica. Os dígitos verificadores são conferidos pela api.
+/// Extensão criada à mão na migração da busca (unaccent): a lista compara a busca com o nome sem
+/// acento e sem diferença de maiúsculas, e ordena o nome pela ordenação pt-BR do ICU (LLD, seção 5).
 model Entity {
   /// uuidv7, gerado pelo banco.
   id        String     @id @default(dbgenerated("uuidv7()")) @db.Uuid
@@ -75,6 +77,8 @@ model EntityOperation {
 /// Índice único parcial escrito à mão na migração (financial_group_family_view_key): só um grupo com
 /// is_family_view verdadeiro.
 /// CHECK escrito à mão na migração (financial_group_name_check): o nome não é vazio nem só de espaços.
+/// A lista busca e ordena o nome como a das entidades, com a extensão unaccent e a ordenação pt-BR do
+/// ICU (LLD, seção 5).
 model FinancialGroup {
   /// uuidv7, gerado pelo banco.
   id           String   @id @default(dbgenerated("uuidv7()")) @db.Uuid

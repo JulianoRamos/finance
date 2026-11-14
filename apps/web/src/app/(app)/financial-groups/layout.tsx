@@ -10,8 +10,9 @@ import { listFinancialGroups } from '@/api/financial-groups';
 import { ErrorNotice } from '../../_access/fields';
 import { PageHeader } from '../../_shell/app-shell';
 import { PRIMARY_BUTTON } from '../../_shell/buttons';
+import { mapPage } from '../../_shell/list-page';
 import { GroupList } from './group-list';
-import { groupSummary } from './group-summary';
+import { groupListItem } from './group-list-page';
 
 export const metadata: Metadata = { title: 'Grupos financeiros · finance' };
 
@@ -43,9 +44,7 @@ export default async function FinancialGroupsLayout({ children }: Readonly<{ chi
           className="flex flex-col gap-1 rounded-md border border-hairline bg-surface p-4"
         >
           {list.status === 'ok' ? (
-            <GroupList
-              items={list.data.map((group) => ({ id: group.id, name: group.name, summary: groupSummary(group) }))}
-            />
+            <GroupList initial={mapPage(list.data, groupListItem)} />
           ) : (
             <ErrorNotice>Não foi possível carregar os grupos.</ErrorNotice>
           )}

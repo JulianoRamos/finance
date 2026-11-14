@@ -18,12 +18,14 @@ export type FinancialGroupMember = FinancialGroup['members'][number];
 type NewFinancialGroup = components['schemas']['NewFinancialGroup'];
 type FinancialGroupEdit = components['schemas']['FinancialGroupEdit'];
 
-/** Os grupos, a Visão Familiar primeiro e os outros pelo nome. */
-export type FinancialGroupList = ReadResult<FinancialGroup[]>;
+export type FinancialGroupPage = components['schemas']['FinancialGroupPage'];
 
-/** A lista dos grupos, pedida uma vez por requisição, mesmo que o layout e a página a peçam. */
-export const listFinancialGroups = cache((): Promise<FinancialGroupList> =>
-  readResult((init) => api.GET('/v1/financial-groups', init)),
+/** Uma página dos grupos, a Visão Familiar primeiro e os outros pelo nome. */
+export type FinancialGroupList = ReadResult<FinancialGroupPage>;
+
+/** A página dos grupos da busca, pedida uma vez por requisição, mesmo que o layout e a página peçam a mesma. */
+export const listFinancialGroups = cache((page = 1, q = ''): Promise<FinancialGroupList> =>
+  readResult((init) => api.GET('/v1/financial-groups', { params: { query: { page, q } }, ...init })),
 );
 
 /** O grupo do id; `not-found` quando ele não existe, ou o id nem é um id. */

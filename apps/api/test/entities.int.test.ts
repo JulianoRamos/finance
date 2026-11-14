@@ -5,8 +5,16 @@ import type { INestApplication } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PrismaService } from '../src/common/index.js';
-import { authedRequest, buildTestApp, getCurrentSession, newSession, TestClock, uniqueName } from './support/app.js';
-import { formatCnpj, uniqueCnpj, uniqueCpf } from './support/tax-ids.js';
+import {
+  authedRequest,
+  buildTestApp,
+  getCurrentSession,
+  newSession,
+  TestClock,
+  uniqueName,
+  uniquePrefix,
+} from './support/app.js';
+import { alphanumericCnpj, formatCnpj, uniqueCnpj, uniqueCpf } from './support/tax-ids.js';
 
 /** Uma entidade, como o contrato a descreve. */
 interface Entity {
@@ -17,6 +25,14 @@ interface Entity {
   readonly active: boolean;
   readonly operations: string[];
   readonly version: number;
+}
+
+/** Uma página da lista das entidades, como o contrato a descreve. */
+interface EntityPage {
+  readonly items: Entity[];
+  readonly total: number;
+  readonly page: number;
+  readonly pageSize: number;
 }
 
 describe('Entidades', () => {
@@ -61,10 +77,15 @@ describe('Entidades', () => {
     return authed(token, 'get', `/v1/entities/${id}`);
   }
 
-  /** A lista das entidades vista com o token, que responde 200. */
-  async function listOf(token: string, query: Record<string, string> = {}): Promise<Entity[]> {
+  /** A página da lista das entidades vista com o token, que responde 200. */
+  async function pageOf(token: string, query: Record<string, string>): Promise<EntityPage> {
     const response = await authed(token, 'get', '/v1/entities').query(query).expect(200);
-    return response.body as Entity[];
+    return response.body as EntityPage;
+  }
+
+  /** As entidades da primeira página da busca, vista com o token. */
+  async function listOf(token: string, query: Record<string, string>): Promise<Entity[]> {
+    return (await pageOf(token, query)).items;
   }
 
   it('cadastra pessoas físicas e jurídicas, com o documento opcional', { tags: ['@KAN-11-CA1'] }, async () => {
@@ -79,9 +100,8 @@ describe('Entidades', () => {
     const common = { active: true, operations: [], version: 1 };
     expect(person.body).toMatchObject({ ...common, type: 'individual', name: personName, taxId: null });
     expect(company.body).toMatchObject({ ...common, type: 'company', name: companyName, taxId: cnpj });
-    const listed = await listOf(token);
-    expect(listed).toContainEqual(person.body);
-    expect(listed).toContainEqual(company.body);
+    expect(await listOf(token, { q: personName })).toEqual([person.body]);
+    expect(await listOf(token, { q: companyName })).toEqual([company.body]);
   });
 
   it('recusa um documento repetido ou inválido', { tags: ['@KAN-11-CA1'] }, async () => {
@@ -98,7 +118,7 @@ describe('Entidades', () => {
     }).expect(400);
 
     expect(repeated.body).toMatchObject({ code: 'DUPLICATE_TAX_ID' });
-    expect((await listOf(token)).map((entity) => entity.name)).not.toContain(repeatedName);
+    expect(await listOf(token, { q: repeatedName })).toEqual([]);
     expect(invalid.body).toMatchObject({ code: 'INVALID_INPUT' });
     expect(typeof (invalid.body as { fields?: { taxId?: unknown } }).fields?.taxId).toBe('string');
   });
@@ -117,7 +137,7 @@ describe('Entidades', () => {
     expect(enabledAgain.body).toEqual(enabled.body);
     expect(disabled.body).toMatchObject({ id: company.id, operations: [], active: true, name, taxId: cnpj });
     await setOperation(token, company.id, 'put').expect(200);
-    const listed = (await listOf(token)).find((entity) => entity.id === company.id);
+    const listed = (await listOf(token, { q: name })).find((entity) => entity.id === company.id);
     expect(listed?.operations).toEqual(['clinic']);
   });
 
@@ -131,9 +151,8 @@ describe('Entidades', () => {
 
     expect(enabled.body).toMatchObject({ code: 'OPERATION_REQUIRES_COMPANY' });
     expect(created.body).toMatchObject({ code: 'OPERATION_REQUIRES_COMPANY' });
-    const listed = await listOf(token);
-    expect(listed.find((entity) => entity.id === person.id)?.operations).toEqual([]);
-    expect(listed.map((entity) => entity.name)).not.toContain(refusedName);
+    expect((await listOf(token, { q: person.name })).find((entity) => entity.id === person.id)?.operations).toEqual([]);
+    expect(await listOf(token, { q: refusedName })).toEqual([]);
   });
 
   it('a entidade desativada some das escolhas e continua cadastrada', { tags: ['@KAN-11-CA3'] }, async () => {
@@ -146,14 +165,66 @@ describe('Entidades', () => {
 
     expect(deactivated.body).toMatchObject({ id: company.id, active: false, operations: ['clinic'] });
     expect((await get(token, company.id).expect(200)).body).toEqual(deactivated.body);
-    expect(await listOf(token)).toContainEqual(deactivated.body);
-    expect((await listOf(token, { active: 'true' })).map((entity) => entity.id)).not.toContain(company.id);
+    expect(await listOf(token, { q: company.name })).toContainEqual(deactivated.body);
+    expect((await listOf(token, { q: company.name, active: 'true' })).map((entity) => entity.id)).not.toContain(
+      company.id,
+    );
     await authed(token, 'delete', `/v1/entities/${company.id}`).expect(404);
 
     const reactivated = await setActive(token, company.id, true, (deactivated.body as Entity).version).expect(200);
 
     expect(reactivated.body).toMatchObject({ active: true });
-    expect((await listOf(token, { active: 'true' })).map((entity) => entity.id)).toContain(company.id);
+    expect((await listOf(token, { q: company.name, active: 'true' })).map((entity) => entity.id)).toContain(company.id);
+  });
+
+  it('pagina as entidades e busca pelo nome e pelo documento', { tags: ['@KAN-19-CA1'] }, async () => {
+    const token = await newSession(app);
+    const prefix = uniquePrefix();
+    const cnpj = uniqueCnpj();
+    const people = ['Júlia', 'Ana', 'Igor', 'Ágata', 'Helena', 'Bruno', 'Gustavo', 'Diego', 'Fábio', 'Elisa'];
+    const created = new Map<string, Entity>();
+    for (const first of people) {
+      const body = (await create(token, { type: 'individual', name: `${first} ${prefix}` }).expect(201)).body as Entity;
+      created.set(first, body);
+    }
+    const company = (await create(token, { type: 'company', name: `Clínica ${prefix}`, taxId: cnpj }).expect(201))
+      .body as Entity;
+    const abel = (await create(token, { type: 'individual', name: `Abel ${prefix}` }).expect(201)).body as Entity;
+    await setActive(token, abel.id, false, abel.version).expect(200);
+
+    const second = await pageOf(token, { q: prefix, page: '2', pageSize: '5' });
+    const third = await pageOf(token, { q: prefix, page: '3', pageSize: '5' });
+
+    expect({ ...second, items: second.items.map((entity) => entity.name) }).toEqual({
+      items: ['Elisa', 'Fábio', 'Gustavo', 'Helena', 'Igor'].map((first) => `${first} ${prefix}`),
+      total: 12,
+      page: 2,
+      pageSize: 5,
+    });
+    // As ativas primeiro: a desativada, que vem antes pelo nome, fecha a lista.
+    expect(third.items.map((entity) => entity.name)).toEqual([`Júlia ${prefix}`, `Abel ${prefix}`]);
+    expect(await listOf(token, { q: `agata ${prefix.toUpperCase()}` })).toEqual([created.get('Ágata')]);
+    expect(await listOf(token, { q: formatCnpj(cnpj) })).toEqual([company]);
+    const active = await pageOf(token, { q: prefix, active: 'true', pageSize: '100' });
+    expect(active.total).toBe(11);
+    expect(active.items.map((entity) => entity.id)).not.toContain(abel.id);
+  });
+
+  it('a busca acha o CNPJ só pelos algarismos, e nunca o CPF', async () => {
+    const token = await newSession(app);
+    const prefix = uniquePrefix();
+    const cpf = uniqueCpf();
+    const person = (await create(token, { type: 'individual', name: `Ana ${prefix}`, taxId: cpf }).expect(201))
+      .body as Entity;
+    // Um CNPJ alfanumérico com as letras do nome buscado abaixo.
+    const company = (
+      await create(token, { type: 'company', name: `Clínica ${prefix}`, taxId: alphanumericCnpj('ZZ') }).expect(201)
+    ).body as Entity;
+
+    expect(await listOf(token, { q: cpf })).toEqual([]);
+    expect(await listOf(token, { q: `${cpf.slice(0, 3)}.${cpf.slice(3, 6)}` })).not.toContainEqual(person);
+    expect(await listOf(token, { q: company.taxId ?? '' })).toEqual([company]);
+    expect(await listOf(token, { q: 'zz' })).not.toContainEqual(company);
   });
 
   it('recusa a edição com a versão desatualizada', { tags: ['@KAN-11-CA4'] }, async () => {

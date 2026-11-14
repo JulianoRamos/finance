@@ -8,11 +8,14 @@ import {
   isUniqueViolation,
   omit,
   type Operation,
+  type PageRequest,
+  readPage,
+  sql,
   TransactionService,
 } from '../../common/index.js';
 import { AuditService } from '../audit/index.js';
-import type { Entity, EntityEdit, NewEntity } from './entities.dto.js';
-import { byName } from './fields.js';
+import type { Entity, EntityEdit, EntityPage, NewEntity } from './entities.dto.js';
+import { NAME_COLLATION, nameMatches } from './fields.js';
 import { invalidTaxIdMessage, isValidTaxId, normalizeTaxId } from './tax-id.js';
 
 /** A entidade como o Prisma a lê, com as operações ligadas. */
@@ -80,13 +83,26 @@ export class EntitiesService {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  /** As entidades, as ativas primeiro e cada grupo pelo nome; com `active`, só as desse estado. */
-  async list(active?: boolean): Promise<Entity[]> {
-    const rows = await this.transactions.client.entity.findMany({
-      where: active === undefined ? {} : { active },
-      include: { operations: true },
-    });
-    return rows.sort((a, b) => Number(b.active) - Number(a.active) || byName.compare(a.name, b.name)).map(toEntity);
+  /**
+   * A página das entidades, as ativas primeiro e cada grupo pelo nome; com `active`, só as desse
+   * estado. A busca acha o nome sem acento e o CNPJ sem a pontuação.
+   */
+  async list(filter: { active?: boolean | undefined; q?: string | undefined; page: PageRequest }): Promise<EntityPage> {
+    // Só o CNPJ entra na busca, e só quando ela tem um algarismo: o CPF aparece mascarado na lista, e
+    // "Ana" não pode achar uma empresa pelas letras de um CNPJ alfanumérico.
+    const taxIdText = filter.q?.toUpperCase().replace(/[^0-9A-Z]/g, '') ?? '';
+    const taxId = /\d/.test(taxIdText) ? `%${taxIdText}%` : null;
+    const client = this.transactions.client;
+    return readPage(
+      client,
+      sql`SELECT id, active, name FROM entity
+        WHERE (${filter.active ?? null}::boolean IS NULL OR active = ${filter.active ?? null}::boolean)
+          AND (${nameMatches(filter.q)} OR (type = 'company' AND tax_id LIKE ${taxId}::text))`,
+      sql`active DESC, name ${NAME_COLLATION}`,
+      filter.page,
+      async (ids) =>
+        (await client.entity.findMany({ where: { id: { in: ids } }, include: { operations: true } })).map(toEntity),
+    );
   }
 
   /** A entidade do id, ativa ou desativada. */

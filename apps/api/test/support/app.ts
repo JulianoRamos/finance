@@ -55,6 +55,14 @@ export function uniqueName(prefix: string): string {
   return `${prefix} ${randomUUID()}`;
 }
 
+/**
+ * Um prefixo que nenhum outro teste usa, para o teste buscar só os registros que criou: o
+ * `finance_test` guarda os das execuções anteriores.
+ */
+export function uniquePrefix(): string {
+  return `t${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+}
+
 /** Uma origem (X-Forwarded-For) que nenhum outro teste usa, para o limite por origem não cruzar testes. */
 export function uniqueOrigin(): string {
   return `10.${String(randomInt(256))}.${String(randomInt(256))}.${String(randomInt(1, 255))}, 172.18.0.1`;

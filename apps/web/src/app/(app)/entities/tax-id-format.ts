@@ -11,11 +11,6 @@ export function formatTaxId(type: EntityType, taxId: string): string {
   return `${taxId.slice(0, 2)}.${taxId.slice(2, 5)}.${taxId.slice(5, 8)}/${taxId.slice(8, 12)}-${taxId.slice(12)}`;
 }
 
-/** O documento sem a pontuação e os espaços, como a api o guarda, para comparar o que foi digitado. */
-export function stripTaxId(text: string): string {
-  return text.replace(/[\s./-]/g, '');
-}
-
 /** O CPF mascarado, com só os algarismos do meio: ***.456.789-**. */
 export function maskCpf(cpf: string): string {
   return `***.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-**`;

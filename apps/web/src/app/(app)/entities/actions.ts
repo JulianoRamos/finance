@@ -9,6 +9,7 @@ import {
   type EntityResult,
   type EntityType,
   enableOperation,
+  listEntities,
   setEntityActive,
   updateEntity,
 } from '@/api/entities';
@@ -16,6 +17,8 @@ import {
 import { formText } from '../../_access/form-text';
 import type { CommandMessage } from '../../_shell/confirm-dialog';
 import { type FormState, refusedFormState } from '../../_shell/form-state';
+import { listPageResult, type ListPageResult } from '../../_shell/list-page';
+import { type EntityListItem, entityListItem } from './entity-list-page';
 
 /** O que foi enviado no formulário de uma entidade, que volta aos campos depois de uma recusa. */
 export interface EntityFormValues {
@@ -124,4 +127,15 @@ export async function setClinicAction(
   { id, enabled }: { id: string; enabled: boolean },
 ): Promise<EntityCommandState> {
   return afterCommand(enabled ? await enableOperation(id, 'clinic') : await disableOperation(id, 'clinic'));
+}
+
+/** Uma página da lista das entidades, com a busca, pedida pela lista da tela. */
+export async function searchEntitiesAction({
+  q,
+  page,
+}: {
+  q: string;
+  page: number;
+}): Promise<ListPageResult<EntityListItem>> {
+  return listPageResult(await listEntities(page, q), entityListItem);
 }

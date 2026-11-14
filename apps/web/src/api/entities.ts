@@ -12,11 +12,23 @@ export type Operation = Entity['operations'][number];
 type NewEntity = components['schemas']['NewEntity'];
 type EntityEdit = components['schemas']['EntityEdit'];
 
-/** As entidades, as ativas primeiro e cada grupo pelo nome. */
-export type EntityList = ReadResult<Entity[]>;
+export type EntityPage = components['schemas']['EntityPage'];
 
-/** A lista das entidades, pedida uma vez por requisição, mesmo que o layout e a página a peçam. */
-export const listEntities = cache((): Promise<EntityList> => readResult((init) => api.GET('/v1/entities', init)));
+/** Uma página das entidades, as ativas primeiro e cada grupo pelo nome. */
+export type EntityList = ReadResult<EntityPage>;
+
+/**
+ * A página das entidades da busca, com `active`, só as desse estado. Pedida uma vez por requisição,
+ * mesmo que o layout e a página peçam a mesma.
+ */
+export const listEntities = cache((page = 1, q = '', active?: boolean): Promise<EntityList> =>
+  readResult((init) =>
+    api.GET('/v1/entities', {
+      params: { query: { page, q, ...(active === undefined ? {} : { active }) } },
+      ...init,
+    }),
+  ),
+);
 
 /** A entidade do id; `not-found` quando ela não existe, ou o id nem é um id. */
 export function getEntity(id: string): Promise<ReadResult<Entity>> {

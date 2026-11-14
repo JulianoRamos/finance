@@ -12,7 +12,7 @@ import {
   ValidateBy,
 } from 'class-validator';
 
-import { EntityType, Operation } from '../../common/index.js';
+import { EntityType, Operation, PageInfo, PageQuery, SearchQuery } from '../../common/index.js';
 import { IsName, NAME_MAX_LENGTH, VersionRead } from './fields.js';
 import { invalidTaxIdMessage, isValidTaxId, normalizeTaxId } from './tax-id.js';
 
@@ -139,7 +139,7 @@ export class NewEntity {
   operations?: Operation[];
 }
 
-export class EntityListQuery {
+export class EntityListQuery extends PageQuery {
   @ApiPropertyOptional({
     type: Boolean,
     description:
@@ -148,6 +148,16 @@ export class EntityListQuery {
   @IsOptional()
   @IsIn(['true', 'false'], { message: 'Use true ou false.' })
   active?: 'true' | 'false';
+
+  @SearchQuery(
+    'A busca: o texto procurado no nome, sem diferença de acento nem de maiúsculas, em qualquer posição, e, quando tem um algarismo, no CNPJ, escrito com ou sem a pontuação. O CPF não entra na busca, porque a lista o mostra mascarado. Vazia ou ausente, não filtra (LLD, seção 5).',
+  )
+  q?: string;
+}
+
+export class EntityPage extends PageInfo {
+  @ApiProperty({ type: Entity, isArray: true, description: 'As entidades da página, na ordem da lista.' })
+  items!: Entity[];
 }
 
 export class EntityId {

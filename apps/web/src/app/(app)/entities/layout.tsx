@@ -5,36 +5,21 @@ import { redirect } from 'next/navigation';
 import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 
-import { type Entity, type EntityList as EntityListResult, listEntities } from '@/api/entities';
+import { type EntityList as EntityListResult, listEntities } from '@/api/entities';
 
 import { ErrorNotice } from '../../_access/fields';
 import { PageHeader } from '../../_shell/app-shell';
 import { PRIMARY_BUTTON } from '../../_shell/buttons';
-import { EntityList, type EntityListItem } from './entity-list';
-import { formatTaxId, maskCpf, TYPE_BADGES } from './tax-id-format';
+import { mapPage } from '../../_shell/list-page';
+import { EntityList } from './entity-list';
+import { entityListItem } from './entity-list-page';
 
 export const metadata: Metadata = { title: 'Entidades · finance' };
-
-/** O que a lista mostra de cada entidade (design-system.md, seção 3: o CPF mascarado). */
-function listItemOf(entity: Entity): EntityListItem {
-  const { id, name, active, type } = entity;
-  // O CPF completo não vai ao navegador: a lista o mostra mascarado, e a busca acha pelo CNPJ.
-  const taxId = type === 'company' ? entity.taxId : null;
-  return { id, name, active, taxId, badge: active ? TYPE_BADGES[type] : 'Desativada', detail: detailOf(entity) };
-}
-
-/** A segunda linha do item: o tipo na desativada, a operação ligada, ou o documento. */
-function detailOf(entity: Entity): string {
-  if (!entity.active) return TYPE_BADGES[entity.type];
-  if (entity.type === 'company' && entity.operations.includes('clinic')) return 'Operação: Clínica';
-  if (!entity.taxId) return 'Sem documento';
-  return entity.type === 'individual' ? maskCpf(entity.taxId) : formatTaxId('company', entity.taxId);
-}
 
 /** O conteúdo da Coluna: a lista, ou o erro de carregamento. */
 function ListBody({ list }: Readonly<{ list: EntityListResult }>) {
   if (list.status !== 'ok') return <ErrorNotice>Não foi possível carregar as entidades.</ErrorNotice>;
-  return <EntityList items={list.data.map(listItemOf)} />;
+  return <EntityList initial={mapPage(list.data, entityListItem)} />;
 }
 
 /**

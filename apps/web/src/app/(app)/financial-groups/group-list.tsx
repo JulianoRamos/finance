@@ -4,38 +4,32 @@ import Link from 'next/link';
 import { useSelectedLayoutSegment } from 'next/navigation';
 
 import { FOCUS_RING } from '../../_access/access-screen';
+import { ErrorNotice } from '../../_access/fields';
 import { LIST_ITEM, LIST_ITEM_SELECTED, NewListItem } from '../../_shell/list-item';
-import { LoadMoreButton, nameFilter, SearchBox, usePagedSearch } from '../../_shell/paged-search';
-
-/** Um grupo como a lista o mostra, com a segunda linha já escrita. */
-export interface GroupListItem {
-  readonly id: string;
-  readonly name: string;
-  readonly summary: string;
-}
+import type { ListPage } from '../../_shell/list-page';
+import { Pagination, useSearchedPages } from '../../_shell/pagination';
+import { SearchBox } from '../../_shell/search-box';
+import { searchFinancialGroupsAction } from './actions';
+import type { GroupListItem } from './group-list-page';
 
 /**
- * A Coluna da tela (design-system.md, seção 4.1): a busca no topo e os grupos, 10 por vez, a Visão
- * Familiar primeiro, com o aberto marcado e, na criação, o item do novo no topo. A lista vem inteira da
- * api, e a busca a filtra na tela.
+ * A Coluna da tela (design-system.md, seção 4.1): a busca no topo e os grupos de 10 em 10, a Visão
+ * Familiar primeiro, com a Paginação no rodapé, o aberto marcado quando está na página e, na criação,
+ * o item do novo no topo. Cada busca e cada página é um pedido à api.
  */
-export function GroupList({ items }: Readonly<{ items: readonly GroupListItem[] }>) {
+export function GroupList({ initial }: Readonly<{ initial: ListPage<GroupListItem> }>) {
   // O segmento abaixo do layout da tela: `new` na criação, e o id do grupo no formulário dele.
   const segment = useSelectedLayoutSegment();
-  // O grupo aberto continua à vista: depois da página, ele entra no fim, sozinho.
-  const { query, search, found, shown, hasMore, loadMore } = usePagedSearch(
-    items,
-    nameFilter,
-    (item) => item.id === segment,
-  );
+  const { query, shown, failed, search, goTo } = useSearchedPages(initial, searchFinancialGroupsAction);
 
   return (
     <div className="flex flex-col gap-3">
       <SearchBox id="group-search" label="Buscar grupo" query={query} onSearch={search} />
-      {found.length === 0 && <p className="px-3 py-2 text-body-sm text-mute">Nenhum grupo encontrado.</p>}
+      {failed && <ErrorNotice>Não foi possível carregar os grupos. Tente de novo.</ErrorNotice>}
+      {shown.total === 0 && <p className="px-3 py-2 text-body-sm text-mute">Nenhum grupo encontrado.</p>}
       <ul className="flex flex-col gap-1">
         {segment === 'new' && <NewListItem label="Novo grupo" detail="Ainda não salvo" />}
-        {shown.map((item) => {
+        {shown.items.map((item) => {
           const selected = item.id === segment;
           return (
             <li key={item.id}>
@@ -54,7 +48,7 @@ export function GroupList({ items }: Readonly<{ items: readonly GroupListItem[] 
           );
         })}
       </ul>
-      {hasMore && <LoadMoreButton onClick={loadMore} />}
+      <Pagination page={shown.page} pageSize={shown.pageSize} total={shown.total} onPage={goTo} />
     </div>
   );
 }

@@ -13,7 +13,7 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 
-import { ApiError, Operation, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
+import { ApiError, Operation, pageRequest, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
 import {
   Entity,
   EntityActivation,
@@ -21,6 +21,7 @@ import {
   EntityId,
   EntityListQuery,
   EntityOperationParams,
+  EntityPage,
   NewEntity,
 } from './entities.dto.js';
 import { EntitiesService } from './entities.service.js';
@@ -55,18 +56,22 @@ export class EntitiesController {
   @Get()
   @ApiOperation({ summary: 'Lista as entidades.' })
   @ApiOkResponse({
-    type: Entity,
-    isArray: true,
+    type: EntityPage,
     description:
-      'Todas as entidades do filtro, numa lista inteira, sem `cursor` (LLD, seção 5): as ativas primeiro, e cada grupo pelo nome, em ordem alfabética.',
+      'A página das entidades do filtro, com o total (LLD, seção 5): as ativas primeiro, e cada grupo pelo nome, em ordem alfabética.',
   })
   @ApiBadRequestResponse({
     type: ApiError,
-    description: '`INVALID_INPUT`: o `active` não é `true` nem `false` (em `fields`).',
+    description:
+      '`INVALID_INPUT`: o `active` não é `true` nem `false`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
   })
   @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
-  list(@Query() query: EntityListQuery): Promise<Entity[]> {
-    return this.entities.list(query.active === undefined ? undefined : query.active === 'true');
+  list(@Query() query: EntityListQuery): Promise<EntityPage> {
+    return this.entities.list({
+      active: query.active === undefined ? undefined : query.active === 'true',
+      q: query.q,
+      page: pageRequest(query),
+    });
   }
 
   @Post()
