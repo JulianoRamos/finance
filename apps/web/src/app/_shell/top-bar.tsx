@@ -8,7 +8,7 @@ import { DropdownMenu } from 'radix-ui';
 import { GHOST_ICON_BUTTON } from './buttons';
 import { Hint } from './hint';
 import { MENU_ITEM, MENU_PANEL } from './menu';
-import { isWithin, pageTitleOf, SETTINGS } from './pages';
+import { isWithin, pageTitleOf, settingsFor } from './pages';
 import { SIDEBAR_COOKIE } from './sidebar-state';
 
 const ICON_BUTTON = `size-9 ${GHOST_ICON_BUTTON}`;
@@ -61,10 +61,11 @@ function Breadcrumb() {
  * A engrenagem e o menu das configurações, só quando há um cadastro para mostrar. Numa tela de
  * configuração, a engrenagem e o item dela ficam marcados.
  */
-function SettingsMenu() {
+function SettingsMenu({ managesAccess }: Readonly<{ managesAccess: boolean }>) {
   const pathname = usePathname();
-  if (SETTINGS.length === 0) return null;
-  const inSettings = SETTINGS.some(({ href }) => isWithin(pathname, href));
+  const settings = settingsFor(managesAccess);
+  if (settings.length === 0) return null;
+  const inSettings = settings.some(({ href }) => isWithin(pathname, href));
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger
@@ -78,7 +79,7 @@ function SettingsMenu() {
           <DropdownMenu.Label className="px-2 pt-2 pb-1 font-mono text-eyebrow text-mute uppercase">
             Configurações
           </DropdownMenu.Label>
-          {SETTINGS.map(({ href, label, icon: Icon }) => (
+          {settings.map(({ href, label, icon: Icon }) => (
             <DropdownMenu.Item key={href} asChild className={`${MENU_ITEM} aria-[current=page]:bg-accent-soft`}>
               <Link href={href} aria-current={isWithin(pathname, href) ? 'page' : undefined}>
                 <Icon size={16} strokeWidth={1.5} aria-hidden="true" />
@@ -96,14 +97,17 @@ function SettingsMenu() {
  * A barra superior (design-system.md, seção 4.1), fixa no topo: o botão da barra lateral, o caminho e,
  * à direita, as configurações.
  */
-export function TopBar({ sidebarExpanded }: Readonly<{ sidebarExpanded: boolean }>) {
+export function TopBar({
+  sidebarExpanded,
+  managesAccess,
+}: Readonly<{ sidebarExpanded: boolean; managesAccess: boolean }>) {
   return (
     <div className="sticky top-0 z-10 flex h-14 flex-none items-center gap-3 border-b border-hairline bg-surface pr-4 pl-3">
       <SidebarToggle expanded={sidebarExpanded} />
       <span aria-hidden="true" className="hidden h-4 w-px bg-hairline lg:block" />
       <Breadcrumb />
       <div className="ml-auto flex items-center gap-1">
-        <SettingsMenu />
+        <SettingsMenu managesAccess={managesAccess} />
       </div>
     </div>
   );

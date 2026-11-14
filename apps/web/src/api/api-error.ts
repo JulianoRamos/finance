@@ -50,8 +50,9 @@ export async function dataResult<T>(
 }
 
 /**
- * O que uma leitura devolve: o dado; `not-found` quando o registro do id não existe, ou o id nem é um
- * id; `unauthenticated` quando não há uma sessão válida; ou `unavailable` quando a api não respondeu
+ * O que uma leitura devolve: o dado; `not-found` quando o registro do id não existe, o id nem é um id,
+ * ou o usuário não tem permissão para lê-lo (403), que a tela mostra como a página não encontrada;
+ * `unauthenticated` quando não há uma sessão válida; ou `unavailable` quando a api não respondeu
  * como o contrato diz.
  */
 export type ReadResult<T> =
@@ -64,7 +65,7 @@ export async function readResult<T>(
   try {
     const { data, response } = await call({ cache: 'no-store', signal: AbortSignal.timeout(API_TIMEOUT_MS) });
     if (data) return { status: 'ok', data };
-    if (response.status === 404 || response.status === 400) return { status: 'not-found' };
+    if (response.status === 404 || response.status === 400 || response.status === 403) return { status: 'not-found' };
     return { status: response.status === 401 ? 'unauthenticated' : 'unavailable' };
   } catch {
     return { status: 'unavailable' };

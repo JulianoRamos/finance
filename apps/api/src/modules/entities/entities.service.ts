@@ -6,6 +6,8 @@ import {
   CLOCK,
   type EntityType,
   isUniqueViolation,
+  NAME_COLLATION,
+  nameMatches,
   omit,
   type Operation,
   type PageRequest,
@@ -15,7 +17,6 @@ import {
 } from '../../common/index.js';
 import { AuditService } from '../audit/index.js';
 import type { Entity, EntityEdit, EntityPage, NewEntity } from './entities.dto.js';
-import { NAME_COLLATION, nameMatches } from './fields.js';
 import { invalidTaxIdMessage, isValidTaxId, normalizeTaxId } from './tax-id.js';
 
 /** A entidade como o Prisma a lê, com as operações ligadas. */
@@ -85,9 +86,15 @@ export class EntitiesService {
 
   /**
    * A página das entidades, as ativas primeiro e cada grupo pelo nome; com `active`, só as desse
-   * estado. A busca acha o nome sem acento e o CNPJ sem a pontuação.
+   * estado, e com `ids`, só as desses ids, antes de paginar. A busca acha o nome sem acento e o CNPJ
+   * sem a pontuação.
    */
-  async list(filter: { active?: boolean | undefined; q?: string | undefined; page: PageRequest }): Promise<EntityPage> {
+  async list(filter: {
+    active?: boolean | undefined;
+    ids?: readonly string[];
+    q?: string | undefined;
+    page: PageRequest;
+  }): Promise<EntityPage> {
     // Só o CNPJ entra na busca, e só quando ela tem um algarismo: o CPF aparece mascarado na lista, e
     // "Ana" não pode achar uma empresa pelas letras de um CNPJ alfanumérico.
     const taxIdText = filter.q?.toUpperCase().replace(/[^0-9A-Z]/g, '') ?? '';
@@ -97,6 +104,7 @@ export class EntitiesService {
       client,
       sql`SELECT id, active, name FROM entity
         WHERE (${filter.active ?? null}::boolean IS NULL OR active = ${filter.active ?? null}::boolean)
+          AND (${filter.ids === undefined}::boolean OR id = ANY(${filter.ids ?? []}::uuid[]))
           AND (${nameMatches(filter.q)} OR (type = 'company' AND tax_id LIKE ${taxId}::text))`,
       sql`active DESC, name ${NAME_COLLATION}`,
       filter.page,
@@ -263,7 +271,10 @@ export class EntitiesService {
     return created;
   }
 
-  /** A entidade do id, com as operações, ou a recusa 404. */
+  /**
+   * A entidade do id, com as operações, ou a recusa 404. Nas rotas, o guard da sessão responde 403 antes,
+   * para o id sem permissão, que inclui o que não existe (regra 6.1).
+   */
   private async read(id: string) {
     const row = await this.transactions.client.entity.findUnique({ where: { id }, include: { operations: true } });
     if (!row) throw apiError(HttpStatus.NOT_FOUND, 'NOT_FOUND', 'Esta entidade não existe.');

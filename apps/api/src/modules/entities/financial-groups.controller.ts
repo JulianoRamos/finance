@@ -34,8 +34,8 @@ const MEMBER_REFUSALS =
   '`INACTIVE_ENTITY`: uma entidade desativada entraria no grupo (regra 6.2). `ENTITY_NOT_FOUND`: um dos ids não é de nenhuma entidade.';
 const INVALID_MEMBERS = 'ou os membros faltam, não são uma lista de UUIDs ou se repetem (em `fields`).';
 
-// Até o KAN-13, as rotas pedem só a sessão, como as de entidades. Elas não leem o Financial-Context,
-// porque os grupos são parte do que o contexto escolhe.
+// Até o KAN-14, as rotas pedem só a sessão: ele filtra os grupos pela permissão em todos os membros
+// (regra 6.22). Elas não leem o Financial-Context, porque os grupos são parte do que o contexto escolhe.
 @ApiTags('financial-groups')
 @ApiBearerAuth('session')
 @Controller('financial-groups')

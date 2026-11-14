@@ -2,8 +2,15 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayUnique, IsArray, IsUUID } from 'class-validator';
 
-import { EntityType, PageInfo, PageQuery, SearchQuery } from '../../common/index.js';
-import { IsName, NAME_MAX_LENGTH, VersionRead } from './fields.js';
+import {
+  EntityType,
+  IsName,
+  NAME_MAX_LENGTH,
+  PageInfo,
+  PageQuery,
+  SearchQuery,
+  VersionRead,
+} from '../../common/index.js';
 
 const NAME_INPUT_DESCRIPTION = `O nome do grupo, como o usuário quer vê-lo, com até ${String(NAME_MAX_LENGTH)} caracteres. A api tira os espaços das pontas. Não é único.`;
 const MEMBER_IDS_DESCRIPTION =

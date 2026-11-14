@@ -64,6 +64,9 @@ test('a busca pede à api e a lista pagina de 10 em 10', { tag: '@KAN-19-CA4' },
   for (let index = 1; index <= 12; index += 1) {
     await createTestCompany(user, `${prefix} ${String(index).padStart(2, '0')}`);
   }
+  // A lista traz só as entidades do usuário (regra 6.1): uma fora da busca faz o total sem ela ser outro, e
+  // "1–10 de 12" só aparece com a resposta da busca.
+  await createTestCompany(user);
   await signIn(page.context(), user, baseURL ?? '');
   const list = page.getByRole('region', { name: 'Lista de entidades' });
   const search = list.getByRole('searchbox', { name: 'Buscar entidade' });
