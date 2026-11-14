@@ -199,6 +199,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 | Secundário | Fundo `surface`, borda `hairline-strong`, texto `ink` | As outras ações |
 | Fantasma | Sem fundo nem borda, texto `body` | Ações de linha e de barra de ferramentas |
 | Destrutivo | Fundo `negative-strong`, texto `on-negative` | Excluir, cancelar um registro. Sempre com confirmação |
+| Fantasma destrutivo | Sem fundo nem borda, texto `negative`; fundo `negative-soft` com o ponteiro em cima | A ação destrutiva à esquerda do rodapé da edição, como "Excluir grupo", que abre a confirmação com o botão Destrutivo |
 | Ícone | Quadrado do tamanho do botão, ícone centralizado | Ações compactas, sempre com `aria-label` e dica |
 
 - Tamanhos: 32px (padrão no desktop, também no formulário), 40px (celular) e 28px (dentro de tabela). No celular, a área de toque tem ao menos 44px.

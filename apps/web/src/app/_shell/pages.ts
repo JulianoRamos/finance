@@ -1,4 +1,4 @@
-import { Building2, House, type LucideIcon } from 'lucide-react';
+import { Building2, House, type LucideIcon, Users } from 'lucide-react';
 
 /** Um destino da estrutura do app: o caminho, o nome e o ícone. */
 export interface Destination {
@@ -16,7 +16,10 @@ export const NAVIGATION: readonly { readonly group: string; readonly items: read
  * Os cadastros do menu das configurações, que só aparecem quando a tela deles existe. Sem nenhum, a
  * engrenagem não aparece.
  */
-export const SETTINGS: readonly Destination[] = [{ href: '/entities', label: 'Entidades', icon: Building2 }];
+export const SETTINGS: readonly Destination[] = [
+  { href: '/entities', label: 'Entidades', icon: Building2 },
+  { href: '/financial-groups', label: 'Grupos financeiros', icon: Users },
+];
 
 /** O nome de cada página, que o caminho da barra superior mostra. */
 const PAGE_TITLES: readonly { readonly href: string; readonly label: string }[] = [

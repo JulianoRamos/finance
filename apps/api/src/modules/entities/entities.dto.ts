@@ -6,40 +6,21 @@ import {
   IsBoolean,
   IsEnum,
   IsIn,
-  IsInt,
   IsOptional,
   IsString,
   IsUUID,
-  Min,
   ValidateBy,
-  type ValidationOptions,
 } from 'class-validator';
 
 import { EntityType, Operation } from '../../common/index.js';
+import { IsName, NAME_MAX_LENGTH, VersionRead } from './fields.js';
 import { invalidTaxIdMessage, isValidTaxId, normalizeTaxId } from './tax-id.js';
-
-/** O limite de cima do nome da entidade, sem os espaços das pontas. */
-const NAME_MAX_LENGTH = 120;
 
 const TYPE_DESCRIPTION =
   'Pessoa física (`individual`) ou jurídica (`company`). Não muda depois da criação (regra 6.2).';
 const NAME_DESCRIPTION = 'O nome, como o usuário quer vê-lo. A api tira os espaços das pontas.';
 const TAX_ID_INPUT_DESCRIPTION =
   'O CPF (pessoa física) ou o CNPJ (pessoa jurídica, também o alfanumérico), com ou sem a pontuação. Opcional: nulo ou vazio fica sem documento. A api confere os dígitos verificadores e o guarda só com os caracteres, com as letras em maiúsculas. Único entre todas as entidades.';
-
-/** O nome tem de 1 a 120 caracteres, sem contar os espaços das pontas. */
-function IsEntityName(options: ValidationOptions): PropertyDecorator {
-  return ValidateBy(
-    {
-      name: 'isEntityName',
-      validator: {
-        validate: (value) =>
-          typeof value === 'string' && value.trim().length > 0 && value.trim().length <= NAME_MAX_LENGTH,
-      },
-    },
-    options,
-  );
-}
 
 /**
  * O documento é um CPF válido na pessoa física ou um CNPJ válido na jurídica, com ou sem a pontuação.
@@ -63,15 +44,6 @@ function IsTaxIdOfType(): PropertyDecorator {
   });
 }
 
-/** A versão lida, que a edição e a desativação mandam de volta (regra 6.20). */
-function VersionRead(): PropertyDecorator {
-  return applyDecorators(
-    ApiProperty({ type: 'integer', minimum: 1, description: 'A versão lida (regra 6.20).' }),
-    IsInt({ message: 'Informe a versão lida.' }),
-    Min(1, { message: 'Informe a versão lida.' }),
-  );
-}
-
 /** O nome da entidade na entrada. */
 function EntityName(): PropertyDecorator {
   return applyDecorators(
@@ -81,7 +53,7 @@ function EntityName(): PropertyDecorator {
       maxLength: NAME_MAX_LENGTH,
       example: 'Clínica Exemplo',
     }),
-    IsEntityName({ message: `Informe o nome, com até ${String(NAME_MAX_LENGTH)} caracteres.` }),
+    IsName({ message: `Informe o nome, com até ${String(NAME_MAX_LENGTH)} caracteres.` }),
   );
 }
 

@@ -19,3 +19,10 @@ export function formatInstant(instant: string): string {
   const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? '';
   return `${part('day')}/${part('month')}/${part('year')} ${part('hour')}:${part('minute')}`;
 }
+
+const DATE = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+/** O dia de um instante como `dd/mm/aaaa` (design-system.md, seção 3), no fuso do processo da web (TZ). */
+export function formatDate(instant: string): string {
+  return DATE.format(new Date(instant));
+}

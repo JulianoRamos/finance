@@ -50,6 +50,11 @@ export function uniqueEmail(): string {
   return `ana-${randomUUID()}@exemplo.com`;
 }
 
+/** Um nome que nenhum outro teste usa, que começa pelo prefixo dado, para a ordem alfabética. */
+export function uniqueName(prefix: string): string {
+  return `${prefix} ${randomUUID()}`;
+}
+
 /** Uma origem (X-Forwarded-For) que nenhum outro teste usa, para o limite por origem não cruzar testes. */
 export function uniqueOrigin(): string {
   return `10.${String(randomInt(256))}.${String(randomInt(256))}.${String(randomInt(1, 255))}, 172.18.0.1`;

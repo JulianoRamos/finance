@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
-import { openTestCompany } from './support/entities';
+import { createTestCompany, openTestCompany, openTestGroup } from './support/entities';
 import { createPendingTestUser, createTestUser, signIn, uniqueOrigin } from './support/users';
 import { screenAlert } from './support/screen';
 
@@ -94,6 +94,40 @@ const SCREENS: readonly Screen[] = [
       const entity = await openTestCompany(page, baseURL);
       await page.getByRole('button', { name: 'Desativar entidade' }).click();
       await expect(page.getByRole('alertdialog', { name: `Desativar a ${entity.name}?` })).toBeVisible();
+    },
+  },
+  {
+    name: 'a Visão Familiar',
+    open: async (page, baseURL) => {
+      const user = await createTestUser();
+      // Garante uma empresa, que aparece bloqueada.
+      await createTestCompany(user);
+      await signIn(page.context(), user, baseURL);
+      await page.goto('/financial-groups');
+      await expect(page.getByRole('button', { name: 'Salvar membros' })).toBeVisible();
+    },
+  },
+  {
+    name: 'o novo grupo',
+    open: async (page, baseURL) => {
+      await signIn(page.context(), await createTestUser(), baseURL);
+      await page.goto('/financial-groups/new');
+      await expect(page.getByRole('button', { name: 'Criar grupo' })).toBeVisible();
+    },
+  },
+  {
+    name: 'o formulário de um grupo',
+    open: async (page, baseURL) => {
+      await openTestGroup(page, baseURL);
+      await expect(page.getByRole('button', { name: 'Salvar alterações' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a confirmação de excluir o grupo',
+    open: async (page, baseURL) => {
+      const group = await openTestGroup(page, baseURL);
+      await page.getByRole('button', { name: 'Excluir grupo' }).click();
+      await expect(page.getByRole('alertdialog', { name: `Excluir o grupo ${group.name}?` })).toBeVisible();
     },
   },
   {

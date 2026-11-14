@@ -32,9 +32,9 @@ function detailOf(entity: Entity): string {
 }
 
 /** O conteúdo da Coluna: a lista, ou o erro de carregamento. */
-function ListBody({ list }: Readonly<{ list: Exclude<EntityListResult, { status: 'unauthenticated' }> }>) {
-  if (list.status === 'unavailable') return <ErrorNotice>Não foi possível carregar as entidades.</ErrorNotice>;
-  return <EntityList items={list.entities.map(listItemOf)} />;
+function ListBody({ list }: Readonly<{ list: EntityListResult }>) {
+  if (list.status !== 'ok') return <ErrorNotice>Não foi possível carregar as entidades.</ErrorNotice>;
+  return <EntityList items={list.data.map(listItemOf)} />;
 }
 
 /**
