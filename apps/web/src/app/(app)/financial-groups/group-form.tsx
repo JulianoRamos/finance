@@ -8,6 +8,7 @@ import type { FinancialGroup, FinancialGroupMember } from '@/api/financial-group
 import { ErrorNotice, FieldError, SubmitButton, TextField } from '../../_access/fields';
 import { GHOST_DESTRUCTIVE_BUTTON, SECONDARY_BUTTON } from '../../_shell/buttons';
 import { ConfirmDialog, useConfirmedCommand } from '../../_shell/confirm-dialog';
+import { LoadMoreButton, nameFilter, SearchBox, usePagedSearch } from '../../_shell/paged-search';
 import { INITIAL_FORM_STATE } from '../../_shell/form-state';
 import { TYPE_BADGES } from '../entities/tax-id-format';
 import { createGroupAction, deleteGroupAction, type GroupFormState, updateGroupAction } from './actions';
@@ -22,6 +23,8 @@ const ROW = 'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border borde
 const CONTROL = 'size-4 flex-none accent-accent';
 const BADGE = 'ml-auto flex-none rounded-full px-2 text-body-sm font-medium';
 const BLOCKED_NOTE = 'Empresa: não entra na Visão Familiar';
+/** A escolha com mais opções que isto ganha a busca (design-system.md, seção 4.3). */
+const SEARCH_ABOVE = 10;
 
 /** O selo do membro: o tipo (PF ou PJ), ou "Desativada" na entidade desativada que já estava no grupo. */
 function MemberBadge({ option }: Readonly<{ option: MemberOption }>) {
@@ -31,7 +34,10 @@ function MemberBadge({ option }: Readonly<{ option: MemberOption }>) {
 
 /**
  * Os membros, um por linha. Na Visão Familiar, a empresa aparece com a caixa desabilitada e o motivo,
- * porque ela só aceita pessoas físicas (regra 6.2).
+ * porque ela só aceita pessoas físicas (regra 6.2). Com mais de 10 entidades, a busca no topo
+ * (design-system.md, seção 4.3) e 10 por vez, com "Carregar mais" (seção 4.1); as marcadas continuam à
+ * vista, no lugar delas na lista. Toda caixa fica no formulário: a que a busca ou a página esconde vai
+ * oculta, e a marcada é enviada mesmo assim.
  */
 function MemberChoices({
   options,
@@ -46,21 +52,41 @@ function MemberChoices({
   error: string | undefined;
   hint?: ReactNode;
 }>) {
+  // As caixas não são controladas: o formulário as recompõe no "Descartar" e depois de uma recusa. Este
+  // estado só acompanha as marcadas agora, para elas continuarem à vista.
+  const [ticked, setTicked] = useState(checked);
+  const { query, search, found, shown, hasMore, loadMore } = usePagedSearch(options, nameFilter, (option) =>
+    ticked.has(option.id),
+  );
+  const visible = new Set(shown);
+
   return (
     <fieldset aria-describedby={error ? 'members-error' : undefined} className="flex flex-col gap-2">
       <legend className="mb-2 text-label text-ink">Membros</legend>
+      {options.length > SEARCH_ABOVE && (
+        <SearchBox id="member-search" label="Buscar entidade" query={query} onSearch={search} />
+      )}
       {options.length === 0 && <p className="text-body-sm text-mute">Nenhuma entidade ativa para escolher.</p>}
+      {options.length > 0 && found.length === 0 && (
+        <p className="text-body-sm text-mute">Nenhuma entidade encontrada.</p>
+      )}
       {options.map((option) => {
         const blocked = familyView && option.type === 'company';
         const noteId = `member-${option.id}-note`;
         return (
-          <div key={option.id} className={`${ROW} ${blocked ? 'text-mute' : 'text-ink'}`}>
+          <div key={option.id} hidden={!visible.has(option)} className={`${ROW} ${blocked ? 'text-mute' : 'text-ink'}`}>
             <label className="flex min-w-0 flex-1 items-center gap-3">
               <input
                 type="checkbox"
                 name="memberIds"
                 value={option.id}
                 defaultChecked={!blocked && checked.has(option.id)}
+                onChange={(event) => {
+                  const next = new Set(ticked);
+                  if (event.target.checked) next.add(option.id);
+                  else next.delete(option.id);
+                  setTicked(next);
+                }}
                 disabled={blocked}
                 aria-describedby={blocked ? noteId : undefined}
                 className={CONTROL}
@@ -76,6 +102,7 @@ function MemberChoices({
           </div>
         );
       })}
+      {hasMore && <LoadMoreButton onClick={loadMore} />}
       {hint}
       <FieldError id="members-error" error={error} />
     </fieldset>

@@ -2,12 +2,10 @@
 
 import Link from 'next/link';
 import { useSelectedLayoutSegment } from 'next/navigation';
-import { useState } from 'react';
 
 import { FOCUS_RING } from '../../_access/access-screen';
-import { inputClass } from '../../_access/fields';
-import { GHOST_BUTTON } from '../../_shell/buttons';
 import { LIST_ITEM, LIST_ITEM_SELECTED, NewListItem } from '../../_shell/list-item';
+import { LoadMoreButton, nameFilter, SearchBox, usePagedSearch } from '../../_shell/paged-search';
 import { stripTaxId } from './tax-id-format';
 
 /** Uma entidade como a lista a mostra, já formatada. */
@@ -26,27 +24,15 @@ export interface EntityListItem {
   readonly taxId: string | null;
 }
 
-/** Quantas entidades a lista mostra de cada vez (design-system.md, seção 4.4: "Carregar mais"). */
-const PAGE_SIZE = 10;
-
-/** O texto sem acentos e em minúsculas, para "clinica" achar "Clínica". */
-function folded(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase();
-}
-
 /**
  * O filtro da busca: pelo nome, sem acentos nem maiúsculas, ou pelo documento escrito com ou sem a
  * pontuação. A busca vazia acha todas.
  */
 function searchFilter(query: string): (item: EntityListItem) => boolean {
-  const name = folded(query.trim());
-  const document = stripTaxId(name);
-  if (name === '') return () => true;
-  return (item) =>
-    folded(item.name).includes(name) || (document !== '' && (item.taxId?.toLowerCase().includes(document) ?? false));
+  const byName = nameFilter(query);
+  // O documento só tem algarismos e letras: basta tirar a pontuação e passar para minúsculas.
+  const document = stripTaxId(query.trim().toLowerCase());
+  return (item) => byName(item) || (document !== '' && (item.taxId?.toLowerCase().includes(document) ?? false));
 }
 
 /**
@@ -58,13 +44,12 @@ export function EntityList({ items }: Readonly<{ items: readonly EntityListItem[
   // O segmento abaixo do layout da tela: `new` na criação, e o id da entidade no detalhe e na edição.
   const segment = useSelectedLayoutSegment();
   const creating = segment === 'new';
-  const [query, setQuery] = useState('');
-  const [limit, setLimit] = useState(PAGE_SIZE);
-  const found = items.filter(searchFilter(query));
-  const page = found.slice(0, limit);
   // A entidade aberta continua à vista: depois da página, ela entra no fim, sozinha.
-  const openItem = found.find((item) => item.id === segment);
-  const shown = openItem && !page.includes(openItem) ? [...page, openItem] : page;
+  const { query, search, found, shown, hasMore, loadMore } = usePagedSearch(
+    items,
+    searchFilter,
+    (item) => item.id === segment,
+  );
 
   if (items.length === 0) {
     // Sem nenhuma entidade, não há o que buscar; na criação, a lista traz só o item da nova.
@@ -79,23 +64,7 @@ export function EntityList({ items }: Readonly<{ items: readonly EntityListItem[
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <label htmlFor="entity-search" className="sr-only">
-          Buscar entidade
-        </label>
-        <input
-          id="entity-search"
-          type="search"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setLimit(PAGE_SIZE);
-          }}
-          placeholder="Buscar entidade"
-          autoComplete="off"
-          className={inputClass('app')}
-        />
-      </div>
+      <SearchBox id="entity-search" label="Buscar entidade" query={query} onSearch={search} />
       {found.length === 0 && <p className="px-3 py-2 text-body-sm text-mute">Nenhuma entidade encontrada.</p>}
       <ul className="flex flex-col gap-1">
         {creating && <NewListItem label="Nova entidade" detail="Ainda não salva" />}
@@ -127,17 +96,7 @@ export function EntityList({ items }: Readonly<{ items: readonly EntityListItem[
           );
         })}
       </ul>
-      {page.length < found.length && (
-        <button
-          type="button"
-          onClick={() => {
-            setLimit(page.length + PAGE_SIZE);
-          }}
-          className={GHOST_BUTTON}
-        >
-          Carregar mais
-        </button>
-      )}
+      {hasMore && <LoadMoreButton onClick={loadMore} />}
     </div>
   );
 }

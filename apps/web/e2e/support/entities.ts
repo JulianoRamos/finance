@@ -45,14 +45,32 @@ export function createTestIndividual(user: TestUser, name = uniqueName('Ana Test
   return postAsUser(user, '/v1/entities', { type: 'individual', name }, 'da pessoa física de teste');
 }
 
-/** Cria pela api um grupo financeiro com os membros dados e um nome próprio do teste. */
-export function createTestGroup(user: TestUser, members: readonly TestEntity[]): Promise<TestEntity> {
+/** Cria pela api um grupo financeiro com os membros dados e o nome dado, ou um próprio do teste. */
+export function createTestGroup(
+  user: TestUser,
+  members: readonly TestEntity[],
+  name = uniqueName('Grupo Teste'),
+): Promise<TestEntity> {
   return postAsUser(
     user,
     '/v1/financial-groups',
-    { name: uniqueName('Grupo Teste'), memberIds: members.map((member) => member.id) },
+    { name, memberIds: members.map((member) => member.id) },
     'do grupo de teste',
   );
+}
+
+/**
+ * Exclui pela api o grupo de teste, para os grupos dos testes não se acumularem no banco de
+ * desenvolvimento, onde aparecem para todos os usuários.
+ */
+export async function deleteTestGroup(user: TestUser, id: string): Promise<void> {
+  const response = await fetch(`${requiredEnv('API_URL')}/v1/financial-groups/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${user.sessionToken}` },
+  });
+  if (response.status !== 204) {
+    throw new Error(`A exclusão do grupo de teste respondeu ${String(response.status)}.`);
+  }
 }
 
 /** Entra com um usuário novo e abre uma empresa dele, com a clínica ligada, no caminho dado abaixo dela. */
