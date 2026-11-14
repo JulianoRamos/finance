@@ -50,7 +50,9 @@ export function PermissionTable({
   const searchable = initial.total > SEARCH_ABOVE;
 
   return (
-    <fieldset className="flex flex-col gap-3">
+    // O fieldset cresce até o conteúdo por padrão (min-width: min-content): sem o min-w-0, a tabela vazaria
+    // do painel no celular, em vez de rolar dentro do contêiner dela.
+    <fieldset className="flex min-w-0 flex-col gap-3">
       <legend className="mb-2 text-label text-ink">Permissão por entidade</legend>
       {searchable && <SearchBox id={`${idPrefix}-search`} label="Buscar entidade" query={query} onSearch={search} />}
       {failed && <ErrorNotice>Não foi possível carregar as entidades. Tente de novo.</ErrorNotice>}
@@ -78,7 +80,7 @@ export function PermissionTable({
                   <tr key={row.entityId}>
                     <th scope="row" className={`${CELL} text-left font-normal text-ink`}>
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="wrap-anywhere">{row.name}</span>
+                        <span className="wrap-break-word">{row.name}</span>
                         {!row.active && (
                           <span className="rounded-full bg-surface-subtle px-2 text-body-sm font-medium text-body">
                             Desativada

@@ -39,7 +39,7 @@ export function RecoveryLinkPanel({
           onFocus={(event) => {
             event.target.select();
           }}
-          className={`h-10 min-w-0 flex-1 rounded-sm border border-hairline bg-surface-subtle px-3 font-mono text-body-md text-ink md:h-9 ${FOCUS_RING}`}
+          className={`h-10 w-full min-w-0 rounded-sm sm:w-auto sm:flex-1 border border-hairline bg-surface-subtle px-3 font-mono text-body-md text-ink md:h-9 ${FOCUS_RING}`}
         />
         <button
           type="button"
