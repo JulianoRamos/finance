@@ -11,7 +11,8 @@ RUN npx -y playwright@1.65.0 install-deps chromium && rm -rf /root/.npm
 RUN corepack enable
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
-RUN mkdir -p /repo/node_modules /ms-playwright && chown -R node:node /repo /ms-playwright
+# A pasta .next da web também vira volume (compose.dev.yaml): criada aqui, o volume nasce com o dono node.
+RUN mkdir -p /repo/node_modules /repo/apps/web/.next /ms-playwright && chown -R node:node /repo /ms-playwright
 
 USER node
 WORKDIR /repo/apps/web

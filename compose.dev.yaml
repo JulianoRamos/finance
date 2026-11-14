@@ -119,6 +119,14 @@ services:
   web:
     <<: *app
     build: apps/web
+    # Os volumes da âncora `app`, mais a pasta de build do Next num volume próprio. O Next grava nela um
+    # log e um rastreamento a cada carga de página; no compartilhamento de pastas do Docker Desktop, o
+    # Turbopack toma essas gravações por mudança de código, recompila e recarrega a página, sem fim.
+    volumes:
+      - .:/repo
+      - node-modules:/repo/node_modules
+      - playwright-browsers:/ms-playwright
+      - web-next:/repo/apps/web/.next
     environment:
       <<: *app-env
       API_URL: http://api:3001
@@ -139,6 +147,7 @@ services:
       test: [CMD, node, -e, *web-health]
 
 volumes:
+  web-next:
   harness-reports:
   db-data:
   node-modules:
