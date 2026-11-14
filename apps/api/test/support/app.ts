@@ -50,6 +50,19 @@ export function uniqueEmail(): string {
   return `ana-${randomUUID()}@exemplo.com`;
 }
 
+/** Um nome que nenhum outro teste usa, que começa pelo prefixo dado, para a ordem alfabética. */
+export function uniqueName(prefix: string): string {
+  return `${prefix} ${randomUUID()}`;
+}
+
+/**
+ * Um prefixo que nenhum outro teste usa, para o teste buscar só os registros que criou: o
+ * `finance_test` guarda os das execuções anteriores.
+ */
+export function uniquePrefix(): string {
+  return `t${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+}
+
 /** Uma origem (X-Forwarded-For) que nenhum outro teste usa, para o limite por origem não cruzar testes. */
 export function uniqueOrigin(): string {
   return `10.${String(randomInt(256))}.${String(randomInt(256))}.${String(randomInt(1, 255))}, 172.18.0.1`;
@@ -126,4 +139,26 @@ export async function loginAs(app: INestApplication<Server>, email: string, pass
 /** O pedido da sessão corrente com o token, para o teste conferir a resposta. */
 export function getCurrentSession(app: INestApplication<Server>, token: string) {
   return request(app.getHttpServer()).get('/v1/sessions/current').auth(token, { type: 'bearer' });
+}
+
+/** O token de um usuário novo, criado pelo comando, com a senha definida e a sessão aberta pelo login. */
+export async function newSession(app: INestApplication<Server>): Promise<string> {
+  const email = uniqueEmail();
+  await newUserWithPassword(app, email);
+  return loginAs(app, email);
+}
+
+/**
+ * Um pedido com o token da sessão e, quando dado, o identificador da requisição, que a auditoria
+ * grava.
+ */
+export function authedRequest(
+  app: INestApplication<Server>,
+  token: string,
+  method: 'get' | 'post' | 'put' | 'delete',
+  url: string,
+  requestId?: string,
+) {
+  const pending = request(app.getHttpServer())[method](url).auth(token, { type: 'bearer' });
+  return requestId ? pending.set('X-Request-Id', requestId) : pending;
 }

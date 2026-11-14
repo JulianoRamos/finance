@@ -123,10 +123,10 @@ O `recovery_code` é o código de recuperação do segundo fator; o `recovery_li
 
 | Tabela | Colunas que carregam regra | Restrições |
 | --- | --- | --- |
-| `entity` | `type` (`individual`, `company`), `name`, `tax_id` (CPF ou CNPJ), `active` | `tax_id` único quando preenchido. O `type` não muda depois da criação (regra 6.2) |
-| `entity_operation` | `entity_id`, `operation` (`clinic`) | Chave `(entity_id, operation)`. Só pessoa jurídica (regra 6.2) |
-| `financial_group` | `name`, `is_family_view` | Índice único parcial: só um grupo com `is_family_view` |
-| `financial_group_member` | `financial_group_id`, `entity_id` | Chave `(financial_group_id, entity_id)`. Só pessoa física na Visão Familiar (regra 6.2) |
+| `entity` | `type` (`individual`, `company`), `name`, `tax_id` (CPF ou CNPJ), `active` | `tax_id` único quando preenchido, só com os caracteres. O `type` não muda depois da criação (regra 6.2) |
+| `entity_operation` | `entity_id`, `operation` (`clinic`) | Única `(entity_id, operation)`, com `id` próprio, que a auditoria guarda. Só pessoa jurídica (regra 6.2) |
+| `financial_group` | `name`, `is_family_view` | Índice único parcial: só um grupo com `is_family_view`. A Visão Familiar nasce na migração que cria a tabela (regra 6.2) |
+| `financial_group_member` | `financial_group_id`, `entity_id` | Única `(financial_group_id, entity_id)`, com `id` próprio, que a auditoria guarda. Só pessoa física na Visão Familiar (regra 6.2) |
 | `equity_stake` | `holder_id` (pessoa física ou empresa), `company_id` (pessoa jurídica), `fraction`, `start_date`, `end_date` | `0 < fraction <= 1`. A soma vigente por empresa não passa de 1, e não há ciclo (regra 6.17) |
 
 ### 4.4 Auditoria
@@ -270,7 +270,8 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 - **Identificador da requisição:** o cabeçalho `X-Request-Id`, um UUID, opcional em toda rota. A `web` gera um a cada requisição do navegador e o manda em toda chamada à `api` feita nela. A `api` usa o recebido quando ele é um UUID e gera outro quando falta ou não é; o identificador vai para o registro de auditoria (seção 4.4). Como vale para todas as rotas, ele fica nesta convenção, e não em cada rota do `openapi.json`.
 - **Dinheiro e quantidades** trafegam como string decimal (`"1234.56"`), e nunca como número JSON. **Datas de calendário** como `"AAAA-MM-DD"`, e instantes em ISO 8601 com fuso.
 - **Edição:** o corpo traz a `version` lida, e a rota devolve `409 VERSION_CONFLICT` quando ela mudou.
-- **Listas:** paginadas por `cursor` e `limit` (padrão 50, máximo 200). A exceção é a lista das sessões ativas do usuário, que vem inteira: ela é curta, porque cada sessão vence em até 30 dias (regra 6.1).
+- **Listas:** toda lista é paginada, sem exceção, por `page` (a partir de 1, padrão 1) e `pageSize` (padrão 10, máximo 100). A resposta é `{ "items": [...], "total": <n>, "page": <n>, "pageSize": <n> }`, com o total dos itens do filtro; uma página depois da última vem com `items` vazio e o mesmo total. A ordem de cada lista é a da rota dela.
+- **Busca e filtros:** são parâmetros da rota, e a `api` os aplica antes de paginar. A busca textual é o `q`, comparado sem acento e sem diferença de maiúsculas, em qualquer posição do nome (e do documento, onde a rota diz). A `web` não filtra nem pagina o que já leu: cada busca, filtro ou troca de página é um pedido à `api`.
 - **Erro:** o corpo é `{ "code": "<STABLE_CODE>", "message": "<texto para o usuário>", "fields": { "<field>": "<reason>" } }`, com `fields` só na entrada inválida. O `code` é estável, em inglês e em `UPPER_SNAKE_CASE`, e é o que o cliente confere; a `message` pode mudar. Os códigos comuns:
 
 | Status | Código | Quando |
@@ -309,12 +310,14 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 
 ### 6.2 Entidades e grupos
 
-- A Visão Familiar já vem criada na primeira subida e só aceita pessoa física. As outras pessoas físicas cadastradas não entram nela sozinhas.
-- A Visão Familiar não é renomeada nem excluída.
-- O tipo de uma entidade (pessoa física ou jurídica) não muda depois da criação.
-- Uma entidade com registros não é excluída: é desativada, e some das escolhas sem sumir dos números do passado.
+- A Visão Familiar já vem criada na primeira subida, vazia, pela migração que cria os grupos, e só aceita pessoa física: a empresa responde `422 FAMILY_VIEW_INDIVIDUALS_ONLY`. As outras pessoas físicas cadastradas não entram nela sozinhas.
+- A Visão Familiar não é renomeada nem excluída: as duas respondem `422 FAMILY_VIEW_PROTECTED`. A edição dela manda o nome atual e muda só os membros.
+- **Membros de um grupo:** a edição manda a lista inteira dos membros, que pode ser vazia. Uma entidade desativada não entra num grupo, e responde `422 INACTIVE_ENTITY`; a que foi desativada já no grupo continua nele até sair. Um id que não é de nenhuma entidade responde `422 ENTITY_NOT_FOUND`. O nome do grupo não é único.
+- O tipo de uma entidade (pessoa física ou jurídica) não muda depois da criação. A edição manda o tipo, e a que o muda responde `422 ENTITY_TYPE_IMMUTABLE`.
+- Uma entidade com registros não é excluída: é desativada, e some das escolhas sem sumir dos números do passado. Não há exclusão de entidade: toda entidade é desativada, porque a auditoria já a cita desde a criação. A desativada continua lida pelo id e na lista completa, sai da lista das escolhas (`active=true`) e pode ser reativada. Desativar não desliga as operações.
+- **Documento:** opcional, o CPF na pessoa física e o CNPJ na jurídica, inclusive o CNPJ alfanumérico, com os dígitos verificadores conferidos pela `api` (módulo 11; no CNPJ, cada caractere vale o código ASCII menos 48). Chega com ou sem a pontuação e é guardado só com os caracteres, com as letras em maiúsculas. É único entre todas as entidades, ativas ou não, e o repetido responde `422 DUPLICATE_TAX_ID`. A `web` o mostra formatado, e o CPF mascarado nas listas (design system, seção 3).
 - **Exclusão de grupo:** um grupo sem metas é excluído, e quem estava nesse contexto volta para a Visão Familiar. Um grupo com metas é recusado, com `422 GROUP_HAS_GOALS`, até as metas serem excluídas ou passadas para outro dono.
-- **Operações:** só se ligam em pessoa jurídica, e uma empresa pode ter várias ligadas. Na API, a entidade traz a lista das ligadas (`"operations": ["clinic"]`). Desligar uma operação esconde as funções dela e recusa novas escritas, e não apaga nada: ao religar, tudo volta como estava. Os lançamentos que a operação criou continuam nos números, mas só mudam com ela ligada (regra 6.20).
+- **Operações:** só se ligam em pessoa jurídica, e uma empresa pode ter várias ligadas; numa pessoa física, a ligação responde `422 OPERATION_REQUIRES_COMPANY`. Ligar a que já está ligada, ou desligar a que já está desligada, não muda nada. Na API, a entidade traz a lista das ligadas (`"operations": ["clinic"]`). Desligar uma operação esconde as funções dela e recusa novas escritas, e não apaga nada: ao religar, tudo volta como estava. Os lançamentos que a operação criou continuam nos números, mas só mudam com ela ligada (regra 6.20).
 - **Participação societária:** é encerrada informando o último dia (`end_date`). Depois dele, a fração deixa de contar como vigente, e o registro continua no histórico.
 
 ### 6.3 Saldo e ajuste

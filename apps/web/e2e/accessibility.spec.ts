@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
+import { createTestCompany, openTestCompany, openTestGroup } from './support/entities';
 import { createPendingTestUser, createTestUser, signIn, uniqueOrigin } from './support/users';
 import { screenAlert } from './support/screen';
 
@@ -52,6 +53,81 @@ const SCREENS: readonly Screen[] = [
       await page.context().addCookies([{ name: 'sidebar', value: 'collapsed', url: baseURL }]);
       await page.goto('/profile');
       await expect(page.getByRole('button', { name: 'Abrir a barra lateral' })).toBeVisible();
+    },
+  },
+  {
+    name: 'o detalhe de uma entidade',
+    open: async (page, baseURL) => {
+      await openTestCompany(page, baseURL);
+      await expect(page.getByRole('switch', { name: 'Clínica' })).toBeChecked();
+    },
+  },
+  {
+    name: 'a nova entidade',
+    open: async (page, baseURL) => {
+      await signIn(page.context(), await createTestUser(), baseURL);
+      await page.goto('/entities/new');
+      await page.getByRole('radio', { name: /Pessoa jurídica/ }).check();
+      await expect(page.getByRole('checkbox', { name: /Clínica/ })).toBeVisible();
+    },
+  },
+  {
+    name: 'a edição de uma entidade',
+    open: async (page, baseURL) => {
+      await openTestCompany(page, baseURL, '/edit');
+      await expect(page.getByRole('button', { name: 'Salvar alterações' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a confirmação de desligar a operação',
+    open: async (page, baseURL) => {
+      const entity = await openTestCompany(page, baseURL);
+      await page.getByRole('switch', { name: 'Clínica' }).click();
+      await expect(
+        page.getByRole('alertdialog', { name: `Desligar a operação Clínica na ${entity.name}?` }),
+      ).toBeVisible();
+    },
+  },
+  {
+    name: 'a confirmação de desativar a entidade',
+    open: async (page, baseURL) => {
+      const entity = await openTestCompany(page, baseURL);
+      await page.getByRole('button', { name: 'Desativar entidade' }).click();
+      await expect(page.getByRole('alertdialog', { name: `Desativar a ${entity.name}?` })).toBeVisible();
+    },
+  },
+  {
+    name: 'a Visão Familiar',
+    open: async (page, baseURL) => {
+      const user = await createTestUser();
+      // Garante uma empresa, que aparece bloqueada.
+      await createTestCompany(user);
+      await signIn(page.context(), user, baseURL);
+      await page.goto('/financial-groups');
+      await expect(page.getByRole('button', { name: 'Salvar membros' })).toBeVisible();
+    },
+  },
+  {
+    name: 'o novo grupo',
+    open: async (page, baseURL) => {
+      await signIn(page.context(), await createTestUser(), baseURL);
+      await page.goto('/financial-groups/new');
+      await expect(page.getByRole('button', { name: 'Criar grupo' })).toBeVisible();
+    },
+  },
+  {
+    name: 'o formulário de um grupo',
+    open: async (page, baseURL) => {
+      await openTestGroup(page, baseURL);
+      await expect(page.getByRole('button', { name: 'Salvar alterações' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a confirmação de excluir o grupo',
+    open: async (page, baseURL) => {
+      const group = await openTestGroup(page, baseURL);
+      await page.getByRole('button', { name: 'Excluir grupo' }).click();
+      await expect(page.getByRole('alertdialog', { name: `Excluir o grupo ${group.name}?` })).toBeVisible();
     },
   },
   {

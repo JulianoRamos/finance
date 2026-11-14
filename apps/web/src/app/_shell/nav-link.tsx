@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 
 import { FOCUS_RING } from '../_access/access-screen';
 import { Hint } from './hint';
+import { isWithin } from './pages';
 
 /** Um item da navegação da barra lateral, com o ícone dado, marcado quando é a página atual. */
 export function NavLink({
@@ -14,7 +15,7 @@ export function NavLink({
   expanded,
   icon,
 }: Readonly<{ href: string; label: string; expanded: boolean; icon: ReactNode }>) {
-  const current = usePathname() === href;
+  const current = isWithin(usePathname(), href);
   const shape = expanded
     ? 'size-10 justify-center lg:h-9 lg:w-full lg:justify-start lg:px-2'
     : 'size-10 justify-center';

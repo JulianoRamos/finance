@@ -14,8 +14,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-import { ApiError, Public } from '../../common/index.js';
-import { UNAUTHENTICATED_RESPONSE } from './api-responses.js';
+import { ApiError, Public, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
 import { ApiClientHeaders } from './client-headers.js';
 import { CurrentSession, Login, SessionId, SessionSummary, SessionToken } from './identity.dto.js';
 import { originOf, userAgentOf } from './request-origin.js';

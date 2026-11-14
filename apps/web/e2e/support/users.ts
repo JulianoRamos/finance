@@ -16,7 +16,8 @@ export interface TestUser {
   readonly sessionToken: string;
 }
 
-function requiredEnv(name: string): string {
+/** A variável de ambiente, que o contêiner da web define; sem ela, o teste não roda. */
+export function requiredEnv(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} não está definida. Rode os testes no contêiner da web.`);
   return value;
