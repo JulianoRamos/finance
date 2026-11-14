@@ -5,7 +5,15 @@ import type { INestApplication } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { PrismaService } from '../src/common/index.js';
-import { authedRequest, buildTestApp, getCurrentSession, newSession, TestClock, uniqueName } from './support/app.js';
+import {
+  authedRequest,
+  buildTestApp,
+  getCurrentSession,
+  newSession,
+  TestClock,
+  uniqueName,
+  uniquePrefix,
+} from './support/app.js';
 
 /** Um membro de um grupo, como o contrato o descreve. */
 interface FinancialGroupMember {
@@ -23,6 +31,14 @@ interface FinancialGroup {
   readonly members: FinancialGroupMember[];
   readonly createdAt: string;
   readonly version: number;
+}
+
+/** Uma página da lista dos grupos, como o contrato a descreve. */
+interface FinancialGroupPage {
+  readonly items: FinancialGroup[];
+  readonly total: number;
+  readonly page: number;
+  readonly pageSize: number;
 }
 
 /** Uma entidade, só com o que os testes dos grupos usam. */
@@ -84,14 +100,19 @@ describe('Grupos financeiros', () => {
     return authed(token, 'get', `/v1/financial-groups/${id}`);
   }
 
-  /** A lista dos grupos vista com o token, que responde 200. */
-  async function listOf(token: string): Promise<FinancialGroup[]> {
-    return (await authed(token, 'get', '/v1/financial-groups').expect(200)).body as FinancialGroup[];
+  /** A página da lista dos grupos vista com o token, que responde 200. */
+  async function pageOf(token: string, query: Record<string, string>): Promise<FinancialGroupPage> {
+    return (await authed(token, 'get', '/v1/financial-groups').query(query).expect(200)).body as FinancialGroupPage;
+  }
+
+  /** Os grupos da página da busca, vista com o token. */
+  async function listOf(token: string, query: Record<string, string>): Promise<FinancialGroup[]> {
+    return (await pageOf(token, query)).items;
   }
 
   /** A Visão Familiar, lida na lista: a primeira. */
   async function familyViewOf(token: string): Promise<FinancialGroup> {
-    const [first] = await listOf(token);
+    const [first] = await listOf(token, {});
     if (!first?.isFamilyView) throw new Error('A lista dos grupos não começa pela Visão Familiar.');
     return first;
   }
@@ -138,7 +159,7 @@ describe('Grupos financeiros', () => {
 
       await authed(token, 'delete', `/v1/financial-groups/${group.id}`).expect(204);
       const read = await get(token, group.id).expect(404);
-      const listed = await listOf(token);
+      const listed = await listOf(token, { q: group.name });
       const entity = await authed(token, 'get', `/v1/entities/${ana.id}`).expect(200);
       const again = await authed(token, 'delete', `/v1/financial-groups/${group.id}`).expect(404);
       const renamed = await edit(token, familyView.id, {
@@ -154,7 +175,7 @@ describe('Grupos financeiros', () => {
       expect(again.body).toMatchObject({ code: 'NOT_FOUND' });
       expect(renamed.body).toMatchObject({ code: 'FAMILY_VIEW_PROTECTED' });
       expect(removed.body).toMatchObject({ code: 'FAMILY_VIEW_PROTECTED' });
-      expect((await listOf(token))[0]).toMatchObject({
+      expect((await listOf(token, {}))[0]).toMatchObject({
         id: familyView.id,
         name: 'Visão Familiar',
         version: familyView.version,
@@ -172,14 +193,15 @@ describe('Grupos financeiros', () => {
 
     const created = await create(token, { name: `  ${name}  `, memberIds: [clinic.id, ana.id] }).expect(201);
     const group = created.body as FinancialGroup;
-    const listed = await listOf(token);
+    const listed = await listOf(token, { q: name });
+    const familyView = await familyViewOf(token);
     const edited = await edit(token, group.id, { version: 1, name: newName, memberIds: [ana.id, bia.id] }).expect(200);
     const read = await get(token, group.id).expect(200);
 
     expect(group).toMatchObject({ name, isFamilyView: false, members: [asMember(ana), asMember(clinic)], version: 1 });
     expect(typeof group.createdAt).toBe('string');
-    expect(listed[0]?.isFamilyView).toBe(true);
-    expect(listed.slice(1)).toContainEqual(group);
+    expect(familyView.isFamilyView).toBe(true);
+    expect(listed).toEqual([group]);
     expect(edited.body).toEqual({ ...group, name: newName, members: [asMember(ana), asMember(bia)], version: 2 });
     expect(read.body).toEqual(edited.body);
   });
@@ -200,6 +222,45 @@ describe('Grupos financeiros', () => {
 
     expect(stale.body).toMatchObject({ code: 'VERSION_CONFLICT' });
     expect((await get(token, group.id).expect(200)).body).toEqual(edited.body);
+  });
+
+  it('pagina os grupos e busca pelo nome', { tags: ['@KAN-19-CA2'] }, async () => {
+    const token = await newSession(app);
+    const prefix = uniquePrefix();
+    const names = [
+      'Quebec',
+      'Ônibus',
+      'Alfa',
+      'Papa',
+      'Índia',
+      'Beta',
+      'Hotel',
+      'Caixa',
+      'Gama',
+      'Delta',
+      'Fase',
+      'Eco',
+    ];
+    const created = new Map<string, FinancialGroup>();
+    for (const first of names) {
+      const response = await create(token, { name: `${first} ${prefix}`, memberIds: [] }).expect(201);
+      created.set(first, response.body as FinancialGroup);
+    }
+
+    const third = await pageOf(token, { q: prefix, page: '3', pageSize: '5' });
+    const firstPage = await pageOf(token, {});
+    const familyView = await pageOf(token, { q: 'visao familiar' });
+
+    // Na ordem pt-BR, "Índia" e "Ônibus" ficam entre "Hotel" e "Papa", e não no fim.
+    expect({ ...third, items: third.items.map((group) => group.name) }).toEqual({
+      items: [`Papa ${prefix}`, `Quebec ${prefix}`],
+      total: 12,
+      page: 3,
+      pageSize: 5,
+    });
+    expect(await listOf(token, { q: `onibus ${prefix}` })).toEqual([created.get('Ônibus')]);
+    expect(firstPage.items[0]).toMatchObject({ isFamilyView: true, name: 'Visão Familiar' });
+    expect(familyView.items[0]).toMatchObject({ isFamilyView: true, name: 'Visão Familiar' });
   });
 
   it('uma entidade desativada não entra num grupo e continua no que já estava', { tags: ['@KAN-12-CA3'] }, async () => {
@@ -229,7 +290,7 @@ describe('Grupos financeiros', () => {
     expect(created.body).toMatchObject({ code: 'INACTIVE_ENTITY' });
     expect(added.body).toMatchObject({ code: 'INACTIVE_ENTITY' });
     expect(unchanged).toEqual(group);
-    expect((await listOf(token)).map((listed) => listed.name)).not.toContain(refusedName);
+    expect(await listOf(token, { q: refusedName })).toEqual([]);
     expect((kept.body as FinancialGroup).members).toEqual([asMember(ana), { ...asMember(bia), active: false }]);
     expect((kept.body as FinancialGroup).version).toBe(2);
   });

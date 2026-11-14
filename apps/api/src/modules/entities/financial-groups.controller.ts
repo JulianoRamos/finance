@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -14,8 +14,15 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 
-import { ApiError, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
-import { FinancialGroup, FinancialGroupEdit, FinancialGroupId, NewFinancialGroup } from './financial-groups.dto.js';
+import { ApiError, pageRequest, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
+import {
+  FinancialGroup,
+  FinancialGroupEdit,
+  FinancialGroupId,
+  FinancialGroupListQuery,
+  FinancialGroupPage,
+  NewFinancialGroup,
+} from './financial-groups.dto.js';
 import { FinancialGroupsService } from './financial-groups.service.js';
 
 /** O parâmetro do id do grupo, como o contrato o descreve. */
@@ -38,14 +45,18 @@ export class FinancialGroupsController {
   @Get()
   @ApiOperation({ summary: 'Lista os grupos financeiros.' })
   @ApiOkResponse({
-    type: FinancialGroup,
-    isArray: true,
+    type: FinancialGroupPage,
     description:
-      'Todos os grupos, numa lista inteira, sem `cursor` (LLD, seção 5): a Visão Familiar primeiro, e os outros pelo nome, em ordem alfabética.',
+      'A página dos grupos do filtro, com o total (LLD, seção 5): a Visão Familiar primeiro, quando o filtro a acha, e os outros pelo nome, em ordem alfabética.',
+  })
+  @ApiBadRequestResponse({
+    type: ApiError,
+    description:
+      '`INVALID_INPUT`: a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
   })
   @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
-  list(): Promise<FinancialGroup[]> {
-    return this.groups.list();
+  list(@Query() query: FinancialGroupListQuery): Promise<FinancialGroupPage> {
+    return this.groups.list({ q: query.q, page: pageRequest(query) });
   }
 
   @Post()

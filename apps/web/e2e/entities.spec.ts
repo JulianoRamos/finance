@@ -27,6 +27,9 @@ test('o usuário cadastra, edita e desativa uma entidade', { tag: '@KAN-11-CA5' 
   await expect(detail.getByRole('heading', { level: 2, name })).toBeVisible();
   await expect(detail).toContainText(`Pessoa jurídica · ${formatCnpj(cnpj)}`);
   await expect(detail.getByRole('switch', { name: 'Clínica' })).toBeChecked();
+  // A lista mostra a primeira página de um banco com as entidades de outras execuções: busca a nova.
+  const search = list.getByRole('searchbox', { name: 'Buscar entidade' });
+  await search.fill(name);
   const item = list.getByRole('link', { name: new RegExp(name) });
   await expect(item).toContainText('PJ');
   await expect(item).toContainText('Operação: Clínica');
@@ -36,6 +39,8 @@ test('o usuário cadastra, edita e desativa uma entidade', { tag: '@KAN-11-CA5' 
   await page.getByRole('button', { name: 'Salvar alterações' }).click();
 
   await expect(detail.getByRole('heading', { level: 2, name: newName })).toBeVisible();
+  // Salvar volta a lista à primeira página, sem busca.
+  await search.fill(newName);
   const renamed = list.getByRole('link', { name: new RegExp(newName) });
   await expect(renamed).toBeVisible();
 
@@ -46,40 +51,51 @@ test('o usuário cadastra, edita e desativa uma entidade', { tag: '@KAN-11-CA5' 
 
   await expect(detail).toContainText('Desativada');
   await expect(detail.getByRole('button', { name: 'Reativar entidade' })).toBeVisible();
+  await search.fill(newName);
   await expect(renamed).toContainText('Desativada');
 });
 
-test('a busca filtra a lista, que mostra 10 entidades por vez', async ({ page, baseURL }) => {
+test('a busca pede à api e a lista pagina de 10 em 10', { tag: '@KAN-19-CA4' }, async ({ page, baseURL }) => {
   await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
   const user = await createTestUser();
   // Um prefixo só deste teste: o banco de desenvolvimento guarda as entidades de outras execuções.
   const prefix = `Busca ${crypto.randomUUID().slice(0, 8)}`;
-  let last = { id: '' };
+  const lastName = `${prefix} 12`;
   for (let index = 1; index <= 12; index += 1) {
-    last = await createTestCompany(user, `${prefix} ${String(index).padStart(2, '0')}`);
+    await createTestCompany(user, `${prefix} ${String(index).padStart(2, '0')}`);
   }
   await signIn(page.context(), user, baseURL ?? '');
   const list = page.getByRole('region', { name: 'Lista de entidades' });
+  const search = list.getByRole('searchbox', { name: 'Buscar entidade' });
   const items = list.getByRole('link', { name: new RegExp(prefix) });
+  const previous = list.getByRole('button', { name: 'Página anterior' });
+  const next = list.getByRole('button', { name: 'Próxima página' });
 
   await page.goto('/entities/new');
-  await list.getByRole('searchbox', { name: 'Buscar entidade' }).fill(prefix.toLowerCase());
+  await search.fill(prefix.toLowerCase());
 
+  await expect(list).toContainText('1–10 de 12');
   await expect(items).toHaveCount(10);
-  await list.getByRole('button', { name: 'Carregar mais' }).click();
-  await expect(items).toHaveCount(12);
-  await expect(list.getByRole('button', { name: 'Carregar mais' })).toHaveCount(0);
+  await expect(previous).toBeDisabled();
+  await next.click();
+  await expect(list).toContainText('11–12 de 12');
+  await expect(items).toHaveCount(2);
+  await expect(next).toBeDisabled();
 
-  await list.getByRole('searchbox', { name: 'Buscar entidade' }).fill(`${prefix} 12`);
+  await search.fill(lastName);
+  await expect(list).toContainText('1–1 de 1');
   await expect(items).toHaveCount(1);
-  await list.getByRole('searchbox', { name: 'Buscar entidade' }).fill(`${prefix} 99`);
-  await expect(list).toContainText('Nenhuma entidade encontrada.');
+  await items.click();
+  const detail = page.getByRole('region', { name: lastName });
+  await expect(detail.getByRole('heading', { level: 2, name: lastName })).toBeVisible();
+  await expect(list.getByRole('link', { name: new RegExp(lastName) })).toHaveAttribute('aria-current', 'page');
 
-  // A entidade aberta depois da primeira página entra no fim da lista, e não traz as do meio.
-  await page.goto(`/entities/${last.id}`);
-  await list.getByRole('searchbox', { name: 'Buscar entidade' }).fill(prefix);
-  await expect(items).toHaveCount(11);
-  await expect(items.last()).toHaveAttribute('aria-current', 'page');
+  // Sem a busca, a primeira página traz as entidades que vêm antes pelo nome: a aberta fica fora dela.
+  await search.fill('');
+  await expect(list).toContainText(/1–10 de \d+/);
+  await expect(list.getByRole('link', { name: new RegExp(lastName) })).toHaveCount(0);
+  await expect(list.locator('[aria-current="page"]')).toHaveCount(0);
+  await expect(detail.getByRole('heading', { level: 2, name: lastName })).toBeVisible();
 });
 
 test('chegar a Entidades pelo menu ou pelo Cancelar abre a primeira entidade, sem erro na página', async ({

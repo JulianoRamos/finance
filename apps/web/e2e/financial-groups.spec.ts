@@ -27,7 +27,7 @@ async function familyViewCount(page: Page): Promise<number> {
 
 /**
  * Busca a entidade entre os membros do formulário, quando há a busca (mais de 10 entidades): o banco de
- * desenvolvimento guarda as de outras execuções, e a do teste pode ficar fora dos 10 primeiros.
+ * desenvolvimento guarda as de outras execuções, e a do teste pode ficar fora da primeira página.
  */
 async function findMember(scope: Locator, name: string): Promise<void> {
   const search = scope.getByRole('searchbox', { name: 'Buscar entidade' });
@@ -62,8 +62,8 @@ test('o usuário escolhe os membros da Visão Familiar', { tag: '@KAN-12-CA4' },
     before === 0 ? 'Nenhuma' : `${String(before)} pessoa`,
   );
   await page.reload();
+  await findMember(detail, person.name);
 
-  // A marcada continua à vista, sem a busca.
   await expect(personBox).toBeChecked();
   expect(await familyViewCount(page)).toBe(before + 1);
 
@@ -99,16 +99,24 @@ test('o usuário cria, edita e exclui um grupo', { tag: '@KAN-12-CA7' }, async (
   await findMember(newForm, company.name);
   await newForm.getByRole('checkbox', { name: company.name }).check();
   await page.getByRole('button', { name: 'Criar grupo' }).click();
+  // A lista mostra a primeira página de um banco com os grupos de outras execuções: busca o novo.
+  const search = groupList(page).getByRole('searchbox', { name: 'Buscar grupo' });
+  await expect(form(name)).toBeVisible();
+  await search.fill(name);
 
   await expect(item(name)).toHaveAttribute('aria-current', 'page');
   await expect(item(name)).toContainText(`${person.name} e ${company.name}`);
   await expect(form(name).getByLabel('Nome', { exact: true })).toHaveValue(name);
+  await findMember(form(name), person.name);
   await expect(form(name).getByRole('checkbox', { name: person.name })).toBeChecked();
+  await findMember(form(name), company.name);
   await expect(form(name).getByRole('checkbox', { name: company.name })).toBeChecked();
 
   await form(name).getByLabel('Nome', { exact: true }).fill(newName);
   await form(name).getByRole('checkbox', { name: company.name }).uncheck();
   await form(name).getByRole('button', { name: 'Salvar alterações' }).click();
+  await expect(form(newName)).toBeVisible();
+  await search.fill(newName);
 
   await expect(item(newName)).toBeVisible();
   await expect(item(newName)).toContainText(person.name);
@@ -123,75 +131,63 @@ test('o usuário cria, edita e exclui um grupo', { tag: '@KAN-12-CA7' }, async (
   await expect(page.getByRole('region', { name: 'Visão Familiar' })).toBeVisible();
 });
 
-test('a busca filtra a lista dos grupos, que mostra 10 por vez', async ({ page, baseURL }) => {
-  await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
-  const user = await createTestUser();
-  // Um prefixo só deste teste: o banco de desenvolvimento guarda os grupos de outras execuções.
-  const prefix = uniqueName('Busca');
-  const groups: TestEntity[] = [];
-  for (let index = 1; index <= 12; index += 1) {
-    groups.push(await createTestGroup(user, [], `${prefix} ${String(index).padStart(2, '0')}`));
-  }
-  const last = groups[11] ?? { id: '' };
-  await signIn(page.context(), user, baseURL ?? '');
-  const items = groupList(page).getByRole('link', { name: new RegExp(prefix) });
-  const search = groupList(page).getByRole('searchbox', { name: 'Buscar grupo' });
+test(
+  'a lista dos grupos e a escolha dos membros paginam e buscam pela api',
+  { tag: '@KAN-19-CA5' },
+  async ({ page, baseURL }) => {
+    await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
+    const user = await createTestUser();
+    // Um prefixo só deste teste: o banco de desenvolvimento guarda os registros de outras execuções.
+    const prefix = uniqueName('Busca');
+    const groups: TestEntity[] = [];
+    for (let index = 1; index <= 12; index += 1) {
+      groups.push(await createTestGroup(user, [], `${prefix} Grupo ${String(index).padStart(2, '0')}`));
+      await createTestIndividual(user, `${prefix} Pessoa ${String(index).padStart(2, '0')}`);
+    }
+    await signIn(page.context(), user, baseURL ?? '');
+    const list = groupList(page);
+    const groupSearch = list.getByRole('searchbox', { name: 'Buscar grupo' });
+    const items = list.getByRole('link', { name: new RegExp(prefix) });
+    const form = page.getByRole('form', { name: 'Novo grupo financeiro' });
+    const memberSearch = form.getByRole('searchbox', { name: 'Buscar entidade' });
+    const members = form.getByRole('checkbox', { name: new RegExp(prefix) });
+    const firstPerson = form.getByRole('checkbox', { name: `${prefix} Pessoa 01` });
+    const lastPerson = form.getByRole('checkbox', { name: `${prefix} Pessoa 12` });
+    const nextMembers = form.getByRole('button', { name: 'Próxima página' });
+    const name = `${prefix} Novo`;
 
-  await page.goto('/financial-groups/new');
-  await search.fill(prefix.toLowerCase());
+    await page.goto('/financial-groups');
+    await groupSearch.fill(prefix.toLowerCase());
+    await expect(list).toContainText('1–10 de 12');
+    await expect(items).toHaveCount(10);
+    await list.getByRole('button', { name: 'Próxima página' }).click();
+    await expect(list).toContainText('11–12 de 12');
+    await expect(items).toHaveCount(2);
 
-  await expect(items).toHaveCount(10);
-  await groupList(page).getByRole('button', { name: 'Carregar mais' }).click();
-  await expect(items).toHaveCount(12);
-  await search.fill(`${prefix} 99`);
-  await expect(groupList(page)).toContainText('Nenhum grupo encontrado.');
+    await page.getByRole('link', { name: 'Novo grupo' }).click();
+    await memberSearch.fill(prefix);
+    await expect(form).toContainText('1–10 de 12');
+    await expect(members).toHaveCount(10);
+    await firstPerson.check();
+    await nextMembers.click();
+    await expect(members).toHaveCount(2);
+    await lastPerson.check();
+    await memberSearch.fill(`${prefix} Pessoa 05`);
+    await expect(members).toHaveCount(1);
+    await memberSearch.fill(prefix);
+    await expect(firstPerson).toBeChecked();
+    await nextMembers.click();
+    await expect(lastPerson).toBeChecked();
+    await form.getByLabel('Nome', { exact: true }).fill(name);
+    await form.getByRole('button', { name: 'Criar grupo' }).click();
 
-  // O grupo aberto depois da primeira página entra no fim da lista.
-  await page.goto(`/financial-groups/${last.id}`);
-  await search.fill(prefix);
-  await expect(items).toHaveCount(11);
-  await expect(items.last()).toHaveAttribute('aria-current', 'page');
+    await expect(page).toHaveURL(/\/financial-groups\/[0-9a-f-]{36}$/);
+    await groupSearch.fill(name);
+    await expect(list.getByRole('link', { name: new RegExp(`^${name}`) })).toContainText(
+      `${prefix} Pessoa 01 e ${prefix} Pessoa 12`,
+    );
 
-  for (const group of groups) await deleteTestGroup(user, group.id);
-});
-
-test('a busca filtra os membros, 10 por vez, sem perder os marcados', async ({ page, baseURL }) => {
-  await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
-  const user = await createTestUser();
-  const prefix = uniqueName('Pessoa');
-  for (let index = 1; index <= 12; index += 1) {
-    await createTestIndividual(user, `${prefix} ${String(index).padStart(2, '0')}`);
-  }
-  await signIn(page.context(), user, baseURL ?? '');
-  const form = page.getByRole('form', { name: 'Novo grupo financeiro' });
-  const members = form.getByRole('checkbox', { name: new RegExp(prefix) });
-  const search = form.getByRole('searchbox', { name: 'Buscar entidade' });
-  const name = uniqueName('Grupo E2E');
-
-  await page.goto('/financial-groups/new');
-  await search.fill(prefix);
-  await expect(members).toHaveCount(10);
-  await form.getByRole('button', { name: 'Carregar mais' }).click();
-  await expect(members).toHaveCount(12);
-  await form.getByRole('checkbox', { name: `${prefix} 12` }).check();
-  // O marcado fora da busca fica oculto, e vai no envio mesmo assim.
-  await search.fill(`${prefix} 01`);
-  await expect(members).toHaveCount(1);
-  // Sem a busca, a lista volta aos 10 primeiros, e a marcada depois deles continua à vista.
-  await search.fill(prefix);
-  await expect(members).toHaveCount(11);
-  await expect(form.getByRole('checkbox', { name: `${prefix} 12` })).toBeChecked();
-  await search.fill(`${prefix} 01`);
-  await form.getByRole('checkbox', { name: `${prefix} 01` }).check();
-  await search.press('Enter');
-  await expect(page).toHaveURL(/\/financial-groups\/new$/);
-  await form.getByLabel('Nome', { exact: true }).fill(name);
-  await form.getByRole('button', { name: 'Criar grupo' }).click();
-
-  await expect(groupList(page).getByRole('link', { name: new RegExp(`^${name}`) })).toContainText(
-    `${prefix} 01 e ${prefix} 12`,
-  );
-
-  const id = /\/financial-groups\/([0-9a-f-]{36})$/.exec(page.url())?.[1] ?? '';
-  await deleteTestGroup(user, id);
-});
+    const id = /\/financial-groups\/([0-9a-f-]{36})$/.exec(page.url())?.[1] ?? '';
+    for (const group of [...groups, { id }]) await deleteTestGroup(user, group.id);
+  },
+);

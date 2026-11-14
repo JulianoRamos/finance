@@ -8,10 +8,18 @@ import type { FinancialGroup, FinancialGroupMember } from '@/api/financial-group
 import { ErrorNotice, FieldError, SubmitButton, TextField } from '../../_access/fields';
 import { GHOST_DESTRUCTIVE_BUTTON, SECONDARY_BUTTON } from '../../_shell/buttons';
 import { ConfirmDialog, useConfirmedCommand } from '../../_shell/confirm-dialog';
-import { LoadMoreButton, nameFilter, SearchBox, usePagedSearch } from '../../_shell/paged-search';
 import { INITIAL_FORM_STATE } from '../../_shell/form-state';
+import type { ListPage } from '../../_shell/list-page';
+import { Pagination, useSearchedPages } from '../../_shell/pagination';
+import { SearchBox } from '../../_shell/search-box';
 import { TYPE_BADGES } from '../entities/tax-id-format';
-import { createGroupAction, deleteGroupAction, type GroupFormState, updateGroupAction } from './actions';
+import {
+  createGroupAction,
+  deleteGroupAction,
+  type GroupFormState,
+  searchMemberOptionsAction,
+  updateGroupAction,
+} from './actions';
 
 /**
  * Uma entidade que o formulário oferece como membro, com o que a resposta do grupo traz de cada uma.
@@ -32,77 +40,94 @@ function MemberBadge({ option }: Readonly<{ option: MemberOption }>) {
   return <span className={`${BADGE} bg-accent-soft text-link`}>{TYPE_BADGES[option.type]}</span>;
 }
 
+/** Uma linha da escolha: a caixa, o nome e o selo, ou, na empresa da Visão Familiar, o motivo. */
+function MemberRow({
+  option,
+  blocked,
+  ticked,
+  onTick,
+}: Readonly<{ option: MemberOption; blocked: boolean; ticked: boolean; onTick: (ticked: boolean) => void }>) {
+  const noteId = `member-${option.id}-note`;
+  return (
+    <div className={`${ROW} ${blocked ? 'text-mute' : 'text-ink'}`}>
+      <label className="flex min-w-0 flex-1 items-center gap-3">
+        <input
+          type="checkbox"
+          checked={!blocked && ticked}
+          onChange={(event) => {
+            onTick(event.target.checked);
+          }}
+          disabled={blocked}
+          aria-describedby={blocked ? noteId : undefined}
+          className={CONTROL}
+        />
+        <span className="min-w-0 wrap-anywhere">{option.name}</span>
+        {!blocked && <MemberBadge option={option} />}
+      </label>
+      {blocked && (
+        <span id={noteId} className="ml-auto text-body-sm text-mute">
+          {BLOCKED_NOTE}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /**
- * Os membros, um por linha. Na Visão Familiar, a empresa aparece com a caixa desabilitada e o motivo,
- * porque ela só aceita pessoas físicas (regra 6.2). Com mais de 10 entidades, a busca no topo
- * (design-system.md, seção 4.3) e 10 por vez, com "Carregar mais" (seção 4.1); as marcadas continuam à
- * vista, no lugar delas na lista. Toda caixa fica no formulário: a que a busca ou a página esconde vai
- * oculta, e a marcada é enviada mesmo assim.
+ * Os membros, em duas colunas. Na Visão Familiar, a empresa aparece com a caixa desabilitada e o motivo,
+ * porque ela só aceita pessoas físicas (regra 6.2). As ativas vêm da api de 10 em 10; com mais de 10, a
+ * busca no topo e a Paginação no rodapé (design-system.md, seção 4.3). As desativadas que já estão no
+ * grupo ficam acima, sem paginar. As marcadas ficam num estado, que sobrevive à busca e à página, e vão
+ * no envio pelos campos ocultos.
  */
 function MemberChoices({
   options,
+  inactive,
   checked,
   familyView,
   error,
   hint,
 }: Readonly<{
-  options: readonly MemberOption[];
-  checked: ReadonlySet<string>;
+  options: ListPage<MemberOption>;
+  inactive: readonly MemberOption[];
+  checked: readonly string[];
   familyView: boolean;
   error: string | undefined;
   hint?: ReactNode;
 }>) {
-  // As caixas não são controladas: o formulário as recompõe no "Descartar" e depois de uma recusa. Este
-  // estado só acompanha as marcadas agora, para elas continuarem à vista.
-  const [ticked, setTicked] = useState(checked);
-  const { query, search, found, shown, hasMore, loadMore } = usePagedSearch(options, nameFilter, (option) =>
-    ticked.has(option.id),
+  // O formulário recompõe a escolha no "Descartar", e ela volta às marcadas que recebeu.
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set(checked));
+  const { query, shown, failed, search, goTo } = useSearchedPages(options, searchMemberOptionsAction);
+  const paged = options.total > SEARCH_ABOVE;
+  const tick = (id: string) => (on: boolean) => {
+    const next = new Set(ticked);
+    if (on) next.add(id);
+    else next.delete(id);
+    setTicked(next);
+  };
+  const row = (option: MemberOption) => (
+    <MemberRow
+      key={option.id}
+      option={option}
+      blocked={familyView && option.type === 'company'}
+      ticked={ticked.has(option.id)}
+      onTick={tick(option.id)}
+    />
   );
-  const visible = new Set(shown);
 
   return (
     <fieldset aria-describedby={error ? 'members-error' : undefined} className="flex flex-col gap-2">
       <legend className="mb-2 text-label text-ink">Membros</legend>
-      {options.length > SEARCH_ABOVE && (
-        <SearchBox id="member-search" label="Buscar entidade" query={query} onSearch={search} />
-      )}
-      {options.length === 0 && <p className="text-body-sm text-mute">Nenhuma entidade ativa para escolher.</p>}
-      {options.length > 0 && found.length === 0 && (
-        <p className="text-body-sm text-mute">Nenhuma entidade encontrada.</p>
-      )}
-      {options.map((option) => {
-        const blocked = familyView && option.type === 'company';
-        const noteId = `member-${option.id}-note`;
-        return (
-          <div key={option.id} hidden={!visible.has(option)} className={`${ROW} ${blocked ? 'text-mute' : 'text-ink'}`}>
-            <label className="flex min-w-0 flex-1 items-center gap-3">
-              <input
-                type="checkbox"
-                name="memberIds"
-                value={option.id}
-                defaultChecked={!blocked && checked.has(option.id)}
-                onChange={(event) => {
-                  const next = new Set(ticked);
-                  if (event.target.checked) next.add(option.id);
-                  else next.delete(option.id);
-                  setTicked(next);
-                }}
-                disabled={blocked}
-                aria-describedby={blocked ? noteId : undefined}
-                className={CONTROL}
-              />
-              <span className="min-w-0 wrap-anywhere">{option.name}</span>
-              {!blocked && <MemberBadge option={option} />}
-            </label>
-            {blocked && (
-              <span id={noteId} className="ml-auto text-body-sm text-mute">
-                {BLOCKED_NOTE}
-              </span>
-            )}
-          </div>
-        );
-      })}
-      {hasMore && <LoadMoreButton onClick={loadMore} />}
+      {[...ticked].map((id) => (
+        <input key={id} type="hidden" name="memberIds" value={id} />
+      ))}
+      {inactive.length > 0 && <div className="grid gap-2 md:grid-cols-2">{inactive.map(row)}</div>}
+      {paged && <SearchBox id="member-search" label="Buscar entidade" query={query} onSearch={search} />}
+      {failed && <ErrorNotice>Não foi possível carregar as entidades. Tente de novo.</ErrorNotice>}
+      {options.total === 0 && <p className="text-body-sm text-mute">Nenhuma entidade ativa para escolher.</p>}
+      {options.total > 0 && shown.total === 0 && <p className="text-body-sm text-mute">Nenhuma entidade encontrada.</p>}
+      <div className="grid gap-2 md:grid-cols-2">{shown.items.map(row)}</div>
+      {paged && <Pagination page={shown.page} pageSize={shown.pageSize} total={shown.total} onPage={goTo} />}
       {hint}
       <FieldError id="members-error" error={error} />
     </fieldset>
@@ -166,6 +191,7 @@ export function GroupForm({
   group,
   createdOn = '',
   options,
+  inactive,
 }: Readonly<{
   group?: FinancialGroup;
   /**
@@ -173,7 +199,10 @@ export function GroupForm({
    * hidratação usaria o fuso do navegador, e o dia poderia mudar.
    */
   createdOn?: string;
-  options: readonly MemberOption[];
+  /** A primeira página das entidades ativas, sem busca. */
+  options: ListPage<MemberOption>;
+  /** As desativadas que já estão no grupo. */
+  inactive: readonly MemberOption[];
 }>) {
   const [state, action] = useActionState<GroupFormState, FormData>(
     group ? updateGroupAction : createGroupAction,
@@ -235,7 +264,8 @@ export function GroupForm({
       )}
       <MemberChoices
         options={options}
-        checked={new Set(values.memberIds)}
+        inactive={inactive}
+        checked={values.memberIds}
         familyView={familyView}
         error={shown.fields.memberIds}
         hint={
@@ -250,7 +280,7 @@ export function GroupForm({
         className={`flex flex-wrap gap-3 border-t border-hairline pt-4 ${group && !familyView ? 'justify-between' : 'justify-end'}`}
       >
         {group && !familyView && <DeleteGroup group={group} />}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           {group ? (
             <button
               type="button"

@@ -2,7 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { ArrayUnique, IsArray, IsUUID } from 'class-validator';
 
-import { EntityType } from '../../common/index.js';
+import { EntityType, PageInfo, PageQuery, SearchQuery } from '../../common/index.js';
 import { IsName, NAME_MAX_LENGTH, VersionRead } from './fields.js';
 
 const NAME_INPUT_DESCRIPTION = `O nome do grupo, como o usuário quer vê-lo, com até ${String(NAME_MAX_LENGTH)} caracteres. A api tira os espaços das pontas. Não é único.`;
@@ -99,6 +99,18 @@ export class FinancialGroupEdit {
 
   @MemberIds()
   memberIds!: string[];
+}
+
+export class FinancialGroupListQuery extends PageQuery {
+  @SearchQuery(
+    'A busca: o texto procurado no nome, sem diferença de acento nem de maiúsculas, em qualquer posição. Vazia ou ausente, não filtra (LLD, seção 5).',
+  )
+  q?: string;
+}
+
+export class FinancialGroupPage extends PageInfo {
+  @ApiProperty({ type: FinancialGroup, isArray: true, description: 'Os grupos da página, na ordem da lista.' })
+  items!: FinancialGroup[];
 }
 
 export class FinancialGroupId {

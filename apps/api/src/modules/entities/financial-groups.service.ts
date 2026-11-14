@@ -1,9 +1,24 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 
-import { apiError, type Clock, CLOCK, type EntityType, omit, TransactionService } from '../../common/index.js';
+import {
+  apiError,
+  type Clock,
+  CLOCK,
+  type EntityType,
+  omit,
+  type PageRequest,
+  readPage,
+  sql,
+  TransactionService,
+} from '../../common/index.js';
 import { AuditService } from '../audit/index.js';
-import { byName } from './fields.js';
-import type { FinancialGroup, FinancialGroupEdit, NewFinancialGroup } from './financial-groups.dto.js';
+import { byName, NAME_COLLATION, nameMatches } from './fields.js';
+import type {
+  FinancialGroup,
+  FinancialGroupEdit,
+  FinancialGroupPage,
+  NewFinancialGroup,
+} from './financial-groups.dto.js';
 
 /** O que a leitura do grupo traz de cada membro: a linha e a entidade dele. */
 const MEMBERS_WITH_ENTITY = { members: { include: { entity: true } } } as const;
@@ -85,12 +100,19 @@ export class FinancialGroupsService {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  /** Os grupos, a Visão Familiar primeiro e os outros pelo nome. */
-  async list(): Promise<FinancialGroup[]> {
-    const rows = await this.transactions.client.financialGroup.findMany({ include: MEMBERS_WITH_ENTITY });
-    return rows
-      .sort((a, b) => Number(b.isFamilyView) - Number(a.isFamilyView) || byName.compare(a.name, b.name))
-      .map(toFinancialGroup);
+  /** A página dos grupos, a Visão Familiar primeiro e os outros pelo nome. A busca acha o nome sem acento. */
+  async list(filter: { q?: string | undefined; page: PageRequest }): Promise<FinancialGroupPage> {
+    const client = this.transactions.client;
+    return readPage(
+      client,
+      sql`SELECT id, is_family_view, name FROM financial_group WHERE ${nameMatches(filter.q)}`,
+      sql`is_family_view DESC, name ${NAME_COLLATION}`,
+      filter.page,
+      async (ids) =>
+        (await client.financialGroup.findMany({ where: { id: { in: ids } }, include: MEMBERS_WITH_ENTITY })).map(
+          toFinancialGroup,
+        ),
+    );
   }
 
   /** O grupo do id, com os membros. */

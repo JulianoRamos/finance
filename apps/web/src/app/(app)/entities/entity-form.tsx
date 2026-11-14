@@ -185,7 +185,7 @@ export function EntityForm({ entity }: Readonly<{ entity?: Entity }>) {
         </fieldset>
       )}
       {entity && <p className="text-body-sm text-mute">A alteração entra no histórico, com o antes e o depois.</p>}
-      <div className="flex flex-wrap justify-end gap-3 border-t border-hairline pt-4">
+      <div className="flex flex-wrap justify-end gap-2 border-t border-hairline pt-4">
         <Link href={entity ? `/entities/${entity.id}` : '/entities'} className={SECONDARY_BUTTON}>
           Cancelar
         </Link>

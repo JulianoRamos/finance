@@ -514,24 +514,6 @@
         "operationId": "EntitiesController_list",
         "parameters": [
           {
-            "name": "active",
-            "required": false,
-            "in": "query",
-            "description": "`true` traz só as entidades ativas, as que aparecem nas escolhas; `false`, só as desativadas. Sem o parâmetro, traz todas.",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "q",
-            "required": false,
-            "in": "query",
-            "description": "A busca: o texto procurado no nome, sem diferença de acento nem de maiúsculas, em qualquer posição, e no documento, escrito com ou sem a pontuação. Vazia ou ausente, não filtra (LLD, seção 5).",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "page",
             "required": false,
             "in": "query",
@@ -552,6 +534,24 @@
               "maximum": 100,
               "default": 10,
               "type": "integer"
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "`true` traz só as entidades ativas, as que aparecem nas escolhas; `false`, só as desativadas. Sem o parâmetro, traz todas.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "A busca: o texto procurado no nome, sem diferença de acento nem de maiúsculas, em qualquer posição, e, quando tem um algarismo, no CNPJ, escrito com ou sem a pontuação. O CPF não entra na busca, porque a lista o mostra mascarado. Vazia ou ausente, não filtra (LLD, seção 5).",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1088,15 +1088,6 @@
         "operationId": "FinancialGroupsController_list",
         "parameters": [
           {
-            "name": "q",
-            "required": false,
-            "in": "query",
-            "description": "A busca: o texto procurado no nome, sem diferença de acento nem de maiúsculas, em qualquer posição. Vazia ou ausente, não filtra (LLD, seção 5).",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "page",
             "required": false,
             "in": "query",
@@ -1117,6 +1108,15 @@
               "maximum": 100,
               "default": 10,
               "type": "integer"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "A busca: o texto procurado no nome, sem diferença de acento nem de maiúsculas, em qualquer posição. Vazia ou ausente, não filtra (LLD, seção 5).",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1775,13 +1775,6 @@
       "EntityPage": {
         "type": "object",
         "properties": {
-          "items": {
-            "description": "As entidades da página, na ordem da lista.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Entity"
-            }
-          },
           "total": {
             "type": "integer",
             "description": "Quantos itens o filtro acha, em todas as páginas.",
@@ -1796,13 +1789,20 @@
             "type": "integer",
             "description": "O tamanho da página.",
             "example": 10
+          },
+          "items": {
+            "description": "As entidades da página, na ordem da lista.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            }
           }
         },
         "required": [
-          "items",
           "total",
           "page",
-          "pageSize"
+          "pageSize",
+          "items"
         ]
       },
       "NewEntity": {
@@ -1979,13 +1979,6 @@
       "FinancialGroupPage": {
         "type": "object",
         "properties": {
-          "items": {
-            "description": "Os grupos da página, na ordem da lista.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FinancialGroup"
-            }
-          },
           "total": {
             "type": "integer",
             "description": "Quantos itens o filtro acha, em todas as páginas.",
@@ -2000,13 +1993,20 @@
             "type": "integer",
             "description": "O tamanho da página.",
             "example": 10
+          },
+          "items": {
+            "description": "Os grupos da página, na ordem da lista.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialGroup"
+            }
           }
         },
         "required": [
-          "items",
           "total",
           "page",
-          "pageSize"
+          "pageSize",
+          "items"
         ]
       },
       "NewFinancialGroup": {

@@ -4,54 +4,26 @@ import Link from 'next/link';
 import { useSelectedLayoutSegment } from 'next/navigation';
 
 import { FOCUS_RING } from '../../_access/access-screen';
+import { ErrorNotice } from '../../_access/fields';
 import { LIST_ITEM, LIST_ITEM_SELECTED, NewListItem } from '../../_shell/list-item';
-import { LoadMoreButton, nameFilter, SearchBox, usePagedSearch } from '../../_shell/paged-search';
-import { stripTaxId } from './tax-id-format';
-
-/** Uma entidade como a lista a mostra, já formatada. */
-export interface EntityListItem {
-  readonly id: string;
-  readonly name: string;
-  /** O selo: o tipo (PF ou PJ), ou "Desativada". */
-  readonly badge: string;
-  /** A segunda linha: o documento, a operação ligada ou, na desativada, o tipo. */
-  readonly detail: string;
-  readonly active: boolean;
-  /**
-   * O CNPJ só com os caracteres, que a busca também confere, ou nulo. Nulo sempre na pessoa física: o
-   * CPF aparece mascarado na lista, e o completo não vai ao navegador (design-system.md, seção 3).
-   */
-  readonly taxId: string | null;
-}
+import type { ListPage } from '../../_shell/list-page';
+import { Pagination, useSearchedPages } from '../../_shell/pagination';
+import { SearchBox } from '../../_shell/search-box';
+import { searchEntitiesAction } from './actions';
+import type { EntityListItem } from './entity-list-page';
 
 /**
- * O filtro da busca: pelo nome, sem acentos nem maiúsculas, ou pelo documento escrito com ou sem a
- * pontuação. A busca vazia acha todas.
+ * A Coluna da tela (design-system.md, seção 4.1): a busca no topo, as entidades de 10 em 10, com a
+ * Paginação no rodapé, a aberta marcada quando está na página e, na criação, o item da nova no topo.
+ * Cada busca e cada página é um pedido à api.
  */
-function searchFilter(query: string): (item: EntityListItem) => boolean {
-  const byName = nameFilter(query);
-  // O documento só tem algarismos e letras: basta tirar a pontuação e passar para minúsculas.
-  const document = stripTaxId(query.trim().toLowerCase());
-  return (item) => byName(item) || (document !== '' && (item.taxId?.toLowerCase().includes(document) ?? false));
-}
-
-/**
- * A Coluna da tela (design-system.md, seção 4.1): a busca no topo e as entidades, 10 por vez, com a
- * aberta marcada e, na criação, o item da nova no topo. A lista vem inteira da api, e a busca a filtra
- * na tela.
- */
-export function EntityList({ items }: Readonly<{ items: readonly EntityListItem[] }>) {
+export function EntityList({ initial }: Readonly<{ initial: ListPage<EntityListItem> }>) {
   // O segmento abaixo do layout da tela: `new` na criação, e o id da entidade no detalhe e na edição.
   const segment = useSelectedLayoutSegment();
   const creating = segment === 'new';
-  // A entidade aberta continua à vista: depois da página, ela entra no fim, sozinha.
-  const { query, search, found, shown, hasMore, loadMore } = usePagedSearch(
-    items,
-    searchFilter,
-    (item) => item.id === segment,
-  );
+  const { query, shown, failed, search, goTo } = useSearchedPages(initial, searchEntitiesAction);
 
-  if (items.length === 0) {
+  if (initial.total === 0) {
     // Sem nenhuma entidade, não há o que buscar; na criação, a lista traz só o item da nova.
     return creating ? (
       <ul className="flex flex-col gap-1">
@@ -65,10 +37,11 @@ export function EntityList({ items }: Readonly<{ items: readonly EntityListItem[
   return (
     <div className="flex flex-col gap-3">
       <SearchBox id="entity-search" label="Buscar entidade" query={query} onSearch={search} />
-      {found.length === 0 && <p className="px-3 py-2 text-body-sm text-mute">Nenhuma entidade encontrada.</p>}
+      {failed && <ErrorNotice>Não foi possível carregar as entidades. Tente de novo.</ErrorNotice>}
+      {shown.total === 0 && <p className="px-3 py-2 text-body-sm text-mute">Nenhuma entidade encontrada.</p>}
       <ul className="flex flex-col gap-1">
         {creating && <NewListItem label="Nova entidade" detail="Ainda não salva" />}
-        {shown.map((item) => {
+        {shown.items.map((item) => {
           const selected = item.id === segment;
           return (
             <li key={item.id}>
@@ -96,7 +69,7 @@ export function EntityList({ items }: Readonly<{ items: readonly EntityListItem[
           );
         })}
       </ul>
-      {hasMore && <LoadMoreButton onClick={loadMore} />}
+      <Pagination page={shown.page} pageSize={shown.pageSize} total={shown.total} onPage={goTo} />
     </div>
   );
 }
