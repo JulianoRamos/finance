@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertDialog } from 'radix-ui';
-import { type ReactNode, startTransition, useActionState, useState } from 'react';
+import { type ReactNode, startTransition, useActionState, useRef, useState } from 'react';
 
 import { DESTRUCTIVE_BUTTON, SECONDARY_BUTTON } from './buttons';
 
@@ -29,11 +29,26 @@ export function ConfirmDialog({
   confirmLabel: string;
   onConfirm: () => void;
 }>) {
+  // As telas abrem a confirmação pelo estado, sem o gatilho do Radix, que é quem guardaria a quem
+  // devolver o foco: o diálogo guarda o elemento focado ao abrir, antes de o Radix mover o foco.
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   return (
     <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal>
         <AlertDialog.Overlay className="fixed inset-0 z-40 bg-ink/40" />
-        <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 flex w-full max-w-section -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-lg border border-hairline bg-surface p-6 shadow-flutuante">
+        <AlertDialog.Content
+          className="fixed top-1/2 left-1/2 z-50 flex w-full max-w-section -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-lg border border-hairline bg-surface p-6 shadow-flutuante"
+          onOpenAutoFocus={() => {
+            returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            const target = returnFocusRef.current;
+            returnFocusRef.current = null;
+            // Fora da página, o foco fica com o navegador.
+            if (target?.isConnected) returnFocus(target);
+          }}
+        >
           <AlertDialog.Title className="text-heading-md wrap-anywhere text-ink">{title}</AlertDialog.Title>
           <AlertDialog.Description className="text-body-md text-body">{description}</AlertDialog.Description>
           {children}
@@ -47,6 +62,26 @@ export function ConfirmDialog({
       </AlertDialog.Portal>
     </AlertDialog.Root>
   );
+}
+
+/**
+ * Devolve o foco ao elemento. Depois de confirmar, o botão que abriu a confirmação fica desabilitado
+ * enquanto a ação roda, e um elemento desabilitado não recebe o foco: espera ele voltar a valer, e só
+ * então o foca, se ninguém tiver levado o foco para outro lugar nesse meio-tempo.
+ */
+function returnFocus(target: HTMLElement) {
+  if (!target.matches(':disabled')) {
+    target.focus();
+    return;
+  }
+  const observer = new MutationObserver(() => {
+    if (target.matches(':disabled')) return;
+    observer.disconnect();
+    if (target.isConnected && (document.activeElement === null || document.activeElement === document.body)) {
+      target.focus();
+    }
+  });
+  observer.observe(target, { attributes: true, attributeFilter: ['disabled'] });
 }
 
 /** O que um comando sem formulário devolve à tela: a recusa, se houve. */
