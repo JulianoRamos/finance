@@ -4,6 +4,7 @@ import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -14,7 +15,7 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 
-import { ApiError, pageRequest, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
+import { ApiError, currentVisibleEntityIds, pageRequest, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
 import {
   FinancialGroup,
   FinancialGroupEdit,
@@ -34,8 +35,9 @@ const MEMBER_REFUSALS =
   '`INACTIVE_ENTITY`: uma entidade desativada entraria no grupo (regra 6.2). `ENTITY_NOT_FOUND`: um dos ids não é de nenhuma entidade.';
 const INVALID_MEMBERS = 'ou os membros faltam, não são uma lista de UUIDs ou se repetem (em `fields`).';
 
-// Até o KAN-14, as rotas pedem só a sessão: ele filtra os grupos pela permissão em todos os membros
-// (regra 6.22). Elas não leem o Financial-Context, porque os grupos são parte do que o contexto escolhe.
+// A lista e a leitura trazem só os grupos em que o usuário vê todos os membros (regra 6.2); a edição e a
+// exclusão ainda não conferem a permissão. Elas não leem o Financial-Context, porque os grupos são parte
+// do que o contexto escolhe.
 @ApiTags('financial-groups')
 @ApiBearerAuth('session')
 @Controller('financial-groups')
@@ -47,7 +49,7 @@ export class FinancialGroupsController {
   @ApiOkResponse({
     type: FinancialGroupPage,
     description:
-      'A página dos grupos do filtro, com o total (LLD, seção 5): a Visão Familiar primeiro, quando o filtro a acha, e os outros pelo nome, em ordem alfabética.',
+      'A página dos grupos do filtro em que o usuário tem `view` ou `operate` em todos os membros, com o total (LLD, seção 5): a Visão Familiar primeiro, quando o filtro a acha, e os outros pelo nome, em ordem alfabética. O grupo vazio entra; os outros não aparecem nem contam no total (regra 6.2).',
   })
   @ApiBadRequestResponse({
     type: ApiError,
@@ -55,8 +57,12 @@ export class FinancialGroupsController {
       '`INVALID_INPUT`: a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
   })
   @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
-  list(@Query() query: FinancialGroupListQuery): Promise<FinancialGroupPage> {
-    return this.groups.list({ q: query.q, page: pageRequest(query) });
+  async list(@Query() query: FinancialGroupListQuery): Promise<FinancialGroupPage> {
+    return this.groups.list({
+      q: query.q,
+      visibleIds: await currentVisibleEntityIds(),
+      page: pageRequest(query),
+    });
   }
 
   @Post()
@@ -78,9 +84,13 @@ export class FinancialGroupsController {
   @ApiOkResponse({ type: FinancialGroup, description: 'O grupo, com os membros.' })
   @ApiBadRequestResponse(INVALID_ID_RESPONSE)
   @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
+  @ApiForbiddenResponse({
+    type: ApiError,
+    description: '`FORBIDDEN`: o usuário não tem `view` nem `operate` em algum membro do grupo (regra 6.2).',
+  })
   @ApiNotFoundResponse(NOT_FOUND_RESPONSE)
-  get(@Param() params: FinancialGroupId): Promise<FinancialGroup> {
-    return this.groups.get(params.id);
+  async get(@Param() params: FinancialGroupId): Promise<FinancialGroup> {
+    return this.groups.get(params.id, await currentVisibleEntityIds());
   }
 
   @Put(':id')

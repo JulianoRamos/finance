@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import type { ShownContext } from './context-selector';
 import { HintProvider } from './hint';
 import { Sidebar } from './sidebar';
 import { TopBar } from './top-bar';
@@ -10,17 +11,19 @@ import { TopBar } from './top-bar';
  */
 export function AppShell({
   user,
+  context,
   sidebarExpanded,
   children,
 }: Readonly<{
   user: { name: string; email: string; managesAccess: boolean };
+  context: ShownContext;
   sidebarExpanded: boolean;
   children: ReactNode;
 }>) {
   return (
     <HintProvider>
       <div className="flex min-h-screen bg-surface-subtle">
-        <Sidebar user={user} expanded={sidebarExpanded} />
+        <Sidebar user={user} context={context} expanded={sidebarExpanded} />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar sidebarExpanded={sidebarExpanded} managesAccess={user.managesAccess} />
           <main className="flex flex-1 flex-col">{children}</main>

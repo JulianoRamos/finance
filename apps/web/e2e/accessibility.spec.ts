@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
-import { createTestCompany, openTestCompany, openTestGroup } from './support/entities';
+import { createTestCompany, grantFamilyViewAccess, openTestCompany, openTestGroup } from './support/entities';
 import { createPendingTestUser, createTestUser, openTestUser, signIn, uniqueOrigin } from './support/users';
 import { screenAlert } from './support/screen';
 
@@ -23,9 +23,24 @@ const SCREENS: readonly Screen[] = [
   {
     name: 'a página inicial',
     open: async (page, baseURL) => {
-      await signIn(page.context(), await createTestUser(), baseURL);
+      const user = await createTestUser();
+      // Uma empresa dá ao usuário um contexto, que o Início mostra no cartão.
+      await createTestCompany(user);
+      await signIn(page.context(), user, baseURL);
       await page.goto('/');
       await expect(page.getByRole('status')).toBeVisible();
+      await expect(page.getByRole('main').getByRole('heading', { level: 2 })).toBeVisible();
+    },
+  },
+  {
+    name: 'o seletor de contexto aberto',
+    open: async (page, baseURL) => {
+      const user = await createTestUser();
+      await createTestCompany(user);
+      await signIn(page.context(), user, baseURL);
+      await page.goto('/');
+      await page.getByRole('button', { name: /^Contexto: / }).click();
+      await expect(page.getByRole('dialog', { name: 'Contexto financeiro' }).getByRole('group').first()).toBeVisible();
     },
   },
   {
@@ -112,6 +127,7 @@ const SCREENS: readonly Screen[] = [
       const user = await createTestUser();
       // Garante uma empresa, que aparece bloqueada.
       await createTestCompany(user);
+      await grantFamilyViewAccess(user);
       await signIn(page.context(), user, baseURL);
       await page.goto('/financial-groups');
       await expect(page.getByRole('button', { name: 'Salvar membros' })).toBeVisible();

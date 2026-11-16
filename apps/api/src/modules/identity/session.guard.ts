@@ -5,12 +5,17 @@ import type { Request } from 'express';
 
 import {
   apiError,
+  FINANCIAL_CONTEXT_HEADER,
+  parseFinancialContext,
   type PermissionLevel,
   PUBLIC_ROUTE,
   REQUIRED_ENTITY_LEVEL,
+  REQUIRED_FINANCIAL_CONTEXT,
   setCurrentAccess,
+  setCurrentFinancialContext,
   setCurrentUser,
 } from '../../common/index.js';
+import { FinancialContextService } from '../entities/index.js';
 import { MANAGES_ACCESS } from './manages-access.js';
 import { PermissionsService } from './permissions.service.js';
 import { type AuthenticatedSession, SessionsService } from './sessions.service.js';
@@ -48,6 +53,7 @@ export class SessionGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly sessions: SessionsService,
     private readonly permissions: PermissionsService,
+    private readonly financialContexts: FinancialContextService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -68,6 +74,11 @@ export class SessionGuard implements CanActivate {
     if (this.reflector.get<boolean | undefined>(MANAGES_ACCESS, context.getHandler()) && !session.user.managesAccess) {
       throw forbidden('Só quem gere os acessos usa esta função.');
     }
+    const contextLevel = this.reflector.get<PermissionLevel | undefined>(
+      REQUIRED_FINANCIAL_CONTEXT,
+      context.getHandler(),
+    );
+    if (contextLevel) await this.checkFinancialContext(request, session.user.id, contextLevel);
     const required = this.reflector.get<PermissionLevel | undefined>(REQUIRED_ENTITY_LEVEL, context.getHandler());
     if (!required) return true;
     const entityId = request.params.id;
@@ -86,6 +97,30 @@ export class SessionGuard implements CanActivate {
       }
     }
     return true;
+  }
+
+  /**
+   * Resolve o contexto financeiro do cabeçalho e confere o nível exigido em cada entidade dele (regra
+   * 6.2), antes da rota de dados. O id que não é de nenhuma entidade nem grupo responde como a falta de
+   * permissão, para a resposta não dizer se o registro existe.
+   */
+  private async checkFinancialContext(request: Request, userId: string, required: PermissionLevel): Promise<void> {
+    const reference = parseFinancialContext(request.header(FINANCIAL_CONTEXT_HEADER));
+    if (!reference) {
+      throw apiError(HttpStatus.BAD_REQUEST, 'INVALID_INPUT', 'Escolha um contexto financeiro.', {
+        [FINANCIAL_CONTEXT_HEADER]: 'Use entity:<id> ou group:<id>, com o id em UUID.',
+      });
+    }
+    const resolved = await this.financialContexts.resolve(reference);
+    if (!resolved) throw forbidden('Você não tem acesso a este contexto financeiro.');
+    const levels = await this.permissions.levelsOf(
+      userId,
+      resolved.entities.map((entity) => entity.id),
+    );
+    if (!resolved.entities.every((entity) => satisfiesLevel(levels.get(entity.id), required))) {
+      throw forbidden('Você não tem acesso a todas as entidades deste contexto financeiro.');
+    }
+    setCurrentFinancialContext(resolved);
   }
 }
 

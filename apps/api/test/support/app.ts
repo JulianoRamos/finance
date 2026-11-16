@@ -8,7 +8,7 @@ import request from 'supertest';
 import { configureApp } from '../../src/app.js';
 import { AppModule } from '../../src/app.module.js';
 import { runCommand } from '../../src/cli/commands.js';
-import { type Clock, CLOCK } from '../../src/common/index.js';
+import { type Clock, CLOCK, PrismaService } from '../../src/common/index.js';
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
@@ -205,4 +205,20 @@ export async function newSessionByRoute(
   const { user, linkToken } = await newUserByRoute(app, managerToken, body);
   await redeemLink(app, linkToken, TEST_PASSWORD).expect(201);
   return { user, token: await loginAs(app, user.email) };
+}
+
+/**
+ * Dá ao usuário do token `view` em cada membro atual da Visão Familiar, gravado direto no banco. O
+ * `finance_test` guarda nela os membros de outras execuções, em que o usuário de teste não tem
+ * permissão, e sem isso ela some da lista dos grupos para ele (regra 6.2).
+ */
+export async function grantFamilyViewAccess(app: INestApplication<Server>, token: string): Promise<void> {
+  const session = (await getCurrentSession(app, token).expect(200)).body as { user: { id: string } };
+  await app.get(PrismaService).$executeRaw`
+    INSERT INTO permission (user_id, entity_id, level, created_at, updated_at)
+    SELECT ${session.user.id}::uuid, member.entity_id, 'view'::permission_level, now(), now()
+    FROM financial_group_member member
+    JOIN financial_group grp ON grp.id = member.financial_group_id
+    WHERE grp.is_family_view
+    ON CONFLICT (user_id, entity_id) DO NOTHING`;
 }

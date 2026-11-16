@@ -2285,8 +2285,8 @@
           {
             "name": "Financial-Context",
             "in": "header",
-            "required": true,
             "description": "O contexto financeiro escolhido (LLD, seção 5): `entity:<id>` ou `group:<id>`, com o id em UUID.",
+            "required": true,
             "schema": {
               "type": "string",
               "example": "group:0190d3f2-6c1e-7a4b-9f00-1a2b3c4d5e6f"

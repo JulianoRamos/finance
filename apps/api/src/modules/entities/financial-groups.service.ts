@@ -6,6 +6,7 @@ import {
   type Clock,
   CLOCK,
   type EntityType,
+  type FinancialContextEntityRow,
   NAME_COLLATION,
   nameMatches,
   omit,
@@ -42,7 +43,14 @@ interface MemberRow {
   readonly financialGroupId: string;
   readonly entityId: string;
   readonly createdAt: Date;
-  readonly entity: { readonly id: string; readonly type: EntityType; readonly name: string; readonly active: boolean };
+  readonly entity: FinancialContextEntityRow;
+}
+
+/** As entidades dos membros, só com o id, o tipo, o nome e se estão ativas, pelo nome. */
+export function membersByName(members: readonly Pick<MemberRow, 'entity'>[]): FinancialContextEntityRow[] {
+  return members
+    .map(({ entity }) => ({ id: entity.id, type: entity.type, name: entity.name, active: entity.active }))
+    .sort((a, b) => byName.compare(a.name, b.name));
 }
 
 /** O grupo como a rota o devolve, com os membros pelo nome. */
@@ -51,9 +59,7 @@ function toFinancialGroup(row: GroupRow): FinancialGroup {
     id: row.id,
     name: row.name,
     isFamilyView: row.isFamilyView,
-    members: row.members
-      .map(({ entity }) => ({ id: entity.id, type: entity.type, name: entity.name, active: entity.active }))
-      .sort((a, b) => byName.compare(a.name, b.name)),
+    members: membersByName(row.members),
     createdAt: row.createdAt,
     version: row.version,
   };
@@ -103,11 +109,21 @@ export class FinancialGroupsService {
   ) {}
 
   /** A página dos grupos, a Visão Familiar primeiro e os outros pelo nome. A busca acha o nome sem acento. */
-  async list(filter: { q?: string | undefined; page: PageRequest }): Promise<FinancialGroupPage> {
+  async list(filter: {
+    q?: string | undefined;
+    visibleIds: readonly string[];
+    page: PageRequest;
+  }): Promise<FinancialGroupPage> {
     const client = this.transactions.client;
+    // Só os grupos em que o usuário vê todos os membros (regra 6.2): o grupo vazio entra.
     return readPage(
       client,
-      sql`SELECT id, is_family_view, name FROM financial_group WHERE ${nameMatches(filter.q)}`,
+      sql`SELECT id, is_family_view, name FROM financial_group
+        WHERE ${nameMatches(filter.q)}
+          AND NOT EXISTS (
+            SELECT 1 FROM financial_group_member member
+            WHERE member.financial_group_id = financial_group.id
+              AND NOT (member.entity_id = ANY(${[...filter.visibleIds]}::uuid[])))`,
       sql`is_family_view DESC, name ${NAME_COLLATION}`,
       filter.page,
       async (ids) =>
@@ -117,9 +133,17 @@ export class FinancialGroupsService {
     );
   }
 
-  /** O grupo do id, com os membros. */
-  async get(id: string): Promise<FinancialGroup> {
-    return toFinancialGroup(await this.read(id));
+  /**
+   * O grupo do id, com os membros, quando o usuário vê todos eles (regra 6.2). O que não existe responde
+   * 404, e o que tem um membro que ele não vê, 403.
+   */
+  async get(id: string, visibleIds: readonly string[]): Promise<FinancialGroup> {
+    const row = await this.read(id);
+    const visible = new Set(visibleIds);
+    if (!row.members.every((member) => visible.has(member.entityId))) {
+      throw apiError(HttpStatus.FORBIDDEN, 'FORBIDDEN', 'Você não tem acesso a todas as entidades deste grupo.');
+    }
+    return toFinancialGroup(row);
   }
 
   /** Cria o grupo, na versão 1, com os membros pedidos. */

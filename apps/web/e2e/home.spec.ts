@@ -12,6 +12,6 @@ test('a página inicial mostra o estado da API', { tag: '@KAN-7-CA2' }, async ({
 
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { level: 1, name: 'finance' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Início' })).toBeVisible();
   await expect(page.getByRole('status')).toHaveText('API no ar');
 });

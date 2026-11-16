@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { configureApp } from '../src/app.js';
 import { AppModule } from '../src/app.module.js';
-import { PrismaService, runInRequestContext } from '../src/common/index.js';
+import { newRequestContext, PrismaService, runInRequestContext } from '../src/common/index.js';
 import { type AuditEntry, AuditService } from '../src/modules/audit/index.js';
 import {
   AUDIT_PROBE_TABLE,
@@ -132,11 +132,7 @@ describe('Auditoria', () => {
     // Fora de qualquer requisição, como um comando que esqueceu o contexto.
     await expect(audit.record(entry)).rejects.toThrow(refusal);
     // Numa requisição, sem a transação aberta.
-    await expect(
-      runInRequestContext({ requestId: randomUUID(), userId: null, entityLevels: null, transaction: null }, () =>
-        audit.record(entry),
-      ),
-    ).rejects.toThrow(refusal);
+    await expect(runInRequestContext(newRequestContext(), () => audit.record(entry))).rejects.toThrow(refusal);
     expect(await auditOf(recordId)).toEqual([]);
   });
 

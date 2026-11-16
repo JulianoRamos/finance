@@ -40,6 +40,17 @@ export interface TestUserOptions {
   readonly managesAccess?: boolean;
 }
 
+/** Roda os comandos no banco de desenvolvimento, numa conexão que fecha no fim. */
+export async function withDevDatabase(run: (client: pg.Client) => Promise<void>): Promise<void> {
+  const client = new pg.Client({ connectionString: requiredEnv('E2E_DATABASE_URL') });
+  await client.connect();
+  try {
+    await run(client);
+  } finally {
+    await client.end();
+  }
+}
+
 /**
  * Grava um usuário com e-mail próprio, sem senha, e um link de recuperação dele, que vale 1 hora. Por
  * padrão, ele não gere acessos.
@@ -50,9 +61,7 @@ export async function createPendingTestUser({ managesAccess = false }: TestUserO
   const email = `e2e-${suffix}@exemplo.com`;
   const token = randomBytes(32).toString('base64url');
 
-  const client = new pg.Client({ connectionString: requiredEnv('E2E_DATABASE_URL') });
-  await client.connect();
-  try {
+  await withDevDatabase(async (client) => {
     const { rows } = await client.query<{ id: string }>(
       'INSERT INTO "user" (name, email, manages_access, created_at, updated_at) VALUES ($1, $2, $3, now(), now()) RETURNING id',
       [name, email, managesAccess],
@@ -61,9 +70,7 @@ export async function createPendingTestUser({ managesAccess = false }: TestUserO
       "INSERT INTO recovery_link (user_id, token_hash, created_at, expires_at) VALUES ($1, $2, now(), now() + interval '1 hour')",
       [rows[0]?.id, createHash('sha256').update(token).digest('hex')],
     );
-  } finally {
-    await client.end();
-  }
+  });
   return { name, email, linkToken: token };
 }
 

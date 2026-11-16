@@ -12,7 +12,7 @@ import { INITIAL_FORM_STATE } from '../../_shell/form-state';
 import type { ListPage } from '../../_shell/list-page';
 import { Pagination, useSearchedPages } from '../../_shell/pagination';
 import { SearchBox } from '../../_shell/search-box';
-import { TYPE_BADGES } from '../entities/tax-id-format';
+import { EntityBadge } from '../entities/entity-badge';
 import {
   createGroupAction,
   deleteGroupAction,
@@ -29,16 +29,9 @@ export type MemberOption = FinancialGroupMember;
 const PANEL = 'flex flex-col gap-6 rounded-md border border-hairline bg-surface p-4 md:p-6';
 const ROW = 'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border border-hairline px-3 py-2';
 const CONTROL = 'size-4 flex-none accent-accent';
-const BADGE = 'ml-auto flex-none rounded-full px-2 text-body-sm font-medium';
 const BLOCKED_NOTE = 'Empresa: não entra na Visão Familiar';
 /** A escolha com mais opções que isto ganha a busca (design-system.md, seção 4.3). */
 const SEARCH_ABOVE = 10;
-
-/** O selo do membro: o tipo (PF ou PJ), ou "Desativada" na entidade desativada que já estava no grupo. */
-function MemberBadge({ option }: Readonly<{ option: MemberOption }>) {
-  if (!option.active) return <span className={`${BADGE} bg-surface-subtle text-body`}>Desativada</span>;
-  return <span className={`${BADGE} bg-accent-soft text-link`}>{TYPE_BADGES[option.type]}</span>;
-}
 
 /** Uma linha da escolha: a caixa, o nome e o selo, ou, na empresa da Visão Familiar, o motivo. */
 function MemberRow({
@@ -62,7 +55,7 @@ function MemberRow({
           className={CONTROL}
         />
         <span className="min-w-0 wrap-anywhere">{option.name}</span>
-        {!blocked && <MemberBadge option={option} />}
+        {!blocked && <EntityBadge entity={option} className="ml-auto" />}
       </label>
       {blocked && (
         <span id={noteId} className="ml-auto text-body-sm text-mute">
