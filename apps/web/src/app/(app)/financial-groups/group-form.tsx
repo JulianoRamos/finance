@@ -11,15 +11,10 @@ import { ConfirmDialog, useConfirmedCommand } from '../../_shell/confirm-dialog'
 import { INITIAL_FORM_STATE } from '../../_shell/form-state';
 import type { ListPage } from '../../_shell/list-page';
 import { Pagination, useSearchedPages } from '../../_shell/pagination';
-import { SearchBox } from '../../_shell/search-box';
+import { SEARCH_ABOVE, SearchBox } from '../../_shell/search-box';
 import { EntityBadge } from '../entities/entity-badge';
-import {
-  createGroupAction,
-  deleteGroupAction,
-  type GroupFormState,
-  searchMemberOptionsAction,
-  updateGroupAction,
-} from './actions';
+import { createGroupAction, deleteGroupAction, type GroupFormState, updateGroupAction } from './actions';
+import { searchEntityOptionsAction } from '../entities/actions';
 
 /**
  * Uma entidade que o formulário oferece como membro, com o que a resposta do grupo traz de cada uma.
@@ -30,8 +25,6 @@ const PANEL = 'flex flex-col gap-6 rounded-md border border-hairline bg-surface 
 const ROW = 'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border border-hairline px-3 py-2';
 const CONTROL = 'size-4 flex-none accent-accent';
 const BLOCKED_NOTE = 'Empresa: não entra na Visão Familiar';
-/** A escolha com mais opções que isto ganha a busca (design-system.md, seção 4.3). */
-const SEARCH_ABOVE = 10;
 
 /** Uma linha da escolha: a caixa, o nome e o selo, ou, na empresa da Visão Familiar, o motivo. */
 function MemberRow({
@@ -90,7 +83,7 @@ function MemberChoices({
 }>) {
   // O formulário recompõe a escolha no "Descartar", e ela volta às marcadas que recebeu.
   const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set(checked));
-  const { query, shown, failed, search, goTo } = useSearchedPages(options, searchMemberOptionsAction);
+  const { query, shown, failed, search, goTo } = useSearchedPages(options, searchEntityOptionsAction);
   const paged = options.total > SEARCH_ABOVE;
   const tick = (id: string) => (on: boolean) => {
     const next = new Set(ticked);

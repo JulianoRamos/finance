@@ -5,7 +5,7 @@ import type { AccessLevel } from '@/api/users';
 import { ErrorNotice } from '../../_access/fields';
 import type { ListPage } from '../../_shell/list-page';
 import { Pagination, useSearchedPages } from '../../_shell/pagination';
-import { SearchBox } from '../../_shell/search-box';
+import { SEARCH_ABOVE, SearchBox } from '../../_shell/search-box';
 import { searchPermissionsAction } from './actions';
 import type { PermissionRow } from './user-list-page';
 
@@ -15,9 +15,6 @@ const LEVEL_COLUMNS: readonly { readonly level: AccessLevel; readonly label: str
   { level: 'view', label: 'Ver', radio: 'ver' },
   { level: 'operate', label: 'Operar', radio: 'operar' },
 ];
-
-/** A tabela com mais entidades que isto ganha a busca (design-system.md, seção 4.3). */
-const SEARCH_ABOVE = 10;
 
 const HEAD = 'bg-surface-subtle px-3 py-2 text-left text-label text-mute whitespace-nowrap';
 const LEVEL_HEAD = `${HEAD} w-24 text-center`;

@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { formatCnpj, uniqueCnpj } from './tax-ids';
 import { createTestUser, requiredEnv, signIn, type TestUser, withDevDatabase } from './users';
@@ -45,6 +45,21 @@ export function createTestIndividual(user: TestUser, name = uniqueName('Ana Test
   return postAsUser(user, '/v1/entities', { type: 'individual', name }, 'da pessoa física de teste');
 }
 
+/** Registra pela api a participação do sócio na empresa, sem fim, desde o início dado. */
+export async function createTestEquityStake(
+  user: TestUser,
+  company: TestEntity,
+  holder: TestEntity,
+  { fraction, startDate }: { fraction: string; startDate: string },
+): Promise<void> {
+  await postAsUser(
+    user,
+    `/v1/entities/${company.id}/equity-stakes`,
+    { holderId: holder.id, fraction, startDate },
+    'da participação de teste',
+  );
+}
+
 /** Cria pela api um grupo financeiro com os membros dados e o nome dado, ou um próprio do teste. */
 export function createTestGroup(
   user: TestUser,
@@ -71,6 +86,16 @@ export async function deleteTestGroup(user: TestUser, id: string): Promise<void>
   if (response.status !== 204) {
     throw new Error(`A exclusão do grupo de teste respondeu ${String(response.status)}.`);
   }
+}
+
+/**
+ * Busca a entidade numa escolha de entidades, como os membros de um grupo ou o sócio de uma participação,
+ * quando há a busca (mais de 10 entidades): o banco de desenvolvimento guarda as de outras execuções, e a
+ * do teste pode ficar fora da primeira página.
+ */
+export async function findEntityOption(scope: Locator, name: string): Promise<void> {
+  const search = scope.getByRole('searchbox', { name: 'Buscar entidade' });
+  if ((await search.count()) > 0) await search.fill(name);
 }
 
 /** Entra com um usuário novo e abre uma empresa dele, com a clínica ligada, no caminho dado abaixo dela. */

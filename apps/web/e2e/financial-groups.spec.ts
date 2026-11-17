@@ -5,6 +5,7 @@ import {
   createTestGroup,
   createTestIndividual,
   deleteTestGroup,
+  findEntityOption,
   grantFamilyViewAccess,
   type TestEntity,
   uniqueName,
@@ -26,15 +27,6 @@ async function familyViewCount(page: Page): Promise<number> {
   return Number(count);
 }
 
-/**
- * Busca a entidade entre os membros do formulário, quando há a busca (mais de 10 entidades): o banco de
- * desenvolvimento guarda as de outras execuções, e a do teste pode ficar fora da primeira página.
- */
-async function findMember(scope: Locator, name: string): Promise<void> {
-  const search = scope.getByRole('searchbox', { name: 'Buscar entidade' });
-  if ((await search.count()) > 0) await search.fill(name);
-}
-
 test('o usuário escolhe os membros da Visão Familiar', { tag: '@KAN-12-CA4' }, async ({ page, baseURL }) => {
   await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
   const user = await createTestUser();
@@ -52,19 +44,19 @@ test('o usuário escolhe os membros da Visão Familiar', { tag: '@KAN-12-CA4' },
   await expect(detail.getByRole('heading', { level: 2, name: 'Visão Familiar' })).toBeVisible();
   await expect(detail).toContainText('Só aceita pessoas físicas.');
   const companyBox = detail.getByRole('checkbox', { name: company.name });
-  await findMember(detail, company.name);
+  await findEntityOption(detail, company.name);
   await expect(companyBox).toBeDisabled();
   await expect(companyBox).toHaveAccessibleDescription('Empresa: não entra na Visão Familiar');
   const before = await familyViewCount(page);
 
-  await findMember(detail, person.name);
+  await findEntityOption(detail, person.name);
   await personBox.check();
   await detail.getByRole('button', { name: 'Salvar membros' }).click();
   await expect(groupList(page).getByRole('link', { name: /^Visão Familiar/ })).not.toContainText(
     before === 0 ? 'Nenhuma' : `${String(before)} pessoa`,
   );
   await page.reload();
-  await findMember(detail, person.name);
+  await findEntityOption(detail, person.name);
 
   await expect(personBox).toBeChecked();
   expect(await familyViewCount(page)).toBe(before + 1);
@@ -76,7 +68,7 @@ test('o usuário escolhe os membros da Visão Familiar', { tag: '@KAN-12-CA4' },
     before === 0 ? 'Nenhuma pessoa física' : `${String(before)} pessoa`,
   );
   await page.reload();
-  await findMember(detail, person.name);
+  await findEntityOption(detail, person.name);
 
   await expect(personBox).not.toBeChecked();
 });
@@ -98,9 +90,9 @@ test('o usuário cria, edita e exclui um grupo', { tag: '@KAN-12-CA7' }, async (
   await page.getByRole('link', { name: 'Novo grupo' }).click();
   const newForm = page.getByRole('form', { name: 'Novo grupo financeiro' });
   await newForm.getByLabel('Nome', { exact: true }).fill(name);
-  await findMember(newForm, person.name);
+  await findEntityOption(newForm, person.name);
   await newForm.getByRole('checkbox', { name: person.name }).check();
-  await findMember(newForm, company.name);
+  await findEntityOption(newForm, company.name);
   await newForm.getByRole('checkbox', { name: company.name }).check();
   await page.getByRole('button', { name: 'Criar grupo' }).click();
   // A lista mostra a primeira página de um banco com os grupos de outras execuções: busca o novo.
@@ -111,9 +103,9 @@ test('o usuário cria, edita e exclui um grupo', { tag: '@KAN-12-CA7' }, async (
   await expect(item(name)).toHaveAttribute('aria-current', 'page');
   await expect(item(name)).toContainText(`${person.name} e ${company.name}`);
   await expect(form(name).getByLabel('Nome', { exact: true })).toHaveValue(name);
-  await findMember(form(name), person.name);
+  await findEntityOption(form(name), person.name);
   await expect(form(name).getByRole('checkbox', { name: person.name })).toBeChecked();
-  await findMember(form(name), company.name);
+  await findEntityOption(form(name), company.name);
   await expect(form(name).getByRole('checkbox', { name: company.name })).toBeChecked();
 
   await form(name).getByLabel('Nome', { exact: true }).fill(newName);

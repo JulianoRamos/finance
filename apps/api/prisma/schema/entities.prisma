@@ -138,6 +138,8 @@ model FinancialGroupMember {
 /// CHECK escrito à mão na migração (equity_stake_period_check): end_date nulo, ou no mesmo dia de
 /// start_date ou depois dele.
 /// CHECK escrito à mão na migração (equity_stake_self_check): holder_id diferente de company_id.
+/// O papel do banco da aplicação (finance_app) não tem DELETE nem TRUNCATE nesta tabela, porque a
+/// participação é encerrada, e não excluída. A revogação é escrita à mão na migração.
 model EquityStake {
   /// uuidv7, gerado pelo banco.
   id        String    @id @default(dbgenerated("uuidv7()")) @db.Uuid

@@ -2,6 +2,9 @@
 
 import { inputClass } from '../_access/fields';
 
+/** A escolha ou a lista com mais opções que isto ganha a busca (design-system.md, seção 4.3). */
+export const SEARCH_ABOVE = 10;
+
 /**
  * O campo da busca de uma lista, com o rótulo só para o leitor de tela. Dentro de um formulário, o
  * Enter não envia o formulário.

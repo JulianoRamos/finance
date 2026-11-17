@@ -8,7 +8,8 @@ import { mapPage } from '../../../_shell/list-page';
 import { LoadError } from '../../../_shell/load-error';
 import { loadOrNotFound } from '../../../_shell/load-or-not-found';
 import { GroupForm } from '../group-form';
-import { inactiveMembers, memberOption } from '../member-options';
+import { entityOption } from '../../entities/entity-option';
+import { inactiveMembers } from '../member-options';
 
 /** Os membros da Visão Familiar, ou o formulário de um grupo do usuário, com a lista ao lado. */
 export default async function FinancialGroupDetail({ params }: PageProps<'/financial-groups/[id]'>) {
@@ -21,7 +22,7 @@ export default async function FinancialGroupDetail({ params }: PageProps<'/finan
     <GroupForm
       group={group}
       createdOn={formatDate(group.createdAt)}
-      options={mapPage(entities.data, memberOption)}
+      options={mapPage(entities.data, entityOption)}
       inactive={inactiveMembers(group)}
     />
   );

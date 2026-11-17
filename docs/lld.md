@@ -127,7 +127,7 @@ O `recovery_code` é o código de recuperação do segundo fator; o `recovery_li
 | `entity_operation` | `entity_id`, `operation` (`clinic`) | Única `(entity_id, operation)`, com `id` próprio, que a auditoria guarda. Só pessoa jurídica (regra 6.2) |
 | `financial_group` | `name`, `is_family_view` | Índice único parcial: só um grupo com `is_family_view`. A Visão Familiar nasce na migração que cria a tabela (regra 6.2) |
 | `financial_group_member` | `financial_group_id`, `entity_id` | Única `(financial_group_id, entity_id)`, com `id` próprio, que a auditoria guarda. Só pessoa física na Visão Familiar (regra 6.2) |
-| `equity_stake` | `holder_id` (pessoa física ou empresa), `company_id` (pessoa jurídica), `fraction`, `start_date`, `end_date` | `0 < fraction <= 1`, `end_date` nulo ou não antes de `start_date`, e `holder_id` diferente de `company_id`. A soma vigente por empresa não passa de 1, e não há ciclo (regras 6.2 e 6.17) |
+| `equity_stake` | `holder_id` (pessoa física ou empresa), `company_id` (pessoa jurídica), `fraction`, `start_date`, `end_date` | `0 < fraction <= 1`, `end_date` nulo ou não antes de `start_date`, e `holder_id` diferente de `company_id`. A soma vigente por empresa não passa de 1, e não há ciclo (regras 6.2 e 6.17). O papel da `api` não tem `DELETE` nem `TRUNCATE` nela: a participação é encerrada, e não excluída |
 
 ### 4.4 Auditoria
 

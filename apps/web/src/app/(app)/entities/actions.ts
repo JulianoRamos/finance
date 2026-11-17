@@ -13,12 +13,15 @@ import {
   setEntityActive,
   updateEntity,
 } from '@/api/entities';
+import { createEquityStake, endEquityStake } from '@/api/equity-stakes';
 
 import { formText } from '../../_access/form-text';
 import type { CommandMessage } from '../../_shell/confirm-dialog';
-import { type FormState, refusedFormState } from '../../_shell/form-state';
+import { formatFraction, percentToFraction } from '../../_shell/format';
+import { type FormState, INITIAL_FORM_STATE, refusedFormState } from '../../_shell/form-state';
 import { listPageResult, type ListPageResult } from '../../_shell/list-page';
 import { type EntityListItem, entityListItem } from './entity-list-page';
+import { type EntityOption, entityOption } from './entity-option';
 
 /** O que foi enviado no formulário de uma entidade, que volta aos campos depois de uma recusa. */
 export interface EntityFormValues {
@@ -138,4 +141,130 @@ export async function searchEntitiesAction({
   page: number;
 }): Promise<ListPageResult<EntityListItem>> {
   return listPageResult(await listEntities(page, q), entityListItem);
+}
+
+/**
+ * Uma página das entidades ativas, com a busca, pedida pelas escolhas que as oferecem: os membros de um
+ * grupo e o sócio de uma participação.
+ */
+export async function searchEntityOptionsAction({
+  q,
+  page,
+}: {
+  q: string;
+  page: number;
+}): Promise<ListPageResult<EntityOption>> {
+  return listPageResult(await listEntities(page, q, true), entityOption);
+}
+
+/** O que foi enviado no formulário de registrar uma participação, com a fração em percentual. */
+export interface EquityStakeFormValues {
+  readonly holderId: string;
+  readonly holderName: string;
+  readonly percent: string;
+  readonly startDate: string;
+  readonly endDate: string;
+}
+
+/** O que o formulário de registrar uma participação mostra depois de um envio recusado. */
+export type EquityStakeFormState = FormState<EquityStakeFormValues> & {
+  /** Se o envio foi aceito: aí o formulário fecha. */
+  readonly saved: boolean;
+};
+
+/** Os campos do registro com o erro ao lado, pelo nome deles no contrato. */
+const STAKE_FIELDS: ReadonlySet<string> = new Set(['holderId', 'fraction', 'startDate', 'endDate']);
+
+/** As recusas do registro que são do sócio escolhido (regra 6.2). */
+const STAKE_FIELD_OF_CODE: Readonly<Record<string, string>> = {
+  ENTITY_NOT_FOUND: 'holderId',
+  INACTIVE_ENTITY: 'holderId',
+  EQUITY_STAKE_SELF: 'holderId',
+  EQUITY_STAKE_CYCLE: 'holderId',
+};
+
+/** A recusa de um campo, antes de pedir à api. */
+function fieldRefusal<Values>(values: Values, field: string, message: string): FormState<Values> & { saved: false } {
+  return { values, message: null, conflict: false, fields: { [field]: message }, saved: false };
+}
+
+/**
+ * A recusa da fração, dita em percentual, como o campo a pede: a da api fala da fração de 0 a 1, com as 8
+ * casas dela.
+ */
+const PERCENT_REFUSAL = 'Informe a fração em percentual, de mais de 0 até 100, com até 6 casas.';
+
+/** O envio aceito, que fecha o formulário. */
+const SAVED = { ...INITIAL_FORM_STATE, saved: true } as const;
+
+/**
+ * Registra a participação do formulário na empresa e mostra a tabela de novo, que fecha o formulário. O
+ * percentual digitado vira a fração da api; a soma acima de 100% é dita como o protótipo a diz.
+ */
+export async function createEquityStakeAction(
+  _previous: EquityStakeFormState,
+  form: FormData,
+): Promise<EquityStakeFormState> {
+  const companyId = formText(form, 'companyId');
+  const values: EquityStakeFormValues = {
+    holderId: formText(form, 'holderId'),
+    holderName: formText(form, 'holderName'),
+    percent: formText(form, 'percent'),
+    startDate: formText(form, 'startDate'),
+    endDate: formText(form, 'endDate'),
+  };
+  if (!values.holderId) return fieldRefusal(values, 'holderId', 'Escolha o sócio.');
+  const fraction = percentToFraction(values.percent);
+  if (!fraction) return fieldRefusal(values, 'fraction', PERCENT_REFUSAL);
+  const result = await createEquityStake(companyId, {
+    holderId: values.holderId,
+    fraction,
+    startDate: values.startDate,
+    endDate: values.endDate || null,
+  });
+  if (result.ok) {
+    revalidatePath(`/entities/${companyId}`);
+    return SAVED;
+  }
+  if (result.code === 'EQUITY_STAKE_OVER_LIMIT') {
+    return {
+      values,
+      message: `${values.holderName} com ${formatFraction(fraction)} passaria de 100% das participações vigentes. Encerre outra participação antes.`,
+      conflict: false,
+      fields: {},
+      saved: false,
+    };
+  }
+  const refused = refusedFormState(result, values, STAKE_FIELDS, STAKE_FIELD_OF_CODE);
+  const fields = refused.fields.fraction ? { ...refused.fields, fraction: PERCENT_REFUSAL } : refused.fields;
+  return { ...refused, fields, saved: false };
+}
+
+/** O que foi enviado no formulário de encerrar uma participação. */
+export interface EndEquityStakeFormValues {
+  readonly endDate: string;
+}
+
+/** O que o formulário de encerrar uma participação mostra depois de um envio recusado. */
+export type EndEquityStakeFormState = FormState<EndEquityStakeFormValues> & {
+  /** Se o encerramento foi aceito: aí o formulário fecha. */
+  readonly saved: boolean;
+};
+
+/** Encerra a participação com o último dia, com a versão lida, e mostra a tabela de novo. */
+export async function endEquityStakeAction(
+  _previous: EndEquityStakeFormState,
+  form: FormData,
+): Promise<EndEquityStakeFormState> {
+  const companyId = formText(form, 'companyId');
+  const values: EndEquityStakeFormValues = { endDate: formText(form, 'endDate') };
+  const result = await endEquityStake(companyId, formText(form, 'stakeId'), {
+    version: Number(formText(form, 'version')),
+    endDate: values.endDate,
+  });
+  if (result.ok) {
+    revalidatePath(`/entities/${companyId}`);
+    return SAVED;
+  }
+  return { ...refusedFormState(result, values, new Set(['endDate']), {}), saved: false };
 }

@@ -1,7 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
-import { createTestCompany, grantFamilyViewAccess, openTestCompany, openTestGroup } from './support/entities';
+import {
+  createTestCompany,
+  createTestEquityStake,
+  createTestIndividual,
+  grantFamilyViewAccess,
+  openTestCompany,
+  openTestGroup,
+} from './support/entities';
 import { createPendingTestUser, createTestUser, openTestUser, signIn, uniqueOrigin } from './support/users';
 import { screenAlert } from './support/screen';
 
@@ -85,6 +92,25 @@ const SCREENS: readonly Screen[] = [
     open: async (page, baseURL) => {
       await openTestCompany(page, baseURL);
       await expect(page.getByRole('switch', { name: 'Clínica' })).toBeChecked();
+    },
+  },
+  {
+    name: 'o detalhe de uma empresa com uma participação e o registro aberto',
+    open: async (page, baseURL) => {
+      const user = await createTestUser();
+      const company = await createTestCompany(user);
+      const person = await createTestIndividual(user);
+      await createTestEquityStake(user, company, person, { fraction: '0.6', startDate: '2022-03-01' });
+      await signIn(page.context(), user, baseURL);
+      await page.goto(`/entities/${company.id}`);
+      const section = page.getByRole('region', { name: 'Participações societárias' });
+      await expect(
+        section
+          .getByRole('row', { name: new RegExp(person.name) })
+          .or(section.getByRole('listitem').filter({ hasText: person.name })),
+      ).toContainText('60,0%');
+      await section.getByRole('button', { name: 'Registrar participação' }).click();
+      await expect(section.getByRole('form', { name: 'Registrar participação' })).toBeVisible();
     },
   },
   {

@@ -38,7 +38,7 @@ interface FieldProps {
   /** Se o campo é obrigatório; o padrão é que seja. */
   readonly required?: boolean;
   readonly placeholder?: string | undefined;
-  readonly inputMode?: 'numeric' | 'text';
+  readonly inputMode?: 'decimal' | 'numeric' | 'text';
 }
 
 /** O motivo da recusa, abaixo do campo ou do grupo de campos. */
@@ -102,6 +102,11 @@ function Field({
 /** Um campo de texto. */
 export function TextField(props: FieldProps & { readonly defaultValue?: string }) {
   return <Field {...props} type="text" />;
+}
+
+/** Um campo de data, com o calendário do navegador, que envia a data como `AAAA-MM-DD`. */
+export function DateField(props: FieldProps & { readonly defaultValue?: string }) {
+  return <Field {...props} type="date" />;
 }
 
 /** Um campo de e-mail. */
