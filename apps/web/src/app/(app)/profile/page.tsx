@@ -7,17 +7,11 @@ import { currentSession, listSessions } from '@/api/sessions';
 import { FOCUS_RING } from '../../_access/access-screen';
 import { ErrorNotice } from '../../_access/fields';
 import { Card, PageBody, PageHeader } from '../../_shell/app-shell';
+import { lastPageOf, requestedPage } from '../../_shell/list-page';
 import { ChangePasswordForm } from './change-password-form';
 import { SessionsTable } from './sessions-table';
 
 export const metadata: Metadata = { title: 'Minha conta · finance' };
-
-/** A página pedida no `?page=`: um inteiro a partir de 1, ou a primeira. */
-function requestedPage(value: string | string[] | undefined): number {
-  // Só algarismos, como a api valida: o `Number` aceitaria "1e3" e "0x2".
-  const page = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : 1;
-  return Number.isSafeInteger(page) && page >= 1 ? page : 1;
-}
 
 /** Minha conta: as sessões ativas do usuário, de 10 em 10, e a troca de senha. */
 export default async function Profile({ searchParams }: PageProps<'/profile'>) {
@@ -26,9 +20,8 @@ export default async function Profile({ searchParams }: PageProps<'/profile'>) {
   const [session, list] = await Promise.all([currentSession(), listSessions(page)]);
   if (session.status === 'unauthenticated' || list.status === 'unauthenticated') redirect('/login');
   // A página que ficou vazia, como depois de encerrar a única sessão da última, vai para a última com sessões.
-  if (list.status === 'ok' && list.data.items.length === 0 && list.data.total > 0) {
-    redirect(`/profile?page=${String(Math.ceil(list.data.total / list.data.pageSize))}`);
-  }
+  const lastPage = list.status === 'ok' ? lastPageOf(list.data) : null;
+  if (lastPage !== null) redirect(`/profile?page=${String(lastPage)}`);
 
   return (
     <>

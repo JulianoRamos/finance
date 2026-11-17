@@ -2345,6 +2345,301 @@
           "financial-context"
         ]
       }
+    },
+    "/v1/entities/{id}/equity-stakes": {
+      "get": {
+        "operationId": "EquityStakesController_list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da empresa.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página das participações na empresa, encerradas ou não, com o total (LLD, seção 5): as sem fim primeiro, depois pelo último dia, do mais recente ao mais antigo, e, no empate, pelo início, do mais recente ao mais antigo, e pelo nome do sócio. Numa pessoa física, a página vem vazia.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EquityStakePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na empresa, ou ela não existe (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista as participações societárias numa empresa.",
+        "tags": [
+          "entities"
+        ]
+      },
+      "post": {
+        "operationId": "EquityStakesController_create",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da empresa.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewEquityStake"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A participação foi registrada, na versão 1, e entrou na auditoria.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EquityStake"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id ou o `holderId` não é um UUID, a fração não é uma string decimal de mais de 0 até 1 com até 8 casas, o início falta ou não é uma data `AAAA-MM-DD`, ou o fim não é uma data ou vem antes do início (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na empresa (quem só tem `view` só lê), ou ela não existe (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`EQUITY_STAKE_REQUIRES_COMPANY`: a entidade do caminho é uma pessoa física. `EQUITY_STAKE_SELF`: o sócio é a própria empresa. `ENTITY_NOT_FOUND`: o sócio não existe ou o usuário não tem `view` nem `operate` nele. `INACTIVE_ENTITY`: o sócio está desativado. `EQUITY_STAKE_OVER_LIMIT`: em algum dia do período, a soma das participações vigentes na empresa passaria de 1. `EQUITY_STAKE_CYCLE`: a participação fecharia um ciclo, com a empresa participando, direta ou indiretamente, do sócio (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Registra uma participação societária numa empresa.",
+        "tags": [
+          "entities"
+        ]
+      }
+    },
+    "/v1/entities/{id}/equity-stakes/{stakeId}/end": {
+      "put": {
+        "operationId": "EquityStakesController_end",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da empresa.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "stakeId",
+            "required": true,
+            "in": "path",
+            "description": "O id da participação.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquityStakeEnd"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A participação encerrada, com o último dia e a versão seguinte. Depois desse dia, a fração deixa de contar como vigente, e o registro continua no histórico (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EquityStake"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id ou o `stakeId` não é um UUID, a versão falta, ou o último dia falta, não é uma data `AAAA-MM-DD` ou vem antes do início (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na empresa (quem só tem `view` só lê), ou ela não existe (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a participação não existe, ou não é desta empresa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a participação mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`EQUITY_STAKE_ENDED`: a participação já tem o último dia (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Encerra uma participação societária.",
+        "tags": [
+          "entities"
+        ]
+      }
     }
   },
   "info": {
@@ -3376,6 +3671,168 @@
           "name",
           "isFamilyView",
           "entities"
+        ]
+      },
+      "EquityStakeHolder": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id da entidade."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company"
+            ],
+            "description": "Pessoa física (`individual`) ou jurídica (`company`)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da entidade.",
+            "example": "Ana Lima"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso no sócio desativado depois de registrada a participação, que continua no histórico (regra 6.2)."
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name",
+          "active"
+        ]
+      },
+      "EquityStake": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "holder": {
+            "$ref": "#/components/schemas/EquityStakeHolder"
+          },
+          "fraction": {
+            "type": "string",
+            "description": "A fração da empresa que pertence ao sócio, como string decimal com 8 casas, de mais de 0 até 1 (LLD, seção 4.1).",
+            "example": "0.20000000"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O primeiro dia da participação.",
+            "example": "2026-11-01"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "O último dia da participação, ou nulo enquanto ela não foi encerrada. Depois dele, a fração deixa de contar como vigente (regra 6.2).",
+            "example": null
+          },
+          "version": {
+            "type": "integer",
+            "description": "A versão, que o encerramento manda de volta (regra 6.20).",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "holder",
+          "fraction",
+          "startDate",
+          "endDate",
+          "version"
+        ]
+      },
+      "EquityStakePage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "As participações da página, na ordem da lista.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquityStake"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ]
+      },
+      "NewEquityStake": {
+        "type": "object",
+        "properties": {
+          "holderId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id do sócio: uma pessoa física ou outra empresa, ativa, em que o usuário tem `view` ou `operate`."
+          },
+          "fraction": {
+            "type": "string",
+            "description": "A fração da empresa, como string decimal, de mais de 0 até 1, com até 8 casas (LLD, seção 4.1).",
+            "example": "0.2"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O primeiro dia da participação.",
+            "example": "2026-11-01"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "description": "O último dia, no mesmo dia do início ou depois dele. Opcional: nulo ou ausente deixa a participação sem fim.",
+            "example": null
+          }
+        },
+        "required": [
+          "holderId",
+          "fraction",
+          "startDate"
+        ]
+      },
+      "EquityStakeEnd": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O último dia da participação, no mesmo dia do início ou depois dele.",
+            "example": "2026-11-01"
+          }
+        },
+        "required": [
+          "version",
+          "endDate"
         ]
       }
     }

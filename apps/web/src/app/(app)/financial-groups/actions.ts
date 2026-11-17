@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { listEntities } from '@/api/entities';
 import {
   createFinancialGroup,
   deleteFinancialGroup,
@@ -16,9 +15,7 @@ import { formText } from '../../_access/form-text';
 import type { CommandMessage } from '../../_shell/confirm-dialog';
 import { type FormState, refusedFormState } from '../../_shell/form-state';
 import { listPageResult, type ListPageResult } from '../../_shell/list-page';
-import type { MemberOption } from './group-form';
 import { type GroupListItem, groupListItem } from './group-list-page';
-import { memberOption } from './member-options';
 
 /** O que foi enviado no formulário de um grupo, que volta aos campos depois de uma recusa. */
 export interface GroupFormValues {
@@ -97,15 +94,4 @@ export async function searchFinancialGroupsAction({
   page: number;
 }): Promise<ListPageResult<GroupListItem>> {
   return listPageResult(await listFinancialGroups(page, q), groupListItem);
-}
-
-/** Uma página das entidades ativas, com a busca, pedida pela escolha dos membros. */
-export async function searchMemberOptionsAction({
-  q,
-  page,
-}: {
-  q: string;
-  page: number;
-}): Promise<ListPageResult<MemberOption>> {
-  return listPageResult(await listEntities(page, q, true), memberOption);
 }

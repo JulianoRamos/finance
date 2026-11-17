@@ -2,8 +2,8 @@ import type { SessionPage, SessionSummary } from '@/api/sessions';
 
 import { deviceText, formatInstant } from '../../_shell/format';
 import { mapPage } from '../../_shell/list-page';
+import { UrlPagination } from '../../_shell/url-pagination';
 import { SessionActions } from './session-actions';
-import { SessionsPagination } from './sessions-pagination';
 
 const HEAD = 'bg-surface-subtle px-3 py-2 text-left text-label text-mute whitespace-nowrap';
 const CELL = 'h-10 border-t border-hairline px-3 whitespace-nowrap';
@@ -115,7 +115,7 @@ export function SessionsTable({ page, labelledBy }: Readonly<{ page: SessionPage
         </table>
       </div>
       <div className="px-3 pb-3">
-        <SessionsPagination page={shown} />
+        <UrlPagination page={shown} />
       </div>
     </div>
   );

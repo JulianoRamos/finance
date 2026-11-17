@@ -1,19 +1,45 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
-import { getEntity } from '@/api/entities';
+import { type Entity, getEntity, listEntities } from '@/api/entities';
+import { listEquityStakes } from '@/api/equity-stakes';
 
 import { PRIMARY_BUTTON } from '../../../_shell/buttons';
 import { LoadError } from '../../../_shell/load-error';
+import { lastPageOf, mapPage, requestedPage } from '../../../_shell/list-page';
 import { loadOrNotFound } from '../../../_shell/load-or-not-found';
+import { entityOption } from '../entity-option';
 import { formatTaxId, TYPE_NAMES } from '../tax-id-format';
 import { ActivationForm } from './activation-form';
+import { EquityStakes } from './equity-stakes';
 import { OperationSwitch } from './operation-switch';
 
 const PANEL = 'flex flex-col gap-6 rounded-md border border-hairline bg-surface p-4 md:p-6';
 
-/** O detalhe da entidade: o nome, o tipo e o documento completo, as operações e as ações. */
-export default async function EntityDetail({ params }: PageProps<'/entities/[id]'>) {
+/**
+ * A seção das participações na empresa, com a página da tabela no `?page=` e a primeira página das
+ * entidades ativas para a escolha do sócio.
+ */
+async function EquityStakesSection({ company, page }: Readonly<{ company: Entity; page: number }>) {
+  // As duas buscas não dependem uma da outra.
+  const [stakes, holders] = await Promise.all([listEquityStakes(company.id, page), listEntities(1, '', true)]);
+  if (stakes.status === 'unauthenticated' || holders.status === 'unauthenticated') redirect('/login');
+  if (stakes.status !== 'ok' || holders.status !== 'ok') {
+    return <LoadError>Não foi possível carregar as participações societárias.</LoadError>;
+  }
+  // A página que ficou vazia, como uma página antiga no endereço, vai para a última com participações.
+  const lastPage = lastPageOf(stakes.data);
+  if (lastPage !== null) redirect(`/entities/${company.id}?page=${String(lastPage)}`);
+  return <EquityStakes company={company} stakes={stakes.data} holders={mapPage(holders.data, entityOption)} />;
+}
+
+/**
+ * O detalhe da entidade: o nome, o tipo e o documento completo, as operações e as participações, na
+ * empresa, e as ações.
+ */
+export default async function EntityDetail({ params, searchParams }: PageProps<'/entities/[id]'>) {
   const { id } = await params;
+  const page = requestedPage((await searchParams).page);
   const entity = await loadOrNotFound(() => getEntity(id));
   if (!entity) return <LoadError>Não foi possível carregar a entidade.</LoadError>;
   const document = entity.taxId ? formatTaxId(entity.type, entity.taxId) : 'Sem documento';
@@ -51,6 +77,7 @@ export default async function EntityDetail({ params }: PageProps<'/entities/[id]
           />
         </section>
       )}
+      {entity.type === 'company' && <EquityStakesSection company={entity} page={page} />}
       <div className="flex flex-wrap items-start justify-between gap-3 border-t border-hairline pt-4">
         <ActivationForm entityId={entity.id} entityName={entity.name} version={entity.version} active={entity.active} />
         <Link href={`/entities/${entity.id}/edit`} className={PRIMARY_BUTTON}>

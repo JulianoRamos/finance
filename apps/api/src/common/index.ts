@@ -1,9 +1,11 @@
 export { GRANTS_CREATOR_ACCESS, GrantsCreatorAccess, REQUIRED_ENTITY_LEVEL, RequiresEntityLevel } from './access.js';
 export { ApiError, apiError } from './api-error.js';
 export { UNAUTHENTICATED_RESPONSE } from './api-responses.js';
+export { formatCalendarDate, IsCalendarDate, IsNotBefore, parseCalendarDate } from './calendar-date.js';
 export { type Clock, CLOCK } from './clock.js';
 export { CommonModule } from './common.module.js';
 export { CONFIG, type Config, readConfig } from './config.js';
+export { type DecimalRange, IsDecimalText } from './decimal-text.js';
 export {
   FINANCIAL_CONTEXT_HEADER,
   type FinancialContextEntityRow,

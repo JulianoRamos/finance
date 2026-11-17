@@ -127,7 +127,7 @@ O `recovery_code` é o código de recuperação do segundo fator; o `recovery_li
 | `entity_operation` | `entity_id`, `operation` (`clinic`) | Única `(entity_id, operation)`, com `id` próprio, que a auditoria guarda. Só pessoa jurídica (regra 6.2) |
 | `financial_group` | `name`, `is_family_view` | Índice único parcial: só um grupo com `is_family_view`. A Visão Familiar nasce na migração que cria a tabela (regra 6.2) |
 | `financial_group_member` | `financial_group_id`, `entity_id` | Única `(financial_group_id, entity_id)`, com `id` próprio, que a auditoria guarda. Só pessoa física na Visão Familiar (regra 6.2) |
-| `equity_stake` | `holder_id` (pessoa física ou empresa), `company_id` (pessoa jurídica), `fraction`, `start_date`, `end_date` | `0 < fraction <= 1`. A soma vigente por empresa não passa de 1, e não há ciclo (regra 6.17) |
+| `equity_stake` | `holder_id` (pessoa física ou empresa), `company_id` (pessoa jurídica), `fraction`, `start_date`, `end_date` | `0 < fraction <= 1`, `end_date` nulo ou não antes de `start_date`, e `holder_id` diferente de `company_id`. A soma vigente por empresa não passa de 1, e não há ciclo (regras 6.2 e 6.17). O papel da `api` não tem `DELETE` nem `TRUNCATE` nela: a participação é encerrada, e não excluída |
 
 ### 4.4 Auditoria
 
@@ -326,7 +326,13 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 - **Escolha do contexto:** fica guardada no navegador e vale quando o usuário volta ao sistema. Sem escolha, ou quando a `api` recusa a guardada (o grupo foi excluído, ou a permissão foi tirada), vale o primeiro contexto do seletor, que é a Visão Familiar quando o usuário a vê. Sem nenhuma entidade nem grupo que ele veja, não há contexto, e as telas de dados dizem isso.
 - **Exclusão de grupo:** um grupo sem metas é excluído, e quem estava nesse contexto volta para o primeiro contexto do seletor, a Visão Familiar quando o usuário a vê ("Escolha do contexto", acima). Um grupo com metas é recusado, com `422 GROUP_HAS_GOALS`, até as metas serem excluídas ou passadas para outro dono.
 - **Operações:** só se ligam em pessoa jurídica, e uma empresa pode ter várias ligadas; numa pessoa física, a ligação responde `422 OPERATION_REQUIRES_COMPANY`. Ligar a que já está ligada, ou desligar a que já está desligada, não muda nada. Na API, a entidade traz a lista das ligadas (`"operations": ["clinic"]`). Desligar uma operação esconde as funções dela e recusa novas escritas, e não apaga nada: ao religar, tudo volta como estava. Os lançamentos que a operação criou continuam nos números, mas só mudam com ela ligada (regra 6.20).
-- **Participação societária:** é encerrada informando o último dia (`end_date`). Depois dele, a fração deixa de contar como vigente, e o registro continua no histórico.
+- **Participação societária:** a fração de uma empresa (pessoa jurídica) que pertence a um sócio, uma pessoa física ou outra empresa, com o primeiro dia e, se houver, o último. Ela não é editada nem excluída.
+  - **Quem registra:** quem tem `operate` na empresa, e a lista das participações dela exige `view`. O sócio é uma entidade ativa em que o usuário tem `view` ou `operate`; o que não existe ou que ele não vê responde `422 ENTITY_NOT_FOUND`, e o desativado, `422 INACTIVE_ENTITY`. A participação numa pessoa física responde `422 EQUITY_STAKE_REQUIRES_COMPANY`, e a da empresa nela mesma, `422 EQUITY_STAKE_SELF`.
+  - **Fração:** de mais de 0 até 1, com até 8 casas. A `web` a mostra e a recebe em percentual ("20,0%"), com uma casa, e mais casas só quando a fração as tem.
+  - **Soma vigente:** uma participação é vigente do primeiro ao último dia, inclusive, e sem fim, desde o primeiro dia. Em nenhum dia a soma das vigentes numa empresa passa de 1: o registro que a faria passar em algum dia do período dele responde `422 EQUITY_STAKE_OVER_LIMIT`.
+  - **Ciclo:** a participação que faria a empresa participar, direta ou indiretamente, do próprio sócio responde `422 EQUITY_STAKE_CYCLE` (regra 6.17). O ciclo conta todas as participações, encerradas ou não, para o patrimônio de uma data passada também não ter ciclo.
+  - **Trava:** o registro confere a soma e o ciclo sob uma trava de transação única das participações (`pg_advisory_xact_lock`), para dois registros ao mesmo tempo não passarem juntos.
+  - **Encerramento:** é informar o último dia (`end_date`), no mesmo dia do início ou depois dele, com a versão lida. Só a participação sem fim é encerrada; a que já tem o último dia responde `422 EQUITY_STAKE_ENDED`. Depois dele, a fração deixa de contar como vigente, e o registro continua no histórico. Encerrar nunca aumenta a soma, então não a confere de novo.
 
 ### 6.3 Saldo e ajuste
 

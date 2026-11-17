@@ -29,3 +29,18 @@ export function listPageResult<From, To>(
   if (list.status === 'unauthenticated') redirect('/login');
   return list.status === 'ok' ? { ok: true, page: mapPage(list.data, convert) } : { ok: false };
 }
+
+/** A página pedida no `?page=` da URL: um inteiro a partir de 1, ou a primeira. */
+export function requestedPage(value: string | string[] | undefined): number {
+  // Só algarismos, como a api valida: o `Number` aceitaria "1e3" e "0x2".
+  const page = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : 1;
+  return Number.isSafeInteger(page) && page >= 1 ? page : 1;
+}
+
+/**
+ * A última página com itens, quando a pedida veio vazia mas a lista não está, como uma página antiga no
+ * endereço depois de a lista encolher; nulo quando a pedida serve.
+ */
+export function lastPageOf(page: ListPage<unknown>): number | null {
+  return page.items.length === 0 && page.total > 0 ? Math.ceil(page.total / page.pageSize) : null;
+}
