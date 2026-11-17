@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Check, ChevronsUpDown, User, Users } from 'lucide-react';
+import { Building2, Check, ChevronsUpDown, Settings2, User, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Popover } from 'radix-ui';
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
@@ -43,13 +43,13 @@ const OPTION_GROUPS = [
   { key: 'companies', label: 'Empresas', icon: 'company' },
 ] as const;
 
-/** O ícone do tipo num quadrado com borda `hairline` (design-system.md, seção 4.1). */
-function IconBox({ icon }: Readonly<{ icon: ContextIcon }>) {
-  const Icon = ICONS[icon];
+/** O ícone num quadrado com borda `hairline` (design-system.md, seção 4.1): de 32px no botão, de 28px no menu. */
+function IconBox({ icon, small = false }: Readonly<{ icon: ContextIcon | 'manage'; small?: boolean }>) {
+  const Icon = icon === 'manage' ? Settings2 : ICONS[icon];
   return (
     <span
       aria-hidden="true"
-      className="inline-flex size-8 flex-none items-center justify-center rounded-sm border border-hairline bg-surface text-ink"
+      className={`inline-flex flex-none items-center justify-center rounded-sm border border-hairline bg-surface text-ink ${small ? 'size-7' : 'size-8'}`}
     >
       <Icon size={16} strokeWidth={1.5} />
     </span>
@@ -74,7 +74,7 @@ function OptionGroup({
   if (group.total === 0) return null;
   const left = group.total - group.items.length;
   return (
-    <div role="group" aria-labelledby={labelId} className="flex flex-col gap-1">
+    <div role="group" aria-labelledby={labelId} className="flex flex-col">
       <span id={labelId} className="px-2 pt-2 pb-1 font-mono text-eyebrow text-mute uppercase">
         {label}
       </span>
@@ -88,11 +88,11 @@ function OptionGroup({
             onClick={() => {
               onChoose(option.reference, option.name);
             }}
-            className={`flex h-10 cursor-pointer items-center gap-2 rounded-sm px-2 text-left text-ink hover:bg-surface-subtle aria-[current=true]:bg-accent-soft ${FOCUS_RING}`}
+            className={`flex h-10 flex-none cursor-pointer items-center gap-2 rounded-sm px-2 text-left text-ink hover:bg-surface-subtle aria-[current=true]:bg-accent-soft ${FOCUS_RING}`}
           >
-            <IconBox icon={icon} />
+            <IconBox icon={icon} small />
             <span className="min-w-0 flex-1 truncate">{option.name}</span>
-            {selected && <Check size={16} strokeWidth={1.5} aria-hidden="true" className="flex-none" />}
+            {selected && <Check size={16} strokeWidth={1.5} aria-hidden="true" className="flex-none text-link" />}
           </button>
         );
       })}
@@ -189,7 +189,7 @@ export function ContextSelector({ shown, expanded }: Readonly<{ shown: ShownCont
             align="start"
             sideOffset={8}
             aria-label="Contexto financeiro"
-            className={`${MENU_PANEL} max-h-(--radix-popover-content-available-height) overflow-y-auto`}
+            className={`${MENU_PANEL} max-h-(--radix-popover-content-available-height)`}
           >
             <input
               type="search"
@@ -199,7 +199,7 @@ export function ContextSelector({ shown, expanded }: Readonly<{ shown: ShownCont
               onChange={(event) => {
                 setQuery(event.target.value);
               }}
-              className={`h-9 rounded-sm border border-hairline bg-surface px-2 text-body-md text-ink placeholder:text-mute ${FOCUS_RING}`}
+              className={`m-1 h-9 flex-none rounded-sm border border-field-border bg-surface px-3 text-body-md text-ink placeholder:text-mute hover:border-body ${FOCUS_RING}`}
             />
             {options === null && (
               <p role="alert" className="px-2 py-1 text-body-sm text-negative">
@@ -207,7 +207,8 @@ export function ContextSelector({ shown, expanded }: Readonly<{ shown: ShownCont
               </p>
             )}
             {options && (
-              <>
+              // A lista rola entre a busca e o atalho, até a altura `container-menu-list` (design-system.md, seção 4.1).
+              <div className="flex max-h-(--container-menu-list) min-h-0 flex-col overflow-y-auto">
                 {OPTION_GROUPS.map(({ key, label, icon }) => (
                   <OptionGroup
                     key={key}
@@ -221,14 +222,15 @@ export function ContextSelector({ shown, expanded }: Readonly<{ shown: ShownCont
                 {OPTION_GROUPS.every(({ key }) => options[key].total === 0) && (
                   <p className="px-2 py-1 text-body-sm text-mute">Nenhum contexto com esse nome.</p>
                 )}
-              </>
+              </div>
             )}
-            <div className="h-px bg-hairline" />
+            <div className="-mx-1 h-px flex-none bg-hairline" />
             <Link
               href="/entities"
               onClick={close}
-              className={`flex h-9 items-center rounded-sm px-2 text-ink hover:bg-surface-subtle ${FOCUS_RING}`}
+              className={`flex h-10 flex-none items-center gap-2 rounded-sm px-2 text-body hover:bg-surface-subtle hover:text-ink ${FOCUS_RING}`}
             >
+              <IconBox icon="manage" small />
               Gerenciar entidades e grupos
             </Link>
           </Popover.Content>
