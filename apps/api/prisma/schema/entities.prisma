@@ -1,6 +1,6 @@
 // O módulo Entidades (LLD, seção 4.3, e regra 6.2): as pessoas físicas e jurídicas cujas finanças o
-// sistema controla, as operações ligadas em cada empresa e os grupos financeiros, com a Visão Familiar.
-// As participações societárias nascem no ticket delas.
+// sistema controla, as operações ligadas em cada empresa, os grupos financeiros, com a Visão Familiar,
+// e as participações societárias.
 
 /// O tipo da entidade. Não muda depois da criação (regra 6.2).
 enum EntityType {
@@ -47,6 +47,10 @@ model Entity {
 
   operations EntityOperation[]
   groups     FinancialGroupMember[]
+  /// As participações que esta entidade tem em empresas.
+  stakesHeld EquityStake[]          @relation("EquityStakeHolder")
+  /// As participações na empresa, quando ela é pessoa jurídica.
+  stakes     EquityStake[]          @relation("EquityStakeCompany")
 
   @@map("entity")
 }
@@ -121,4 +125,44 @@ model FinancialGroupMember {
   /// A busca dos grupos de uma entidade, que o seletor de contexto e a permissão por entidade fazem.
   @@index([entityId], map: "financial_group_member_entity_id_idx")
   @@map("financial_group_member")
+}
+
+/// A fração de uma empresa que pertence a outra entidade, pessoa física ou empresa
+/// (GLOSSARY.md, Participação societária). Não é excluída: é encerrada com o último dia, e continua
+/// no histórico (regra 6.2).
+/// A api confere o que o banco não confere: a empresa é pessoa jurídica, o sócio está ativo e o usuário
+/// o vê, a soma das frações vigentes na empresa não passa de 1 em nenhum dia, e as participações não
+/// formam ciclo (regra 6.2). As duas últimas correm sob uma trava de transação (pg_advisory_xact_lock),
+/// para dois registros ao mesmo tempo não passarem juntos.
+/// CHECK escrito à mão na migração (equity_stake_fraction_check): 0 < fraction <= 1.
+/// CHECK escrito à mão na migração (equity_stake_period_check): end_date nulo, ou no mesmo dia de
+/// start_date ou depois dele.
+/// CHECK escrito à mão na migração (equity_stake_self_check): holder_id diferente de company_id.
+model EquityStake {
+  /// uuidv7, gerado pelo banco.
+  id        String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// O sócio: uma pessoa física ou outra empresa. RESTRICT: a entidade é desativada, e não excluída.
+  holderId  String    @map("holder_id") @db.Uuid
+  /// A empresa de que o sócio tem a fração. RESTRICT: a entidade é desativada, e não excluída.
+  companyId String    @map("company_id") @db.Uuid
+  /// A fração da empresa, de mais de 0 até 1 (LLD, seção 4.1).
+  fraction  Decimal   @db.Decimal(9, 8)
+  /// O primeiro dia da participação.
+  startDate DateTime  @map("start_date") @db.Date
+  /// O último dia, ou nulo enquanto não foi encerrada. Depois dele, a fração deixa de contar como
+  /// vigente (regra 6.2).
+  endDate   DateTime? @map("end_date") @db.Date
+  createdAt DateTime  @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @map("updated_at") @db.Timestamptz
+  /// O bloqueio otimista do encerramento (regra 6.20).
+  version   Int       @default(1)
+
+  holder  Entity @relation("EquityStakeHolder", fields: [holderId], references: [id], onDelete: Restrict)
+  company Entity @relation("EquityStakeCompany", fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// A lista das participações na empresa e a soma das vigentes.
+  @@index([companyId], map: "equity_stake_company_id_idx")
+  /// A busca do ciclo, que anda das empresas para os sócios que também são empresas.
+  @@index([holderId], map: "equity_stake_holder_id_idx")
+  @@map("equity_stake")
 }
