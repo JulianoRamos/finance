@@ -5,6 +5,7 @@ import {
   createTestGroup,
   createTestIndividual,
   deleteTestGroup,
+  grantFamilyViewAccess,
   type TestEntity,
   uniqueName,
 } from './support/entities';
@@ -39,6 +40,7 @@ test('o usuário escolhe os membros da Visão Familiar', { tag: '@KAN-12-CA4' },
   const user = await createTestUser();
   const person = await createTestIndividual(user, uniqueName('Ana E2E'));
   const company = await createTestCompany(user, uniqueName('Clínica E2E'));
+  await grantFamilyViewAccess(user);
   await signIn(page.context(), user, baseURL ?? '');
   const detail = page.getByRole('region', { name: 'Visão Familiar' });
   const personBox = detail.getByRole('checkbox', { name: person.name });
@@ -84,6 +86,8 @@ test('o usuário cria, edita e exclui um grupo', { tag: '@KAN-12-CA7' }, async (
   const user = await createTestUser();
   const person = await createTestIndividual(user, uniqueName('Ana E2E'));
   const company = await createTestCompany(user, uniqueName('Clínica E2E'));
+  // Excluído o grupo, a tela volta à Visão Familiar, a primeira da lista.
+  await grantFamilyViewAccess(user);
   await signIn(page.context(), user, baseURL ?? '');
   const name = uniqueName('Grupo E2E');
   const newName = `${name} Renomeado`;

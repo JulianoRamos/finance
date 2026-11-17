@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { NextFunction, Request, Response } from 'express';
 
+import type { ResolvedFinancialContext } from './financial-context.js';
 import type { PermissionLevel } from './prisma-types.js';
 import type { Transaction } from './transaction.service.js';
 
@@ -21,6 +22,11 @@ export interface RequestContext {
    * servidor.
    */
   entityLevels: (() => Promise<ReadonlyMap<string, PermissionLevel>>) | null;
+  /**
+   * O contexto financeiro da rota de dados, resolvido e conferido pela autenticação (regra 6.2). Nulo
+   * nas rotas que não são de dados.
+   */
+  financialContext: ResolvedFinancialContext | null;
   /** A transação aberta pelo comando, ou nula fora de uma. */
   readonly transaction: Transaction | null;
 }
@@ -30,6 +36,11 @@ const storage = new AsyncLocalStorage<RequestContext>();
 /** O contexto da requisição corrente, ou undefined fora de uma. */
 export function currentRequestContext(): RequestContext | undefined {
   return storage.getStore();
+}
+
+/** O contexto de uma requisição ou de um comando no servidor que começa: sem usuário e sem transação. */
+export function newRequestContext(requestId: string = randomUUID()): RequestContext {
+  return { requestId, userId: null, entityLevels: null, financialContext: null, transaction: null };
 }
 
 /** Roda a função num contexto. O contexto anterior volta quando ela termina. */
@@ -67,6 +78,26 @@ export function currentEntityLevels(): Promise<ReadonlyMap<string, PermissionLev
   return read();
 }
 
+/** Os ids das entidades em que o usuário da requisição tem permissão. */
+export async function currentVisibleEntityIds(): Promise<string[]> {
+  return [...(await currentEntityLevels()).keys()];
+}
+
+/** Define o contexto financeiro da requisição corrente, já conferido, antes da transação. */
+export function setCurrentFinancialContext(context: ResolvedFinancialContext): void {
+  const store = storage.getStore();
+  if (!store) throw new Error('Não há contexto da requisição para receber o contexto financeiro.');
+  if (store.transaction) throw new Error('O contexto financeiro é definido antes de abrir a transação.');
+  store.financialContext = context;
+}
+
+/** O contexto financeiro da rota de dados, que a autenticação resolveu e conferiu. */
+export function currentFinancialContext(): ResolvedFinancialContext {
+  const context = storage.getStore()?.financialContext;
+  if (!context) throw new Error('A rota pede o contexto financeiro, mas não é marcada como rota de dados.');
+  return context;
+}
+
 /** O cabeçalho do identificador da requisição (LLD, seção 5). */
 export const REQUEST_ID_HEADER = 'X-Request-Id';
 
@@ -80,6 +111,5 @@ function requestIdOf(request: Request): string {
 
 /** Abre o contexto de cada requisição, registrado no configureApp. */
 export function requestContextMiddleware(request: Request, _response: Response, next: NextFunction): void {
-  const requestId = requestIdOf(request);
-  runInRequestContext({ requestId, userId: null, entityLevels: null, transaction: null }, next);
+  runInRequestContext(newRequestContext(requestIdOf(request)), next);
 }

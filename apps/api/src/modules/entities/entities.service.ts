@@ -91,6 +91,7 @@ export class EntitiesService {
    */
   async list(filter: {
     active?: boolean | undefined;
+    type?: EntityType | undefined;
     ids?: readonly string[];
     q?: string | undefined;
     page: PageRequest;
@@ -104,6 +105,7 @@ export class EntitiesService {
       client,
       sql`SELECT id, active, name FROM entity
         WHERE (${filter.active ?? null}::boolean IS NULL OR active = ${filter.active ?? null}::boolean)
+          AND (${filter.type ?? null}::text IS NULL OR type::text = ${filter.type ?? null}::text)
           AND (${filter.ids === undefined}::boolean OR id = ANY(${filter.ids ?? []}::uuid[]))
           AND (${nameMatches(filter.q)} OR (type = 'company' AND tax_id LIKE ${taxId}::text))`,
       sql`active DESC, name ${NAME_COLLATION}`,

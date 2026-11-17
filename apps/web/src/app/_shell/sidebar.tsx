@@ -2,15 +2,21 @@ import Link from 'next/link';
 
 import { FOCUS_RING } from '../_access/access-screen';
 import { AccountMenu } from './account-menu';
+import { ContextSelector, type ShownContext } from './context-selector';
 import { Hint } from './hint';
 import { NavLink } from './nav-link';
 import { NAVIGATION } from './pages';
 
 /**
- * A barra lateral (design-system.md, seção 4.1): o logo, a navegação e o botão da conta. Aberta, tem
+ * A barra lateral (design-system.md, seção 4.1): o logo, o seletor de contexto, a navegação e o botão da
+ * conta. Aberta, tem
  * 280px no desktop; recolhida, ou abaixo de 1024px, só os ícones, com o nome de cada destino na dica.
  */
-export function Sidebar({ user, expanded }: Readonly<{ user: { name: string; email: string }; expanded: boolean }>) {
+export function Sidebar({
+  user,
+  context,
+  expanded,
+}: Readonly<{ user: { name: string; email: string }; context: ShownContext; expanded: boolean }>) {
   return (
     <nav
       id="sidebar"
@@ -34,6 +40,7 @@ export function Sidebar({ user, expanded }: Readonly<{ user: { name: string; ema
           <span className="sr-only">, ir para o início</span>
         </Link>
       </Hint>
+      <ContextSelector shown={context} expanded={expanded} />
       {NAVIGATION.map(({ group, items }) => (
         <div key={group} className="flex flex-col items-center gap-1 lg:items-stretch">
           <span

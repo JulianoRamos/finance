@@ -157,6 +157,14 @@ export class EntityListQuery extends PageQuery {
   @IsIn(['true', 'false'], { message: 'Use true ou false.' })
   active?: 'true' | 'false';
 
+  @ApiPropertyOptional({
+    enum: EntityType,
+    description: '`individual` traz só as pessoas físicas; `company`, só as jurídicas. Sem o parâmetro, traz as duas.',
+  })
+  @IsOptional()
+  @IsEnum(EntityType, { message: 'Use individual ou company.' })
+  type?: EntityType;
+
   @SearchQuery(
     'A busca: o texto procurado no nome, sem diferença de acento nem de maiúsculas, em qualquer posição, e, quando tem um algarismo, no CNPJ, escrito com ou sem a pontuação. O CPF não entra na busca, porque a lista o mostra mascarado. Vazia ou ausente, não filtra (LLD, seção 5).',
   )

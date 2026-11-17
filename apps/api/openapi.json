@@ -1340,6 +1340,19 @@
             }
           },
           {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "`individual` traz só as pessoas físicas; `company`, só as jurídicas. Sem o parâmetro, traz as duas.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "individual",
+                "company"
+              ]
+            }
+          },
+          {
             "name": "q",
             "required": false,
             "in": "query",
@@ -1361,7 +1374,7 @@
             }
           },
           "400": {
-            "description": "`INVALID_INPUT`: o `active` não é `true` nem `false`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "description": "`INVALID_INPUT`: o `active` não é `true` nem `false`, o `type` não é `individual` nem `company`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
             "content": {
               "application/json": {
                 "schema": {
@@ -1916,7 +1929,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A página dos grupos do filtro, com o total (LLD, seção 5): a Visão Familiar primeiro, quando o filtro a acha, e os outros pelo nome, em ordem alfabética.",
+            "description": "A página dos grupos do filtro em que o usuário tem `view` ou `operate` em todos os membros, com o total (LLD, seção 5): a Visão Familiar primeiro, quando o filtro a acha, e os outros pelo nome, em ordem alfabética. O grupo vazio entra; os outros não aparecem nem contam no total (regra 6.2).",
             "content": {
               "application/json": {
                 "schema": {
@@ -2060,6 +2073,16 @@
           },
           "401": {
             "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` em algum membro do grupo (regra 6.2).",
             "content": {
               "application/json": {
                 "schema": {
@@ -2252,6 +2275,74 @@
         "summary": "Exclui um grupo financeiro.",
         "tags": [
           "financial-groups"
+        ]
+      }
+    },
+    "/v1/financial-context": {
+      "get": {
+        "operationId": "FinancialContextController_get",
+        "parameters": [
+          {
+            "name": "Financial-Context",
+            "in": "header",
+            "description": "O contexto financeiro escolhido (LLD, seção 5): `entity:<id>` ou `group:<id>`, com o id em UUID.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "group:0190d3f2-6c1e-7a4b-9f00-1a2b3c4d5e6f"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O contexto resolvido nas entidades dele (regra 6.2): a própria entidade, ou os membros do grupo, ativos ou não, pelo nome.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialContext"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o cabeçalho `Financial-Context` falta, ou não é `entity:<id>` nem `group:<id>` com um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` numa entidade do contexto, ou o id não é de nenhuma entidade nem de nenhum grupo (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lê o contexto financeiro escolhido.",
+        "tags": [
+          "financial-context"
         ]
       }
     }
@@ -3211,6 +3302,80 @@
           "version",
           "name",
           "memberIds"
+        ]
+      },
+      "FinancialContextEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id da entidade."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company"
+            ],
+            "description": "Pessoa física (`individual`) ou jurídica (`company`)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da entidade.",
+            "example": "Ana Lima"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na entidade desativada: ela continua no contexto, pelos números do passado (regra 6.2)."
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name",
+          "active"
+        ]
+      },
+      "FinancialContext": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "entity",
+              "group"
+            ],
+            "description": "Uma entidade (`entity`) ou um grupo financeiro (`group`)."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id da entidade ou do grupo."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da entidade ou do grupo.",
+            "example": "Visão Familiar"
+          },
+          "isFamilyView": {
+            "type": "boolean",
+            "description": "Verdadeiro só na Visão Familiar."
+          },
+          "entities": {
+            "description": "As entidades que o contexto reúne, pelo nome: a própria entidade, ou os membros do grupo. Vazia num grupo sem membros.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialContextEntity"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "isFamilyView",
+          "entities"
         ]
       }
     }

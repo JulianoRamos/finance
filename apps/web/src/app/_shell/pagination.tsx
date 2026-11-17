@@ -11,7 +11,7 @@ import type { ListPage, ListPageResult } from './list-page';
 // página é um pedido à api, e a tela nunca filtra nem pagina o que já leu (LLD, seção 5).
 
 /** Quanto a busca espera depois da última tecla para pedir a lista. */
-const SEARCH_DELAY_MS = 300;
+export const SEARCH_DELAY_MS = 300;
 
 /** O pedido de uma página: a busca e o número da página. */
 export type LoadPage<Item> = (query: { q: string; page: number }) => Promise<ListPageResult<Item>>;

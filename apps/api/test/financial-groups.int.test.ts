@@ -9,6 +9,7 @@ import {
   authedRequest,
   buildTestApp,
   getCurrentSession,
+  grantFamilyViewAccess,
   newSession,
   TestClock,
   uniqueName,
@@ -110,8 +111,9 @@ describe('Grupos financeiros', () => {
     return (await pageOf(token, query)).items;
   }
 
-  /** A Visão Familiar, lida na lista: a primeira. */
+  /** A Visão Familiar, lida na lista: a primeira, depois de o usuário ganhar `view` nos membros dela. */
   async function familyViewOf(token: string): Promise<FinancialGroup> {
+    await grantFamilyViewAccess(app, token);
     const [first] = await listOf(token, {});
     if (!first?.isFamilyView) throw new Error('A lista dos grupos não começa pela Visão Familiar.');
     return first;
@@ -248,6 +250,7 @@ describe('Grupos financeiros', () => {
     }
 
     const third = await pageOf(token, { q: prefix, page: '3', pageSize: '5' });
+    await grantFamilyViewAccess(app, token);
     const firstPage = await pageOf(token, {});
     const familyView = await pageOf(token, { q: 'visao familiar' });
 

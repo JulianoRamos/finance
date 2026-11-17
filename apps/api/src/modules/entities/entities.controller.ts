@@ -15,7 +15,7 @@ import {
 
 import {
   ApiError,
-  currentEntityLevels,
+  currentVisibleEntityIds,
   GrantsCreatorAccess,
   Operation,
   pageRequest,
@@ -80,13 +80,14 @@ export class EntitiesController {
   @ApiBadRequestResponse({
     type: ApiError,
     description:
-      '`INVALID_INPUT`: o `active` não é `true` nem `false`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
+      '`INVALID_INPUT`: o `active` não é `true` nem `false`, o `type` não é `individual` nem `company`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
   })
   @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
   async list(@Query() query: EntityListQuery): Promise<EntityPage> {
     return this.entities.list({
       active: query.active === undefined ? undefined : query.active === 'true',
-      ids: [...(await currentEntityLevels()).keys()],
+      type: query.type,
+      ids: await currentVisibleEntityIds(),
       q: query.q,
       page: pageRequest(query),
     });

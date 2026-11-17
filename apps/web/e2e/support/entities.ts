@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import { formatCnpj, uniqueCnpj } from './tax-ids';
-import { createTestUser, requiredEnv, signIn, type TestUser } from './users';
+import { createTestUser, requiredEnv, signIn, type TestUser, withDevDatabase } from './users';
 
 /** Um registro de teste, como a api o devolve: uma entidade ou um grupo. */
 export interface TestEntity {
@@ -89,4 +89,23 @@ export async function openTestGroup(page: Page, baseURL: string): Promise<TestEn
   await signIn(page.context(), user, baseURL);
   await page.goto(`/financial-groups/${group.id}`);
   return group;
+}
+
+/**
+ * Dá ao usuário de teste `view` em cada membro atual da Visão Familiar, gravado no banco de
+ * desenvolvimento com o papel da api. O banco guarda nela os membros de outras execuções, em que o
+ * usuário de teste não tem permissão, e sem isso ela some da lista dos grupos para ele (regra 6.2).
+ */
+export async function grantFamilyViewAccess(user: TestUser): Promise<void> {
+  await withDevDatabase(async (client) => {
+    await client.query(
+      `INSERT INTO permission (user_id, entity_id, level, created_at, updated_at)
+       SELECT u.id, member.entity_id, 'view', now(), now()
+       FROM "user" u, financial_group_member member
+       JOIN financial_group grp ON grp.id = member.financial_group_id
+       WHERE u.email = $1 AND grp.is_family_view
+       ON CONFLICT (user_id, entity_id) DO NOTHING`,
+      [user.email],
+    );
+  });
 }

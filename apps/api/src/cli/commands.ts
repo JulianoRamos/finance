@@ -1,8 +1,6 @@
-import { randomUUID } from 'node:crypto';
-
 import type { INestApplicationContext } from '@nestjs/common';
 
-import { runInRequestContext } from '../common/index.js';
+import { newRequestContext, runInRequestContext } from '../common/index.js';
 import { IdentityError, IdentityService } from '../modules/identity/index.js';
 
 /** Onde o comando escreve: a saída, para o operador, e os erros. */
@@ -61,10 +59,7 @@ export async function runCommand(
     return 2;
   }
   try {
-    await runInRequestContext(
-      { requestId: randomUUID(), userId: null, entityLevels: null, transaction: null },
-      command,
-    );
+    await runInRequestContext(newRequestContext(), command);
     return 0;
   } catch (error) {
     if (!(error instanceof IdentityError)) throw error;

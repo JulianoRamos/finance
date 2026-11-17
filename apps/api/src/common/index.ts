@@ -4,6 +4,15 @@ export { UNAUTHENTICATED_RESPONSE } from './api-responses.js';
 export { type Clock, CLOCK } from './clock.js';
 export { CommonModule } from './common.module.js';
 export { CONFIG, type Config, readConfig } from './config.js';
+export {
+  FINANCIAL_CONTEXT_HEADER,
+  type FinancialContextEntityRow,
+  type FinancialContextReference,
+  parseFinancialContext,
+  REQUIRED_FINANCIAL_CONTEXT,
+  RequiresFinancialContext,
+  type ResolvedFinancialContext,
+} from './financial-context.js';
 export { byName, IsName, NAME_COLLATION, NAME_MAX_LENGTH, nameMatches, VersionRead } from './fields.js';
 export { omit } from './omit.js';
 export {
@@ -34,11 +43,15 @@ export {
 export { Public, PUBLIC_ROUTE } from './public.js';
 export {
   currentEntityLevels,
+  currentFinancialContext,
   currentRequestContext,
+  currentVisibleEntityIds,
+  newRequestContext,
   type RequestContext,
   requestContextMiddleware,
   runInRequestContext,
   setCurrentAccess,
+  setCurrentFinancialContext,
   setCurrentUser,
 } from './request-context.js';
 export { TransactionService } from './transaction.service.js';
