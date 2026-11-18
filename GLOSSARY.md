@@ -360,6 +360,16 @@ _Avoid_: Sobra, economia do mês
 
 ## Sistema
 
+**Auditoria**:
+O registro de toda criação, alteração ou exclusão de um registro: quem fez, quando, e os valores de antes e de depois. Ninguém a altera nem a apaga pelo sistema.
+_Avoid_: Log, trilha
+**Em código:** `audit`
+
+**Histórico de alterações**:
+As alterações de um registro, lidas da auditoria e mostradas no próprio registro, da mais recente para a mais antiga, com quem fez, quando e o que mudou, campo a campo. O histórico de uma entidade junta as alterações dela, das operações ligadas nela e das participações em que ela é a empresa.
+_Avoid_: Log, versões
+**Em código:** `history`
+
 **Alerta**:
 Um aviso mostrado dentro do sistema sobre algo que pede atenção, como um vencimento, um estoque abaixo do mínimo ou um reembolso pendente. Não sai do sistema por e-mail ou mensagem.
 _Avoid_: Notificação, lembrete

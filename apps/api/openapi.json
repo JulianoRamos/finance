@@ -1890,6 +1890,97 @@
         ]
       }
     },
+    "/v1/entities/{id}/history": {
+      "get": {
+        "operationId": "EntitiesController_history",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da entidade.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página das alterações da entidade, da auditoria, com o total (LLD, seção 5): as da própria entidade, as das operações ligadas nela e as das participações em que ela é a empresa, da mais recente para a mais antiga. A entrada em grupos e as permissões não entram (LLD, seção 4.4).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditHistoryPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na entidade, ou ela não existe (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista o histórico de alterações de uma entidade.",
+        "tags": [
+          "entities"
+        ]
+      }
+    },
     "/v1/financial-groups": {
       "get": {
         "operationId": "FinancialGroupsController_list",
@@ -3432,6 +3523,172 @@
         "required": [
           "version",
           "active"
+        ]
+      },
+      "AuditActor": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id do usuário."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome do usuário hoje, ativo ou desativado.",
+            "example": "Ana Lima"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "AuditChange": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "O campo que mudou, com o nome do modelo (camelCase), como `name` ou `taxId`.",
+            "example": "name"
+          },
+          "before": {
+            "nullable": true,
+            "description": "O valor de antes, em JSON (LLD, seção 4.4): texto, booleano, string decimal ou data `AAAA-MM-DD`. Nulo quando o campo estava vazio, e na criação.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "example": "Clínica Ex."
+          },
+          "after": {
+            "nullable": true,
+            "description": "O valor de depois, no mesmo formato. Nulo quando o campo ficou vazio, e na exclusão.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "example": "Clínica Exemplo"
+          }
+        },
+        "required": [
+          "field",
+          "before",
+          "after"
+        ]
+      },
+      "AuditHistoryEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "O id do registro de auditoria, um inteiro em texto.",
+            "example": "1024"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Quando a alteração aconteceu, o instante da transação."
+          },
+          "user": {
+            "nullable": true,
+            "description": "Quem fez a alteração, ou nulo quando ela não veio de um usuário, como num comando no servidor.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuditActor"
+              }
+            ]
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update",
+              "delete"
+            ],
+            "description": "Criação (`create`), alteração (`update`) ou exclusão (`delete`)."
+          },
+          "tableName": {
+            "type": "string",
+            "description": "A tabela do registro alterado (LLD, seção 4.3): `entity` (a entidade), `entity_operation` (uma operação ligada) ou `equity_stake` (uma participação na empresa).",
+            "example": "entity"
+          },
+          "recordId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id do registro alterado."
+          },
+          "subject": {
+            "type": "string",
+            "nullable": true,
+            "description": "O nome da outra entidade de que a alteração fala: o sócio, numa participação. Nulo nas outras tabelas.",
+            "example": null
+          },
+          "changes": {
+            "description": "O que mudou, campo a campo, só nos campos que o usuário vê, sem o id, os instantes de criação e de alteração e a versão. Na criação, os campos preenchidos, com o antes nulo; na alteração, os que mudaram; na exclusão, os que havia, com o depois nulo.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditChange"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "occurredAt",
+          "user",
+          "action",
+          "tableName",
+          "recordId",
+          "subject",
+          "changes"
+        ]
+      },
+      "AuditHistoryPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "As alterações da página, da mais recente para a mais antiga.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditHistoryEntry"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
         ]
       },
       "FinancialGroupMember": {
