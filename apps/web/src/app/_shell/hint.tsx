@@ -6,7 +6,8 @@ import type { ReactNode } from 'react';
 /**
  * A dica com o nome de um botão de ícone ou de um item da barra lateral recolhida (design-system.md,
  * seções 4.1 e 4.2). Com a barra aberta no desktop, o nome do item já está escrito, e a dica dele só
- * aparece abaixo de 1024px; um botão de ícone passa `expanded` falso, e a dica aparece sempre.
+ * aparece abaixo de 1024px; um botão de ícone passa `expanded` falso, e a dica aparece sempre. Ela fica
+ * por cima de tudo, também do painel lateral e dos diálogos.
  */
 export function Hint({
   label,
@@ -21,7 +22,7 @@ export function Hint({
         <Tooltip.Content
           side={side}
           sideOffset={8}
-          className={`z-30 rounded-sm bg-ink px-2 py-1 text-body-sm text-on-primary ${expanded ? 'lg:hidden' : ''}`}
+          className={`z-60 rounded-sm bg-ink px-2 py-1 text-body-sm text-on-primary ${expanded ? 'lg:hidden' : ''}`}
         >
           {label}
         </Tooltip.Content>

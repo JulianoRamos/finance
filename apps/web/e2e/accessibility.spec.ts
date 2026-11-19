@@ -140,6 +140,16 @@ const SCREENS: readonly Screen[] = [
     },
   },
   {
+    name: 'o histórico de alterações da entidade',
+    open: async (page, baseURL) => {
+      await openTestCompany(page, baseURL);
+      await page.getByRole('button', { name: 'Histórico' }).click();
+      await expect(
+        page.getByRole('dialog', { name: 'Histórico de alterações' }).getByRole('listitem').first(),
+      ).toBeVisible();
+    },
+  },
+  {
     name: 'a confirmação de desativar a entidade',
     open: async (page, baseURL) => {
       const entity = await openTestCompany(page, baseURL);

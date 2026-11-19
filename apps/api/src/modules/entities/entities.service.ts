@@ -15,7 +15,7 @@ import {
   sql,
   TransactionService,
 } from '../../common/index.js';
-import { AuditService } from '../audit/index.js';
+import { AuditHistoryService, type AuditHistoryPage, AuditService, type HistorySource } from '../audit/index.js';
 import type { Entity, EntityEdit, EntityPage, NewEntity } from './entities.dto.js';
 import { invalidTaxIdMessage, isValidTaxId, normalizeTaxId } from './tax-id.js';
 
@@ -75,12 +75,24 @@ function operationRequiresCompany() {
   );
 }
 
+/**
+ * As tabelas e os campos do histórico da entidade (LLD, seção 4.4): a própria entidade, as operações
+ * ligadas nela e as participações em que ela é a empresa, com o sócio no `subject`. O id, os instantes
+ * de criação e de alteração e a versão não entram.
+ */
+const HISTORY_SOURCES: readonly HistorySource[] = [
+  { tableName: 'entity', fields: ['type', 'name', 'taxId', 'active'] },
+  { tableName: 'entity_operation', fields: ['operation'] },
+  { tableName: 'equity_stake', fields: ['fraction', 'startDate', 'endDate'], subjectField: 'holderId' },
+];
+
 /** O dono das tabelas `entity` e `entity_operation`: as leituras e as alterações, com a auditoria delas. */
 @Injectable()
 export class EntitiesService {
   constructor(
     private readonly transactions: TransactionService,
     private readonly audit: AuditService,
+    private readonly auditHistory: AuditHistoryService,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -118,6 +130,27 @@ export class EntitiesService {
   /** A entidade do id, ativa ou desativada. */
   async get(id: string): Promise<Entity> {
     return toEntity(await this.read(id));
+  }
+
+  /**
+   * A página do histórico de alterações da entidade, da auditoria (LLD, seção 4.4). A entrada em grupos
+   * e as permissões ficam de fora (regra 6.1).
+   */
+  history(id: string, page: PageRequest): Promise<AuditHistoryPage> {
+    const client = this.transactions.client;
+    return this.auditHistory.entityHistory(
+      id,
+      {
+        sources: HISTORY_SOURCES,
+        subjectNames: async (ids) =>
+          new Map(
+            (await client.entity.findMany({ where: { id: { in: [...ids] } }, select: { id: true, name: true } })).map(
+              (entity) => [entity.id, entity.name],
+            ),
+          ),
+      },
+      page,
+    );
   }
 
   /** Troca o nome e o documento da entidade, com a versão lida. As operações não mudam por aqui. */

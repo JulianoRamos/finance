@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { SECONDARY_ICON_BUTTON } from './buttons';
 import { Hint } from './hint';
@@ -17,6 +17,36 @@ export const SEARCH_DELAY_MS = 300;
 export type LoadPage<Item> = (query: { q: string; page: number }) => Promise<ListPageResult<Item>>;
 
 /**
+ * O pedido de uma página em que só a resposta do último pedido vale: `request` devolve o resultado, ou nulo
+ * quando outro pedido começou depois ou o anterior foi cancelado. A ação do servidor que não responde, como
+ * sem rede, vira a falha, como a da api.
+ */
+export function useLatestRequest() {
+  const latest = useRef(0);
+  // As funções não mudam entre renderizações, e podem entrar nas dependências de um efeito.
+  return useMemo(
+    () => ({
+      request: async <Item,>(load: () => Promise<ListPageResult<Item>>): Promise<ListPageResult<Item> | null> => {
+        latest.current += 1;
+        const id = latest.current;
+        let result: ListPageResult<Item>;
+        try {
+          result = await load();
+        } catch {
+          result = { ok: false };
+        }
+        return id === latest.current ? result : null;
+      },
+      /** Faz o pedido em curso não valer mais. */
+      cancel: () => {
+        latest.current += 1;
+      },
+    }),
+    [],
+  );
+}
+
+/**
  * A busca e a página de uma lista, que começa na página dada. A busca espera 300 ms depois da última
  * tecla e volta à primeira página; só a resposta do último pedido vale. Quando a página inicial muda,
  * como depois de salvar, a lista volta a ela, sem busca.
@@ -28,7 +58,7 @@ export function useSearchedPages<Item>(initial: ListPage<Item>, load: LoadPage<I
   const [shownQuery, setShownQuery] = useState('');
   const [failed, setFailed] = useState(false);
   const [previousInitial, setPreviousInitial] = useState(initial);
-  const latest = useRef(0);
+  const { request: requestLatest, cancel } = useLatestRequest();
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   if (initial !== previousInitial) {
@@ -42,23 +72,15 @@ export function useSearchedPages<Item>(initial: ListPage<Item>, load: LoadPage<I
   // Um pedido em curso quando a página inicial muda, ou quando a lista sai da tela, não vale mais.
   useEffect(
     () => () => {
-      latest.current += 1;
+      cancel();
       clearTimeout(timer.current);
     },
-    [initial],
+    [initial, cancel],
   );
 
   async function request(q: string, page: number) {
-    latest.current += 1;
-    const id = latest.current;
-    let result: ListPageResult<Item>;
-    try {
-      result = await load({ q, page });
-    } catch {
-      // A ação do servidor não respondeu, como sem rede: a lista avisa, como na falha da api.
-      result = { ok: false };
-    }
-    if (id !== latest.current) return;
+    const result = await requestLatest(() => load({ q, page }));
+    if (!result) return;
     setFailed(!result.ok);
     if (result.ok) {
       setShown(result.page);

@@ -68,3 +68,13 @@ export function disableOperation(id: string, operation: Operation): Promise<Enti
     api.DELETE('/v1/entities/{id}/operations/{operation}', { params: { path: { id, operation } }, signal }),
   );
 }
+
+export type AuditHistoryPage = components['schemas']['AuditHistoryPage'];
+export type AuditHistoryEntry = AuditHistoryPage['items'][number];
+
+/** A página do histórico de alterações da entidade, da mais recente para a mais antiga, de 10 em 10. */
+export function getEntityHistory(id: string, page: number): Promise<ReadResult<AuditHistoryPage>> {
+  return readResult((init) =>
+    api.GET('/v1/entities/{id}/history', { params: { path: { id }, query: { page, pageSize: 10 } }, ...init }),
+  );
+}

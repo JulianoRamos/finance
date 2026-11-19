@@ -124,6 +124,7 @@ Base de 4px.
 | `container-menu` | 288px | Largura dos menus da barra lateral (seção 4.5) |
 | `container-menu-list` | 360px | Altura máxima da lista do seletor de contexto, que rola entre a busca e o atalho (seção 4.1) |
 | `container-sidebar` | 280px | Largura da barra lateral aberta (seção 4.1) |
+| `container-panel` | 520px | Largura máxima do painel lateral (seção 4.5) |
 | `container-section` | 560px | Largura máxima de uma seção de formulário dentro de um cartão e dos diálogos (seção 4.5) |
 | `container-table` | 640px | Largura mínima da área de uma tabela: numa área mais estreita, ela vira a lista de itens (seção 4.4) |
 
