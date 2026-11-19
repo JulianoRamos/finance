@@ -9,6 +9,7 @@ import {
   type EntityResult,
   type EntityType,
   enableOperation,
+  getEntityHistory,
   listEntities,
   setEntityActive,
   updateEntity,
@@ -20,6 +21,7 @@ import type { CommandMessage } from '../../_shell/confirm-dialog';
 import { formatFraction, percentToFraction } from '../../_shell/format';
 import { type FormState, INITIAL_FORM_STATE, refusedFormState } from '../../_shell/form-state';
 import { listPageResult, type ListPageResult } from '../../_shell/list-page';
+import { type HistoryItem, historyItem } from './[id]/history-entry';
 import { type EntityListItem, entityListItem } from './entity-list-page';
 import { type EntityOption, entityOption } from './entity-option';
 
@@ -155,6 +157,22 @@ export async function searchEntityOptionsAction({
   page: number;
 }): Promise<ListPageResult<EntityOption>> {
   return listPageResult(await listEntities(page, q, true), entityOption);
+}
+
+/**
+ * Uma página do histórico de alterações da entidade, pedida pelo painel do detalhe, com cada alteração
+ * já dita como a tela a mostra. O tipo da entidade, que não muda, formata o documento.
+ */
+export async function entityHistoryAction({
+  id,
+  type,
+  page,
+}: {
+  id: string;
+  type: EntityType;
+  page: number;
+}): Promise<ListPageResult<HistoryItem>> {
+  return listPageResult(await getEntityHistory(id, page), (entry) => historyItem(entry, type));
 }
 
 /** O que foi enviado no formulário de registrar uma participação, com a fração em percentual. */

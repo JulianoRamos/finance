@@ -11,6 +11,7 @@ import { loadOrNotFound } from '../../../_shell/load-or-not-found';
 import { entityOption } from '../entity-option';
 import { formatTaxId, TYPE_NAMES } from '../tax-id-format';
 import { ActivationForm } from './activation-form';
+import { EntityHistory } from './entity-history';
 import { EquityStakes } from './equity-stakes';
 import { OperationSwitch } from './operation-switch';
 
@@ -46,18 +47,21 @@ export default async function EntityDetail({ params, searchParams }: PageProps<'
 
   return (
     <section aria-labelledby="entity-title" className={PANEL}>
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 id="entity-title" className="text-heading-md wrap-anywhere text-ink">
-            {entity.name}
-          </h2>
-          {!entity.active && (
-            <span className="rounded-full bg-surface-subtle px-2 text-body-sm font-medium text-body">Desativada</span>
-          )}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="entity-title" className="text-heading-md wrap-anywhere text-ink">
+              {entity.name}
+            </h2>
+            {!entity.active && (
+              <span className="rounded-full bg-surface-subtle px-2 text-body-sm font-medium text-body">Desativada</span>
+            )}
+          </div>
+          <p>
+            {TYPE_NAMES[entity.type]} · {document}
+          </p>
         </div>
-        <p>
-          {TYPE_NAMES[entity.type]} · {document}
-        </p>
+        <EntityHistory entityId={entity.id} entityName={entity.name} entityType={entity.type} />
       </div>
       {entity.type === 'company' && (
         <section aria-labelledby="operations-title" className="flex flex-col gap-3 border-t border-hairline pt-6">

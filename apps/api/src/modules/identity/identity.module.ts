@@ -14,6 +14,7 @@ import { RecoveryLinksService } from './recovery-links.service.js';
 import { SessionGuard } from './session.guard.js';
 import { SessionsController } from './sessions.controller.js';
 import { SessionsService } from './sessions.service.js';
+import { UserNamesService } from './user-names.service.js';
 import { UsersController } from './users.controller.js';
 import { UsersService } from './users.service.js';
 
@@ -28,6 +29,8 @@ import { UsersService } from './users.service.js';
     PasswordChangeService,
     PermissionsService,
     IdentityService,
+    // A porta dos nomes dos usuários, que a Auditoria declara para o histórico (LLD, seção 3).
+    UserNamesService,
     // Toda rota é protegida pela sessão, salvo a marcada com @Public() (LLD, seção 5), e o guard confere
     // as marcas da permissão (regra 6.1).
     { provide: APP_GUARD, useClass: SessionGuard },

@@ -18,10 +18,12 @@ import {
   currentVisibleEntityIds,
   GrantsCreatorAccess,
   Operation,
+  PageQuery,
   pageRequest,
   RequiresEntityLevel,
   UNAUTHENTICATED_RESPONSE,
 } from '../../common/index.js';
+import { AuditHistoryPage } from '../audit/index.js';
 import {
   Entity,
   EntityActivation,
@@ -208,5 +210,25 @@ export class EntitiesController {
   @ApiForbiddenResponse(OPERATE_FORBIDDEN_RESPONSE)
   disableOperation(@Param() params: EntityOperationParams): Promise<Entity> {
     return this.entities.disableOperation(params.id, params.operation);
+  }
+
+  @Get(':id/history')
+  @RequiresEntityLevel('view')
+  @ApiOperation({ summary: 'Lista o histórico de alterações de uma entidade.' })
+  @ApiParam(ID_PARAM)
+  @ApiOkResponse({
+    type: AuditHistoryPage,
+    description:
+      'A página das alterações da entidade, da auditoria, com o total (LLD, seção 5): as da própria entidade, as das operações ligadas nela e as das participações em que ela é a empresa, da mais recente para a mais antiga. A entrada em grupos e as permissões não entram (LLD, seção 4.4).',
+  })
+  @ApiBadRequestResponse({
+    type: ApiError,
+    description:
+      '`INVALID_INPUT`: o id não é um UUID, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
+  })
+  @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
+  @ApiForbiddenResponse(VIEW_FORBIDDEN_RESPONSE)
+  history(@Param() params: EntityId, @Query() query: PageQuery): Promise<AuditHistoryPage> {
+    return this.entities.history(params.id, pageRequest(query));
   }
 }

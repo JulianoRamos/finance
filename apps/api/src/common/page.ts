@@ -112,7 +112,8 @@ export interface Page<T> {
 /**
  * A página do filtro: os ids da página e o total numa consulta, e depois os registros desses ids, na
  * ordem deles. `found` seleciona o `id` e as colunas da `order`, já filtrados; a ordem termina no `id`,
- * para a página não mudar entre nomes iguais. `read` lê os registros dos ids, em qualquer ordem.
+ * para a página não mudar entre nomes iguais. O `id` pode ser de qualquer tipo, e a ordem usa o tipo dele;
+ * só os ids da página saem em texto, com outro nome, para a ordem não ler o texto (`'9' > '10'`). `read` lê os registros dos ids, em qualquer ordem.
  */
 export async function readPage<T extends { readonly id: string }>(
   client: Transaction,
@@ -125,7 +126,7 @@ export async function readPage<T extends { readonly id: string }>(
     WITH found AS (${found})
     SELECT
       (SELECT count(*)::int FROM found) AS total,
-      ARRAY(SELECT id FROM found ORDER BY ${order}, id LIMIT ${request.pageSize} OFFSET ${request.offset}) AS ids`;
+      ARRAY(SELECT id::text AS page_id FROM found ORDER BY ${order}, id LIMIT ${request.pageSize} OFFSET ${request.offset}) AS ids`;
   const ids = row?.ids ?? [];
   const byId = new Map((ids.length > 0 ? await read(ids) : []).map((item) => [item.id, item]));
   return {
