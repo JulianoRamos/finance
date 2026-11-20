@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { createTestIndividual, uniqueName } from './support/entities';
+import { createTestGroup, createTestIndividual, deleteTestGroup, uniqueName } from './support/entities';
 import { createTestUser, signIn, uniqueOrigin } from './support/users';
 
 test('o usuário cadastra, edita e desativa uma conta', { tag: '@KAN-23-CA7' }, async ({ page, baseURL }) => {
@@ -56,4 +56,34 @@ test('o usuário cadastra, edita e desativa uma conta', { tag: '@KAN-23-CA7' }, 
   await expect(detail).toContainText('Esta conta está desativada');
   await expect(renamed).toContainText('Desativada');
   await expect(detail.getByRole('button', { name: 'Reativar conta' })).toBeFocused();
+});
+
+// Sem critério de aceite: depois de um envio recusado, as escolhas voltam com o que foi enviado. O contexto é
+// um grupo, com duas entidades, para a entidade não vir já escolhida.
+test('a recusa do cadastro mantém a entidade e o banco escolhidos', async ({ page, baseURL }) => {
+  await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
+  const user = await createTestUser();
+  const person = await createTestIndividual(user, uniqueName('Ana Recusa'));
+  const group = await createTestGroup(user, [person, await createTestIndividual(user)]);
+  try {
+    await signIn(page.context(), user, baseURL ?? '');
+    await page
+      .context()
+      .addCookies([{ name: 'financial_context', value: `group:${group.id}`, url: baseURL ?? '', httpOnly: true }]);
+
+    await page.goto('/accounts/new');
+    await page.getByLabel('Entidade').selectOption({ label: person.name });
+    await page.getByLabel('Banco').selectOption({ label: 'Itaú' });
+    await page.getByRole('radio', { name: /Conta corrente/ }).check();
+    await page.getByLabel('Saldo inicial (R$)').fill('10');
+    await page.getByLabel('Data do saldo inicial').fill('2026-09-01');
+    await page.getByRole('button', { name: 'Criar conta' }).click();
+
+    await expect(page.getByText(/Informe o nome/)).toBeVisible();
+    await expect(page.getByLabel('Entidade')).toHaveValue(person.id);
+    await expect(page.getByLabel('Banco')).toHaveValue('itau');
+    await expect(page.getByRole('radio', { name: /Conta corrente/ })).toBeChecked();
+  } finally {
+    await deleteTestGroup(user, group.id);
+  }
 });

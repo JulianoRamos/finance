@@ -147,6 +147,9 @@ export function AccountForm({
         >
           <select
             id={`${prefix}-entity`}
+            // O React devolve o select ao valor com que ele nasceu ao limpar o formulário depois do envio: a
+            // chave o recria com o valor enviado, depois de uma recusa.
+            key={values.entityId}
             name="entityId"
             defaultValue={values.entityId}
             className={inputClass('app')}
@@ -204,6 +207,9 @@ export function AccountForm({
       >
         <select
           id={`${prefix}-institution`}
+          // O React devolve o select ao valor com que ele nasceu ao limpar o formulário depois do envio: a
+          // chave o recria com o valor enviado, depois de uma recusa.
+          key={values.institution}
           name="institution"
           defaultValue={values.institution}
           className={inputClass('app')}
