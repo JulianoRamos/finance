@@ -276,22 +276,38 @@ const SCREENS: readonly Screen[] = [
   },
 ];
 
+/**
+ * Os temas conferidos: o claro e o escuro do sistema, sem escolha, e o escuro escolhido pelo usuário no
+ * cookie com o sistema no claro (KAN-17-CA4), que prova também que a escolha vence o sistema.
+ */
+const THEMES = [
+  { label: 'claro', details: {}, system: 'light' },
+  { label: 'escuro do sistema', details: {}, system: 'dark' },
+  { label: 'escuro', details: { tag: '@KAN-17-CA4' }, system: 'light', chosen: 'dark' },
+] as const;
+
 for (const screen of SCREENS) {
-  for (const theme of ['light', 'dark'] as const) {
-    test(`${screen.name} não tem violação séria de acessibilidade no tema ${theme === 'light' ? 'claro' : 'escuro'}`, async ({
-      page,
-      baseURL,
-    }) => {
-      await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
-      await page.emulateMedia({ colorScheme: theme });
-      await screen.open(page, baseURL ?? '');
+  for (const theme of THEMES) {
+    test(
+      `${screen.name} não tem violação séria de acessibilidade no tema ${theme.label}`,
+      theme.details,
+      async ({ page, baseURL }) => {
+        await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
+        await page.emulateMedia({ colorScheme: theme.system });
+        if ('chosen' in theme) {
+          await page.context().addCookies([{ name: 'theme', value: theme.chosen, url: baseURL ?? '' }]);
+        }
+        await screen.open(page, baseURL ?? '');
+        // Sem isso, um cookie ignorado faria a rodada do escuro analisar o tema claro e passar.
+        if ('chosen' in theme) await expect(page.locator('html')).toHaveAttribute('data-theme', theme.chosen);
 
-      const { violations } = await new AxeBuilder({ page }).withTags(RULES).analyze();
-      const severe = violations
-        .filter((violation) => SEVERE_IMPACTS.has(violation.impact ?? ''))
-        .map((violation) => `${violation.id}: ${violation.help} (${String(violation.nodes.length)} elemento(s))`);
+        const { violations } = await new AxeBuilder({ page }).withTags(RULES).analyze();
+        const severe = violations
+          .filter((violation) => SEVERE_IMPACTS.has(violation.impact ?? ''))
+          .map((violation) => `${violation.id}: ${violation.help} (${String(violation.nodes.length)} elemento(s))`);
 
-      expect(severe).toEqual([]);
-    });
+        expect(severe).toEqual([]);
+      },
+    );
   }
 }

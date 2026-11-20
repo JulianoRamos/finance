@@ -11,3 +11,6 @@ export const MENU_ITEM_DESTRUCTIVE = `${MENU_ITEM} text-negative`;
 
 /** A divisória entre os grupos de um menu. */
 export const MENU_SEPARATOR = 'h-px bg-hairline';
+
+/** O rótulo de um grupo de menu, em `eyebrow` `mute` (design-system.md, seção 4.5). */
+export const MENU_LABEL = 'px-2 pt-2 pb-1 font-mono text-eyebrow text-mute uppercase';

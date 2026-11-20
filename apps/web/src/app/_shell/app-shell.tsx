@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { ShownContext } from './context-selector';
 import { HintProvider } from './hint';
 import { Sidebar } from './sidebar';
+import type { ThemeChoice } from './theme';
 import { TopBar } from './top-bar';
 
 /**
@@ -13,11 +14,13 @@ export function AppShell({
   user,
   context,
   sidebarExpanded,
+  theme,
   children,
 }: Readonly<{
   user: { name: string; email: string; managesAccess: boolean };
   context: ShownContext;
   sidebarExpanded: boolean;
+  theme: ThemeChoice;
   children: ReactNode;
 }>) {
   return (
@@ -25,7 +28,7 @@ export function AppShell({
       <div className="flex min-h-screen bg-surface-subtle">
         <Sidebar user={user} context={context} expanded={sidebarExpanded} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar sidebarExpanded={sidebarExpanded} managesAccess={user.managesAccess} />
+          <TopBar sidebarExpanded={sidebarExpanded} managesAccess={user.managesAccess} theme={theme} />
           <main className="flex flex-1 flex-col">{children}</main>
         </div>
       </div>

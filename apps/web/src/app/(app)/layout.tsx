@@ -9,6 +9,7 @@ import { currentSession } from '@/api/sessions';
 import { AppShell } from '../_shell/app-shell';
 import { selectedContextOf } from '../_shell/context-text';
 import { isSidebarExpanded, SIDEBAR_COOKIE } from '../_shell/sidebar-state';
+import { THEME_COOKIE, themeChoiceOf } from '../_shell/theme';
 
 /**
  * A estrutura do app, em volta das páginas que exigem sessão. Sem uma sessão válida, vai para o login.
@@ -22,9 +23,10 @@ export default async function AppLayout({ children }: Readonly<{ children: React
   if (session.status === 'unauthenticated') redirect('/login');
   if (session.status === 'unavailable') return <main className="flex flex-col">{children}</main>;
   const sidebarExpanded = isSidebarExpanded(cookieStore.get(SIDEBAR_COOKIE)?.value);
+  const theme = themeChoiceOf(cookieStore.get(THEME_COOKIE)?.value);
   const context = selectedContextOf(current);
   return (
-    <AppShell user={session.user} context={context} sidebarExpanded={sidebarExpanded}>
+    <AppShell user={session.user} context={context} sidebarExpanded={sidebarExpanded} theme={theme}>
       {children}
     </AppShell>
   );
