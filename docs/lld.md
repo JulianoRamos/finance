@@ -274,7 +274,7 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 - **Identificador da requisição:** o cabeçalho `X-Request-Id`, um UUID, opcional em toda rota. A `web` gera um a cada requisição do navegador e o manda em toda chamada à `api` feita nela. A `api` usa o recebido quando ele é um UUID e gera outro quando falta ou não é; o identificador vai para o registro de auditoria (seção 4.4). Como vale para todas as rotas, ele fica nesta convenção, e não em cada rota do `openapi.json`.
 - **Dinheiro e quantidades** trafegam como string decimal (`"1234.56"`), e nunca como número JSON. **Datas de calendário** como `"AAAA-MM-DD"`, e instantes em ISO 8601 com fuso.
 - **Edição:** o corpo traz a `version` lida, e a rota devolve `409 VERSION_CONFLICT` quando ela mudou.
-- **Listas:** toda lista é paginada, sem exceção, por `page` (a partir de 1, padrão 1) e `pageSize` (padrão 10, máximo 100). A resposta é `{ "items": [...], "total": <n>, "page": <n>, "pageSize": <n> }`, com o total dos itens do filtro; uma página depois da última vem com `items` vazio e o mesmo total. A ordem de cada lista é a da rota dela.
+- **Listas:** toda lista é paginada, por `page` (a partir de 1, padrão 1) e `pageSize` (padrão 10, máximo 100). A resposta é `{ "items": [...], "total": <n>, "page": <n>, "pageSize": <n> }`, com o total dos itens do filtro; uma página depois da última vem com `items` vazio e o mesmo total. A ordem de cada lista é a da rota dela. A única exceção é a pesquisa (regra 6.22), que devolve até 5 resultados por tipo, sem paginação, porque sugere onde ir, e não lista um cadastro.
 - **Busca e filtros:** são parâmetros da rota, e a `api` os aplica antes de paginar. A busca textual é o `q`, comparado sem acento e sem diferença de maiúsculas, em qualquer posição do nome (e do documento, onde a rota diz). A `web` não filtra nem pagina o que já leu: cada busca, filtro ou troca de página é um pedido à `api`.
 - **Erro:** o corpo é `{ "code": "<STABLE_CODE>", "message": "<texto para o usuário>", "fields": { "<field>": "<reason>" } }`, com `fields` só na entrada inválida. O `code` é estável, em inglês e em `UPPER_SNAKE_CASE`, e é o que o cliente confere; a `message` pode mudar. Os códigos comuns:
 
@@ -486,12 +486,12 @@ Toda divisão de dinheiro é feita em centavos, e a diferença dos centavos fica
 
 ### 6.22 Pesquisa
 
-- **Rota:** `GET /v1/search?term=<texto>`, sem o cabeçalho `Financial-Context`, porque procura em todos os contextos do usuário. O termo tem ao menos 2 caracteres e é comparado sem acento e sem diferença de maiúsculas, em qualquer posição do nome.
+- **Rota:** `GET /v1/search?term=<texto>`, sem o cabeçalho `Financial-Context`, porque procura em todos os contextos do usuário. O termo tem de 2 a 120 caracteres, sem contar os espaços das pontas, e é comparado sem acento e sem diferença de maiúsculas, em qualquer posição do nome; fora disso, a rota responde `400 INVALID_INPUT`.
 - **Onde procura:** nas entidades em que o usuário tem `view` ou `operate`, nos grupos em que ele tem permissão em todos os membros (a mesma regra do contexto financeiro) e, só para quem tem `manages_access`, nos usuários. Uma entidade desativada aparece marcada como tal.
-- **Resposta:** até 5 resultados por tipo, cada um com o tipo, o id, o nome e um complemento (o tipo da entidade, o resumo do grupo, o e-mail do usuário).
+- **Resposta:** até 5 resultados por tipo, numa lista por tipo (`entities`, `financialGroups`, `users`), cada um com o id, o nome e o complemento dele: a entidade, o tipo e se está ativa; o grupo, se é a Visão Familiar e quantas pessoas físicas e empresas reúne, para o resumo; o usuário, o e-mail e se está ativo. Cada lista segue a ordem da lista do cadastro: as entidades e os usuários ativos primeiro, e a Visão Familiar primeiro entre os grupos, e cada grupo pelo nome. Quem não gere acessos recebe a lista de usuários vazia.
 - **Cada módulo** responde pelos próprios registros, por uma função pública que o módulo Pesquisa (`search`) chama. Um módulo novo entra na pesquisa no ticket que o cria.
 - **Telas e ações** não passam pela API: a `web` as filtra pelo termo e pelas permissões do usuário, como "Novo usuário" só para quem tem `manages_access`.
-- **Abrir um resultado:** uma entidade, um grupo ou um usuário abre o cadastro dele; "Trocar para", o contexto financeiro dele.
+- **Abrir um resultado:** uma entidade, um grupo ou um usuário abre o cadastro dele; "Trocar para", o contexto financeiro dele, oferecido para os grupos e para as entidades ativas, que são as escolhas de contexto (regra 6.2).
 
 ## 7. Tarefas agendadas
 
