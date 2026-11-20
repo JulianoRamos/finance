@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { EntityType, IsTrimmedLength, NAME_MAX_LENGTH } from '../../common/index.js';
+import { EntityType, Institution, IsTrimmedLength, NAME_MAX_LENGTH } from '../../common/index.js';
 
 /**
  * O menor termo da pesquisa, sem os espaços das pontas (regra 6.22). A paleta da web não pede à api um termo
@@ -62,6 +62,30 @@ export class SearchFinancialGroup {
   companies!: number;
 }
 
+export class SearchAccount {
+  @ApiProperty({ format: 'uuid', description: 'O id da conta.' })
+  id!: string;
+
+  @ApiProperty({ description: 'O nome da conta.', example: 'Nubank' })
+  name!: string;
+
+  @ApiProperty({ description: 'O nome da entidade dona, para o complemento.', example: 'Ana Lima' })
+  entityName!: string;
+
+  @ApiProperty({
+    enum: Institution,
+    description:
+      'O banco, que escolhe o leitor dos extratos importados (regra 6.4). `other` para um banco que a importação não lê e para o dinheiro em espécie.',
+  })
+  institution!: Institution;
+
+  @ApiProperty({ description: 'Verdadeiro na conta de reserva.' })
+  isReserve!: boolean;
+
+  @ApiProperty({ description: 'Falso na conta desativada, que aparece marcada como tal.' })
+  active!: boolean;
+}
+
 export class SearchUser {
   @ApiProperty({ format: 'uuid', description: 'O id do usuário.' })
   id!: string;
@@ -92,6 +116,14 @@ export class SearchResults {
       'Até 5 grupos em que o usuário tem permissão em todos os membros (o grupo vazio entra), a Visão Familiar primeiro e os outros pelo nome.',
   })
   financialGroups!: SearchFinancialGroup[];
+
+  @ApiProperty({
+    type: SearchAccount,
+    isArray: true,
+    description:
+      'Até 5 contas das entidades em que o usuário tem `view` ou `operate`, as ativas primeiro, e cada grupo pelo nome.',
+  })
+  accounts!: SearchAccount[];
 
   @ApiProperty({
     type: SearchUser,

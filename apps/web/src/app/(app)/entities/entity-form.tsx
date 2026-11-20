@@ -7,12 +7,10 @@ import type { Entity, EntityType } from '@/api/entities';
 
 import { ErrorNotice, FieldError, SubmitButton, TextField } from '../../_access/fields';
 import { SECONDARY_BUTTON } from '../../_shell/buttons';
+import { CHOICE, CHOICE_CONTROL as CONTROL } from '../../_shell/choice';
 import { INITIAL_FORM_STATE } from '../../_shell/form-state';
 import { createEntityAction, type EntityFormState, updateEntityAction } from './actions';
 import { formatTaxId, TYPE_NAMES } from './tax-id-format';
-
-const CHOICE = `flex cursor-pointer items-start gap-3 rounded-md border border-hairline p-3 hover:border-hairline-strong has-checked:border-accent has-checked:bg-accent-soft has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent`;
-const CONTROL = 'mt-1 size-4 flex-none accent-accent outline-none';
 
 /**
  * Os textos do nome e do documento, que seguem o tipo marcado e são neutros antes da escolha. Sem

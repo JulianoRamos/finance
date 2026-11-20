@@ -72,6 +72,7 @@ describe('Pesquisa', () => {
       financialGroups: [
         { id: groupId, name: `Grupo Ávila ${marker}`, isFamilyView: false, individuals: 1, companies: 1 },
       ],
+      accounts: [],
       users: [{ id: user.id, name: user.name, email: user.email, active: true }],
     });
 
@@ -83,6 +84,7 @@ describe('Pesquisa', () => {
     expect(inactive.body).toEqual({
       entities: [{ id: sixth.id, type: 'company', name: sixth.name, active: false }],
       financialGroups: [],
+      accounts: [],
       users: [],
     });
   });
@@ -115,13 +117,60 @@ describe('Pesquisa', () => {
           { id: empty, name: `${marker} Grupo Vazio`, isFamilyView: false, individuals: 0, companies: 0 },
         ],
       };
-      expect(seenByViewer.body).toEqual({ ...visible, users: [] });
+      expect(seenByViewer.body).toEqual({ ...visible, accounts: [], users: [] });
       expect(seenByAccessManager.body).toEqual({
         ...visible,
+        accounts: [],
         users: [{ id: user.id, name: user.name, email: user.email, active: true }],
       });
     },
   );
+
+  it('acha as contas das entidades que o usuário vê', { tags: ['@KAN-23-CA6'] }, async () => {
+    const manager = await newSession(app);
+    const marker = uniquePrefix().toUpperCase();
+    const seen = await newEntity(manager, 'individual', `Ana ${marker}`);
+    const hidden = await newEntity(manager, 'individual', `Bia ${marker}`);
+    const viewer = await newSessionByRoute(app, manager, { permissions: [{ entityId: seen.id, level: 'view' }] });
+    const newAccount = async (entityId: string, name: string, isReserve = false) =>
+      (
+        await authedRequest(app, manager, 'post', '/v1/accounts')
+          .send({
+            entityId,
+            name,
+            type: 'checking',
+            institution: 'nubank',
+            isReserve,
+            openingBalance: '0',
+            openingBalanceDate: '2026-09-01',
+          })
+          .expect(201)
+      ).body as { id: string; name: string; version: number };
+    const main = await newAccount(seen.id, `Ávila ${marker}`);
+    const reserve = await newAccount(seen.id, `Ávila ${marker} Reserva`, true);
+    const old = await newAccount(seen.id, `Ávila ${marker} Antiga`);
+    await authedRequest(app, manager, 'put', `/v1/accounts/${old.id}/active`)
+      .send({ active: false, version: old.version })
+      .expect(200);
+    await newAccount(hidden.id, `Ávila ${marker}`);
+
+    const found = await search(viewer.token, `avila ${marker.toLowerCase()}`).expect(200);
+
+    const result = (account: { id: string; name: string }, isReserve: boolean, active: boolean) => ({
+      id: account.id,
+      name: account.name,
+      entityName: seen.name,
+      institution: 'nubank',
+      isReserve,
+      active,
+    });
+    expect((found.body as { accounts: unknown[] }).accounts).toEqual([
+      result(main, false, true),
+      result(reserve, true, true),
+      result(old, false, false),
+    ]);
+    await authedRequest(app, viewer.token, 'get', `/v1/accounts/${main.id}`).expect(200);
+  });
 
   it('recusa o termo com menos de 2 caracteres', { tags: ['@KAN-18-CA3'] }, async () => {
     const token = await newSession(app);

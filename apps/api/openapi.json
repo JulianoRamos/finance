@@ -2750,7 +2750,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Até 5 resultados por tipo, em todos os contextos do usuário (regra 6.22): as entidades em que ele tem permissão, os grupos em que ele tem permissão em todos os membros e, só para quem gere acessos, os usuários.",
+            "description": "Até 5 resultados por tipo, em todos os contextos do usuário (regra 6.22): as entidades em que ele tem permissão, os grupos em que ele tem permissão em todos os membros, as contas das entidades em que ele tem permissão e, só para quem gere acessos, os usuários.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2785,9 +2785,576 @@
             "session": []
           }
         ],
-        "summary": "Pesquisa entidades, grupos financeiros e usuários pelo nome.",
+        "summary": "Pesquisa entidades, grupos financeiros, contas e usuários pelo nome.",
         "tags": [
           "search"
+        ]
+      }
+    },
+    "/v1/accounts": {
+      "get": {
+        "operationId": "AccountsController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "`true` traz só as contas ativas, as que aparecem nas escolhas de conta; `false`, só as desativadas. Sem o parâmetro, traz todas.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "A busca: o texto procurado no nome da conta, sem diferença de acento nem de maiúsculas, em qualquer posição. Vazia ou ausente, não filtra (LLD, seção 5).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Financial-Context",
+            "in": "header",
+            "description": "O contexto financeiro escolhido (LLD, seção 5): `entity:<id>` ou `group:<id>`, com o id em UUID.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "group:0190d3f2-6c1e-7a4b-9f00-1a2b3c4d5e6f"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página das contas das entidades do contexto financeiro, com o total (LLD, seção 5): as ativas primeiro e cada grupo pelo nome, em ordem alfabética.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o cabeçalho `Financial-Context` falta ou não é `entity:<id>` nem `group:<id>` com um UUID, a `page` não é um inteiro a partir de 1, o `pageSize` não é um inteiro de 1 a 100, ou o `active` não é `true` nem `false` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` numa entidade do contexto, ou o id do contexto não é de nenhuma entidade nem de nenhum grupo (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista as contas do contexto financeiro.",
+        "tags": [
+          "accounts"
+        ]
+      },
+      "post": {
+        "operationId": "AccountsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAccount"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A conta foi criada, ativa, na versão 1.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: a entidade falta ou não é um UUID, o nome falta, é vazio ou passa de 120 caracteres, o tipo ou o banco faltam ou não são conhecidos, o saldo inicial não é uma string decimal com até 2 casas, ou a data dele não é `AAAA-MM-DD` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade, ou ela não existe (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`INACTIVE_ENTITY`: a entidade está desativada, e não recebe conta nova (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Cadastra uma conta numa entidade.",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/v1/accounts/{id}": {
+      "get": {
+        "operationId": "AccountsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da conta.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A conta, ativa ou desativada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na entidade dona da conta (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a conta não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lê uma conta.",
+        "tags": [
+          "accounts"
+        ]
+      },
+      "put": {
+        "operationId": "AccountsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da conta.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A conta editada, na versão seguinte.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a versão falta, a entidade falta ou não é um UUID, o nome falta, é vazio ou passa de 120 caracteres, o tipo ou o banco faltam ou não são conhecidos, o saldo inicial não é uma string decimal com até 2 casas, ou a data dele não é `AAAA-MM-DD` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade dona da conta (quem só tem `view` só lê) (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a conta não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a conta mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`ACCOUNT_OWNER_IMMUTABLE`: a entidade enviada não é a dona atual: a dona da conta não muda depois do cadastro (LLD, seção 4.5).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Edita os dados de uma conta.",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/v1/accounts/{id}/active": {
+      "put": {
+        "operationId": "AccountsController_setActive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da conta.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountActivation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A conta desativada ou reativada, com a versão seguinte. Pedir o estado que ela já tem responde 200 sem mudar a versão. Desativar não apaga nada (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, ou o `active` ou a versão faltam (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade dona da conta (quem só tem `view` só lê) (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a conta não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a conta mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Desativa ou reativa uma conta.",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/v1/accounts/{id}/history": {
+      "get": {
+        "operationId": "AccountsController_history",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da conta.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página das alterações da conta, da auditoria, com o total (LLD, seção 5), da mais recente para a mais antiga (LLD, seção 4.4).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditHistoryPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na entidade dona da conta (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a conta não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista o histórico de alterações de uma conta.",
+        "tags": [
+          "accounts"
         ]
       }
     }
@@ -4220,6 +4787,55 @@
           "companies"
         ]
       },
+      "SearchAccount": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id da conta."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da conta.",
+            "example": "Nubank"
+          },
+          "entityName": {
+            "type": "string",
+            "description": "O nome da entidade dona, para o complemento.",
+            "example": "Ana Lima"
+          },
+          "institution": {
+            "type": "string",
+            "enum": [
+              "nubank",
+              "caixa",
+              "mercado_pago",
+              "bradesco",
+              "itau",
+              "banco_do_brasil",
+              "other"
+            ],
+            "description": "O banco, que escolhe o leitor dos extratos importados (regra 6.4). `other` para um banco que a importação não lê e para o dinheiro em espécie."
+          },
+          "isReserve": {
+            "type": "boolean",
+            "description": "Verdadeiro na conta de reserva."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na conta desativada, que aparece marcada como tal."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "entityName",
+          "institution",
+          "isReserve",
+          "active"
+        ]
+      },
       "SearchUser": {
         "type": "object",
         "properties": {
@@ -4267,6 +4883,13 @@
               "$ref": "#/components/schemas/SearchFinancialGroup"
             }
           },
+          "accounts": {
+            "description": "Até 5 contas das entidades em que o usuário tem `view` ou `operate`, as ativas primeiro, e cada grupo pelo nome.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchAccount"
+            }
+          },
           "users": {
             "description": "Até 5 usuários, os ativos primeiro, e cada grupo pelo nome. Sempre vazia para quem não gere acessos.",
             "type": "array",
@@ -4278,7 +4901,274 @@
         "required": [
           "entities",
           "financialGroups",
+          "accounts",
           "users"
+        ]
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A entidade dona, que não muda depois do cadastro."
+          },
+          "entityName": {
+            "type": "string",
+            "description": "O nome atual da entidade dona, que a lista e o detalhe mostram.",
+            "example": "Ana Lima"
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da conta.",
+            "example": "Nubank"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "checking",
+              "payment",
+              "cash"
+            ],
+            "description": "Conta corrente (`checking`), conta de pagamento (`payment`) ou dinheiro em espécie (`cash`). O cartão de crédito entra com os cartões."
+          },
+          "institution": {
+            "type": "string",
+            "enum": [
+              "nubank",
+              "caixa",
+              "mercado_pago",
+              "bradesco",
+              "itau",
+              "banco_do_brasil",
+              "other"
+            ],
+            "description": "O banco, que escolhe o leitor dos extratos importados (regra 6.4). `other` para um banco que a importação não lê e para o dinheiro em espécie."
+          },
+          "isReserve": {
+            "type": "boolean",
+            "description": "A conta de reserva: transferir para ela conta como aplicação, e tirar dela, como resgate (GLOSSARY.md)."
+          },
+          "openingBalance": {
+            "type": "string",
+            "description": "O saldo no começo do dia do saldo inicial, antes das movimentações dele, em string decimal com até 2 casas. Pode ser negativo, como o de uma conta no limite (LLD, seção 4.5).",
+            "example": "2000.00"
+          },
+          "openingBalanceDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do saldo inicial, `AAAA-MM-DD`: o saldo da conta soma as movimentações a partir dele, inclusive (regra 6.3).",
+            "example": "2026-09-01"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na conta desativada, que some das escolhas de conta e continua nos números (regra 6.20)."
+          },
+          "version": {
+            "type": "integer",
+            "description": "A versão, que a edição e a desativação mandam de volta (regra 6.20).",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "entityId",
+          "entityName",
+          "name",
+          "type",
+          "institution",
+          "isReserve",
+          "openingBalance",
+          "openingBalanceDate",
+          "active",
+          "version"
+        ]
+      },
+      "AccountPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "As contas da página, na ordem da lista.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Account"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ]
+      },
+      "NewAccount": {
+        "type": "object",
+        "properties": {
+          "entityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A entidade dona, em que o usuário tem `operate`."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas. Não é único.",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Nubank"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "checking",
+              "payment",
+              "cash"
+            ],
+            "description": "Conta corrente (`checking`), conta de pagamento (`payment`) ou dinheiro em espécie (`cash`). O cartão de crédito entra com os cartões."
+          },
+          "institution": {
+            "type": "string",
+            "enum": [
+              "nubank",
+              "caixa",
+              "mercado_pago",
+              "bradesco",
+              "itau",
+              "banco_do_brasil",
+              "other"
+            ],
+            "description": "O banco, que escolhe o leitor dos extratos importados (regra 6.4). `other` para um banco que a importação não lê e para o dinheiro em espécie."
+          },
+          "isReserve": {
+            "type": "boolean",
+            "description": "A conta de reserva: transferir para ela conta como aplicação, e tirar dela, como resgate (GLOSSARY.md)."
+          },
+          "openingBalance": {
+            "type": "string",
+            "description": "O saldo no começo do dia do saldo inicial, antes das movimentações dele, em string decimal com até 2 casas. Pode ser negativo, como o de uma conta no limite (LLD, seção 4.5).",
+            "example": "2000.00"
+          },
+          "openingBalanceDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do saldo inicial, `AAAA-MM-DD`: o saldo da conta soma as movimentações a partir dele, inclusive (regra 6.3).",
+            "example": "2026-09-01"
+          }
+        },
+        "required": [
+          "entityId",
+          "name",
+          "type",
+          "institution",
+          "isReserve",
+          "openingBalance",
+          "openingBalanceDate"
+        ]
+      },
+      "AccountEdit": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A entidade dona, que tem de ser a atual: a api recusa a troca com 422 `ACCOUNT_OWNER_IMMUTABLE` (LLD, seção 4.5)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas. Não é único.",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Nubank"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "checking",
+              "payment",
+              "cash"
+            ],
+            "description": "Conta corrente (`checking`), conta de pagamento (`payment`) ou dinheiro em espécie (`cash`). O cartão de crédito entra com os cartões."
+          },
+          "institution": {
+            "type": "string",
+            "enum": [
+              "nubank",
+              "caixa",
+              "mercado_pago",
+              "bradesco",
+              "itau",
+              "banco_do_brasil",
+              "other"
+            ],
+            "description": "O banco, que escolhe o leitor dos extratos importados (regra 6.4). `other` para um banco que a importação não lê e para o dinheiro em espécie."
+          },
+          "isReserve": {
+            "type": "boolean",
+            "description": "A conta de reserva: transferir para ela conta como aplicação, e tirar dela, como resgate (GLOSSARY.md)."
+          },
+          "openingBalance": {
+            "type": "string",
+            "description": "O saldo no começo do dia do saldo inicial, antes das movimentações dele, em string decimal com até 2 casas. Pode ser negativo, como o de uma conta no limite (LLD, seção 4.5).",
+            "example": "2000.00"
+          },
+          "openingBalanceDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do saldo inicial, `AAAA-MM-DD`: o saldo da conta soma as movimentações a partir dele, inclusive (regra 6.3).",
+            "example": "2026-09-01"
+          }
+        },
+        "required": [
+          "version",
+          "entityId",
+          "name",
+          "type",
+          "institution",
+          "isReserve",
+          "openingBalance",
+          "openingBalanceDate"
+        ]
+      },
+      "AccountActivation": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso desativa a conta; verdadeiro a reativa."
+          }
+        },
+        "required": [
+          "version",
+          "active"
         ]
       }
     }

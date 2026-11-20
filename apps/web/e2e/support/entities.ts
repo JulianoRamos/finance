@@ -15,7 +15,7 @@ export function uniqueName(prefix: string): string {
 }
 
 /** Cria pela api, com a sessão do usuário, o registro do caminho dado, e o devolve. */
-async function postAsUser(user: TestUser, path: string, body: object, what: string): Promise<TestEntity> {
+export async function postAsUser(user: TestUser, path: string, body: object, what: string): Promise<TestEntity> {
   const response = await fetch(`${requiredEnv('API_URL')}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.sessionToken}` },

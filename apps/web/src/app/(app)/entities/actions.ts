@@ -21,7 +21,8 @@ import type { CommandMessage } from '../../_shell/confirm-dialog';
 import { formatFraction, percentToFraction } from '../../_shell/format';
 import { type FormState, INITIAL_FORM_STATE, refusedFormState } from '../../_shell/form-state';
 import { listPageResult, type ListPageResult } from '../../_shell/list-page';
-import { type HistoryItem, historyItem } from './[id]/history-entry';
+import type { HistoryItem } from '../../_shell/history-panel';
+import { historyItem } from './[id]/history-entry';
 import { type EntityListItem, entityListItem } from './entity-list-page';
 import { type EntityOption, entityOption } from './entity-option';
 

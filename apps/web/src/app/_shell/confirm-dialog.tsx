@@ -8,7 +8,8 @@ import { DESTRUCTIVE_BUTTON, SECONDARY_BUTTON } from './buttons';
 /**
  * A confirmação de uma ação que esconde ou tira algo (design-system.md, seção 4.5): o diálogo diz o que
  * vai acontecer e o que não se perde, e o botão repete a ação. Fecha com Esc e com "Cancelar", e devolve
- * o foco a quem o abriu.
+ * o foco a quem o abriu. No celular, vira uma folha que sobe do rodapé, com os botões na largura toda
+ * (seção 6).
  */
 export function ConfirmDialog({
   open,
@@ -37,7 +38,7 @@ export function ConfirmDialog({
       <AlertDialog.Portal>
         <AlertDialog.Overlay className="fixed inset-0 z-40 bg-ink/40" />
         <AlertDialog.Content
-          className="fixed top-1/2 left-1/2 z-50 flex w-full max-w-section -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-lg border border-hairline bg-surface p-6 shadow-flutuante"
+          className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col gap-4 rounded-t-lg border-t border-hairline bg-surface px-4 pt-2 pb-safe shadow-flutuante md:inset-x-auto md:bottom-auto md:top-1/2 md:left-1/2 md:max-w-section md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-lg md:border md:p-6"
           onOpenAutoFocus={() => {
             returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
           }}
@@ -49,10 +50,11 @@ export function ConfirmDialog({
             if (target?.isConnected) returnFocus(target);
           }}
         >
+          <div aria-hidden="true" className="h-1 w-9 self-center rounded-full bg-hairline-strong md:hidden" />
           <AlertDialog.Title className="text-heading-md wrap-anywhere text-ink">{title}</AlertDialog.Title>
           <AlertDialog.Description className="text-body-md text-body">{description}</AlertDialog.Description>
           {children}
-          <div className="flex flex-wrap justify-end gap-3">
+          <div className="flex flex-col-reverse gap-2 md:flex-row md:flex-wrap md:justify-end md:gap-3">
             <AlertDialog.Cancel className={SECONDARY_BUTTON}>Cancelar</AlertDialog.Cancel>
             <AlertDialog.Action className={DESTRUCTIVE_BUTTON} onClick={onConfirm}>
               {confirmLabel}

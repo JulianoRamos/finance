@@ -4,8 +4,11 @@ import { Decimal } from './prisma-types.js';
 
 // O valor decimal que trafega como string (LLD, seção 4.1), para não perder casas no número do JSON.
 
-/** Um decimal sem sinal, com a parte inteira e, se houver, as casas depois do ponto. */
-const DECIMAL_TEXT = /^\d+(?:\.(\d+))?$/;
+/**
+ * Um decimal, com o sinal de menos, se houver, a parte inteira e, se houver, as casas depois do ponto. O
+ * intervalo de cada campo decide se o negativo passa.
+ */
+const DECIMAL_TEXT = /^-?\d+(?:\.(\d+))?$/;
 
 /** O intervalo e as casas que um decimal aceita: acima de `above` (excluído) e até `atMost` (incluído). */
 export interface DecimalRange {

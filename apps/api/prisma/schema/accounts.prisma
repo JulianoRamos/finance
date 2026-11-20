@@ -1,0 +1,66 @@
+// O módulo Contas (LLD, seção 4.5, e regras 6.3 e 6.20): as contas de cada entidade, com o saldo
+// inicial. As movimentações e o cartão de crédito entram nos tickets deles.
+
+/// O tipo da conta. O cartão de crédito (`credit_card`) entra com os cartões e as faturas.
+enum AccountType {
+  /// Conta corrente: a conta bancária do dia a dia.
+  checking
+  /// Conta de pagamento: a carteira digital, como a do Mercado Pago.
+  payment
+  /// Dinheiro em espécie: o dinheiro na carteira ou no cofre.
+  cash
+
+  @@map("account_type")
+}
+
+/// O banco da conta, que escolhe o leitor dos extratos importados (regra 6.4). Os valores são os nomes
+/// dos bancos, e por isso não são traduzidos.
+enum Institution {
+  nubank
+  caixa
+  mercado_pago
+  bradesco
+  itau
+  banco_do_brasil
+  /// Um banco que a importação não lê, ou o dinheiro em espécie.
+  other
+
+  @@map("institution")
+}
+
+/// Um lugar onde o dinheiro de uma única entidade fica guardado (GLOSSARY.md, Conta).
+/// Não é excluída: é desativada, e some das escolhas de conta sem sumir dos números (regra 6.20).
+/// Chave estrangeira escrita à mão na migração (account_entity_id_fkey): entity_id referencia
+/// entity(id), com RESTRICT, sem relação no Prisma, porque a tabela entity é do módulo Entidades e uma
+/// consulta das Contas não a lê (LLD, seção 3).
+/// CHECK escrito à mão na migração (account_name_check): o nome não é vazio nem só de espaços.
+model Account {
+  /// uuidv7, gerado pelo banco.
+  id                 String      @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// A entidade dona, do módulo Entidades. Não muda depois do cadastro (LLD, seção 4.5): a api recusa
+  /// a edição que a troca. RESTRICT: a entidade é desativada, e não excluída.
+  entityId           String      @map("entity_id") @db.Uuid
+  /// O nome, como o usuário quer vê-lo, sem espaços nas pontas, até 120 caracteres. Não é único.
+  name               String
+  type               AccountType
+  institution        Institution
+  /// A conta de reserva: transferir para ela conta como aplicação, e tirar dela, como resgate
+  /// (GLOSSARY.md, Conta de reserva).
+  isReserve          Boolean     @default(false) @map("is_reserve")
+  /// O saldo no começo do dia do saldo inicial, antes das movimentações dele. É um saldo, e não um
+  /// valor de fluxo, então pode ser negativo, como o de uma conta no limite (LLD, seção 4.5).
+  openingBalance     Decimal     @map("opening_balance") @db.Decimal(15, 2)
+  /// O dia do saldo inicial: o saldo da conta soma as movimentações a partir dele, inclusive
+  /// (regra 6.3).
+  openingBalanceDate DateTime    @map("opening_balance_date") @db.Date
+  /// A conta desativada some das escolhas de conta e continua nos números (regra 6.20).
+  active             Boolean     @default(true)
+  createdAt          DateTime    @map("created_at") @db.Timestamptz
+  updatedAt          DateTime    @map("updated_at") @db.Timestamptz
+  /// O bloqueio otimista da edição e da desativação (regra 6.20).
+  version            Int         @default(1)
+
+  /// A lista das contas de um contexto, que filtra pelas entidades dele.
+  @@index([entityId], map: "account_entity_id_idx")
+  @@map("account")
+}

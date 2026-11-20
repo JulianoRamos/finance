@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { type JsonObject, type PageRequest, readPage, sql, TransactionService } from '../../common/index.js';
+import { type JsonObject, type PageRequest, readPage, type Sql, sql, TransactionService } from '../../common/index.js';
 import type { AuditHistoryEntry, AuditHistoryPage } from './audit.dto.js';
 import { changesOf } from './changes.js';
 import { UserNamesRegistry } from './user-names.js';
@@ -22,8 +22,11 @@ export interface HistorySource {
 export interface HistoryRequest {
   /** As tabelas que entram, com os campos de cada uma. */
   readonly sources: readonly HistorySource[];
-  /** O nome de cada entidade dos ids, para o `subject`. Vem do módulo dono das entidades. */
-  readonly subjectNames: (ids: readonly string[]) => Promise<ReadonlyMap<string, string>>;
+  /**
+   * O nome de cada entidade dos ids, para o `subject`. Vem do módulo dono das entidades, e só falta
+   * quando nenhuma tabela pedida tem o `subjectField`.
+   */
+  readonly subjectNames?: (ids: readonly string[]) => Promise<ReadonlyMap<string, string>>;
 }
 
 /** O registro de auditoria, como o Prisma o lê. */
@@ -51,13 +54,26 @@ export class AuditHistoryService {
    * `occurred_at`, e o `id` no empate), com o total. A alteração que não muda nenhum campo pedido entra
    * do mesmo jeito, com a lista de campos vazia.
    */
-  async entityHistory(entityId: string, request: HistoryRequest, page: PageRequest): Promise<AuditHistoryPage> {
+  entityHistory(entityId: string, request: HistoryRequest, page: PageRequest): Promise<AuditHistoryPage> {
+    return this.history(sql`entity_id = ${entityId}::uuid`, request, page);
+  }
+
+  /**
+   * A página das alterações de um registro nas tabelas pedidas, como a de uma conta, que é dela só, e não
+   * de toda a entidade dona, na ordem e com os campos do `entityHistory`.
+   */
+  recordHistory(recordId: string, request: HistoryRequest, page: PageRequest): Promise<AuditHistoryPage> {
+    return this.history(sql`record_id = ${recordId}::uuid`, request, page);
+  }
+
+  /** A página das alterações do filtro nas tabelas pedidas, da mais recente para a mais antiga. */
+  private async history(filter: Sql, request: HistoryRequest, page: PageRequest): Promise<AuditHistoryPage> {
     const sources = new Map(request.sources.map((source) => [source.tableName, source]));
     const client = this.transactions.client;
     const found = await readPage(
       client,
       sql`SELECT id, occurred_at FROM audit_log
-        WHERE entity_id = ${entityId}::uuid AND table_name = ANY(${[...sources.keys()]}::text[])`,
+        WHERE ${filter} AND table_name = ANY(${[...sources.keys()]}::text[])`,
       sql`occurred_at DESC, id DESC`,
       page,
       async (ids) =>
@@ -75,7 +91,7 @@ export class AuditHistoryService {
       ),
       namesOf(
         rows.map(({ subjectId }) => subjectId),
-        (ids) => request.subjectNames(ids),
+        (ids) => request.subjectNames?.(ids) ?? Promise.resolve(new Map<string, string>()),
       ),
     ]);
 
