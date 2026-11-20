@@ -87,3 +87,25 @@ test('a recusa do cadastro mantém a entidade e o banco escolhidos', async ({ pa
     await deleteTestGroup(user, group.id);
   }
 });
+
+// Sem critério de aceite: num contexto sem entidade ativa, a nova conta diz por que não há o que escolher.
+test('a nova conta num contexto sem entidade ativa pede para trocar o contexto', async ({ page, baseURL }) => {
+  await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
+  const user = await createTestUser();
+  const group = await createTestGroup(user, []);
+  try {
+    await signIn(page.context(), user, baseURL ?? '');
+    await page
+      .context()
+      .addCookies([{ name: 'financial_context', value: `group:${group.id}`, url: baseURL ?? '', httpOnly: true }]);
+
+    await page.goto('/accounts/new');
+
+    await expect(page.getByText('O contexto escolhido não tem nenhuma entidade ativa.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Criar conta' })).toHaveCount(0);
+    await page.getByRole('main').getByRole('button', { name: 'Trocar o contexto' }).click();
+    await expect(page.getByRole('dialog', { name: 'Contexto financeiro' })).toBeVisible();
+  } finally {
+    await deleteTestGroup(user, group.id);
+  }
+});
