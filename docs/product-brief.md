@@ -50,8 +50,8 @@ As histórias estão agrupadas pela fase de construção (ver "Fases"). Os crit�
 - Como titular, quero cadastrar as contas e os cartões de cada entidade, com o saldo inicial, para que o saldo seja calculado a partir daí.
   - Cada conta pertence a uma única entidade, e o saldo dela numa data é o saldo inicial mais as movimentações até essa data.
   - Uma conta pode ser marcada como conta de reserva.
-- Como titular, quero importar extratos OFX, CSV e XLSX dos seis bancos, para não digitar movimentações.
-  - A importação aceita os arquivos de extrato e de fatura do Nubank, da Caixa, do Mercado Pago, do Bradesco, do Itaú e do Banco do Brasil, nos formatos que cada um oferece.
+- Como titular, quero importar os extratos e as faturas dos seis bancos, para não digitar movimentações.
+  - A importação aceita os arquivos de extrato e de fatura do Nubank, da Caixa, do Mercado Pago, do Bradesco, do Itaú e do Banco do Brasil, nos formatos que cada um oferece: OFX, CSV, XLSX e, onde o banco só oferece esse (o extrato da conta do Itaú e as faturas dos cartões do Mercado Pago e do Bradesco), PDF. O extrato que só sai como imagem, como o da conta da Caixa, não é importado: as movimentações dessa conta são registradas à mão.
   - Antes de confirmar, o usuário vê as movimentações, as possíveis duplicidades e as conciliações sugeridas.
   - Uma movimentação que bate com um lançamento previsto em valor e conta, com data próxima, é conciliada sem revisão. As demais esperam a revisão.
   - Importar o mesmo arquivo duas vezes não duplica nenhuma movimentação.
