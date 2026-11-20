@@ -1,5 +1,5 @@
 // O módulo Contas (LLD, seção 4.5, e regras 6.3 e 6.20): as contas de cada entidade, com o saldo
-// inicial. As movimentações e o cartão de crédito entram nos tickets deles.
+// inicial, e as movimentações delas. O ajuste, a importação e o cartão de crédito entram nos tickets deles.
 
 /// O tipo da conta. O cartão de crédito (`credit_card`) entra com os cartões e as faturas.
 enum AccountType {
@@ -59,8 +59,56 @@ model Account {
   updatedAt          DateTime    @map("updated_at") @db.Timestamptz
   /// O bloqueio otimista da edição e da desativação (regra 6.20).
   version            Int         @default(1)
+  movements          Movement[]
 
   /// A lista das contas de um contexto, que filtra pelas entidades dele.
   @@index([entityId], map: "account_entity_id_idx")
   @@map("account")
+}
+
+/// O sentido da movimentação: o dinheiro que entra na conta ou que sai dela.
+enum MovementDirection {
+  inflow
+  outflow
+
+  @@map("movement_direction")
+}
+
+/// De onde veio a movimentação. O ajuste (`adjustment`) e a importada (`imported`) entram nos tickets
+/// deles, com as colunas que os acompanham.
+enum MovementSource {
+  /// Registrada à mão pelo usuário.
+  manual
+
+  @@map("movement_source")
+}
+
+/// A entrada ou a saída de dinheiro que de fato aconteceu numa conta (GLOSSARY.md, Movimentação).
+/// O saldo da conta numa data soma as movimentações da data do saldo inicial até ela, inclusive (regra
+/// 6.3).
+/// CHECK escrito à mão na migração (movement_amount_check): o valor é maior que zero, com o sentido em
+/// `direction` (LLD, seção 4.1).
+/// CHECK escrito à mão na migração (movement_description_check): a descrição não é vazia nem só de
+/// espaços.
+model Movement {
+  /// uuidv7, gerado pelo banco.
+  id          String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// A conta. RESTRICT: a conta é desativada, e não excluída (regra 6.20).
+  accountId   String            @map("account_id") @db.Uuid
+  account     Account           @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  /// O dia em que o dinheiro entrou ou saiu. Pode vir antes do saldo inicial, e aí não entra no saldo.
+  date        DateTime          @db.Date
+  /// O valor, sempre maior que zero; o sentido diz se entra ou sai.
+  amount      Decimal           @db.Decimal(15, 2)
+  direction   MovementDirection
+  /// O que foi, como o usuário o escreve, sem espaços nas pontas, até 200 caracteres.
+  description String
+  source      MovementSource
+  createdAt   DateTime          @map("created_at") @db.Timestamptz
+  updatedAt   DateTime          @map("updated_at") @db.Timestamptz
+
+  /// A lista das movimentações de uma conta, da mais recente para a mais antiga, e a soma do saldo até
+  /// uma data.
+  @@index([accountId, date], map: "movement_account_id_date_idx")
+  @@map("movement")
 }
