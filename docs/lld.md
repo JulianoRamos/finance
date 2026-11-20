@@ -153,7 +153,7 @@ O `recovery_code` é o código de recuperação do segundo fator; o `recovery_li
 | `card_statement` | `account_id`, `reference_month` (o primeiro dia do mês), `closing_date`, `due_date`, `previous_balance` | Única por `(account_id, reference_month)` |
 | `movement` | `account_id`, `date`, `amount`, `direction` (`inflow`, `outflow`), `description`, `source` (`imported`, `manual`, `adjustment`), `imported_file_id`, `external_id`, `dedup_key`, `card_statement_id`, `adjustment_reason` | Única `(account_id, dedup_key)` quando `source = 'imported'`. `CHECK` de `adjustment_reason` obrigatório no ajuste |
 
-Os valores de `institution` são os nomes dos bancos, e por isso não são traduzidos.
+Os valores de `institution` são os nomes dos bancos, e por isso não são traduzidos. A entidade dona da conta não muda depois do cadastro: uma conta de outro dono é outra conta.
 
 ### 4.6 Lançamentos
 
