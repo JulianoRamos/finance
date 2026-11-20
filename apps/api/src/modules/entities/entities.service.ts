@@ -40,6 +40,12 @@ export interface EntitySearchResult {
   readonly active: boolean;
 }
 
+/** O que outro módulo lê de uma entidade dona de registros dele, como uma conta (LLD, seção 3). */
+export interface EntitySummary {
+  readonly name: string;
+  readonly active: boolean;
+}
+
 /** A entidade como a rota a devolve, com as operações em ordem alfabética. */
 function toEntity(row: EntityRow): Entity {
   return {
@@ -155,6 +161,22 @@ export class EntitiesService {
           select: { id: true, type: true, name: true, active: true },
         }),
     );
+  }
+
+  /**
+   * O nome e o estado de cada entidade dos ids que existe, para os módulos que guardam registros de uma
+   * entidade, como as Contas, sem ler a tabela dela (LLD, seção 3). Com `lock`, trava as entidades até o
+   * fim da transação: uma desativação ao mesmo tempo espera, ou é esperada e já aparece aqui.
+   */
+  async summariesOf(
+    ids: readonly string[],
+    options: { lock?: boolean } = {},
+  ): Promise<ReadonlyMap<string, EntitySummary>> {
+    if (ids.length === 0) return new Map();
+    const lock = options.lock ? sql`FOR SHARE` : sql``;
+    const rows = await this.transactions.client.$queryRaw<{ id: string; name: string; active: boolean }[]>`
+      SELECT id::text AS id, name, active FROM entity WHERE id = ANY(${[...ids]}::uuid[]) ${lock}`;
+    return new Map(rows.map((row) => [row.id, { name: row.name, active: row.active }]));
   }
 
   /** A entidade do id, ativa ou desativada. */

@@ -21,11 +21,11 @@ export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Pesquisa entidades, grupos financeiros e usuários pelo nome.' })
+  @ApiOperation({ summary: 'Pesquisa entidades, grupos financeiros, contas e usuários pelo nome.' })
   @ApiOkResponse({
     type: SearchResults,
     description:
-      'Até 5 resultados por tipo, em todos os contextos do usuário (regra 6.22): as entidades em que ele tem permissão, os grupos em que ele tem permissão em todos os membros e, só para quem gere acessos, os usuários.',
+      'Até 5 resultados por tipo, em todos os contextos do usuário (regra 6.22): as entidades em que ele tem permissão, os grupos em que ele tem permissão em todos os membros, as contas das entidades em que ele tem permissão e, só para quem gere acessos, os usuários.',
   })
   @ApiBadRequestResponse({
     type: ApiError,

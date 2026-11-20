@@ -143,6 +143,11 @@
   --ease-out: ease-out;
 }
 
+/* O espaço de baixo de uma folha ou de uma ação fixa no celular, acima da área segura do aparelho (seção 6). */
+@utility pb-safe {
+  padding-bottom: calc(var(--spacing-4) + env(safe-area-inset-bottom));
+}
+
 @layer base {
   :root {
     color-scheme: light dark;

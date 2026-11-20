@@ -2796,16 +2796,6 @@
         "operationId": "AccountsController_list",
         "parameters": [
           {
-            "name": "Financial-Context",
-            "in": "header",
-            "description": "O contexto financeiro escolhido (LLD, seção 5): `entity:<id>` ou `group:<id>`, com o id em UUID.",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "group:0190d3f2-6c1e-7a4b-9f00-1a2b3c4d5e6f"
-            }
-          },
-          {
             "name": "page",
             "required": false,
             "in": "query",
@@ -2844,6 +2834,16 @@
             "description": "A busca: o texto procurado no nome da conta, sem diferença de acento nem de maiúsculas, em qualquer posição. Vazia ou ausente, não filtra (LLD, seção 5).",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "Financial-Context",
+            "in": "header",
+            "description": "O contexto financeiro escolhido (LLD, seção 5): `entity:<id>` ou `group:<id>`, com o id em UUID.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "group:0190d3f2-6c1e-7a4b-9f00-1a2b3c4d5e6f"
             }
           }
         ],
@@ -4787,6 +4787,55 @@
           "companies"
         ]
       },
+      "SearchAccount": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id da conta."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da conta.",
+            "example": "Nubank"
+          },
+          "entityName": {
+            "type": "string",
+            "description": "O nome da entidade dona, para o complemento.",
+            "example": "Ana Lima"
+          },
+          "institution": {
+            "type": "string",
+            "enum": [
+              "nubank",
+              "caixa",
+              "mercado_pago",
+              "bradesco",
+              "itau",
+              "banco_do_brasil",
+              "other"
+            ],
+            "description": "O banco, que escolhe o leitor dos extratos importados (regra 6.4). `other` para um banco que a importação não lê e para o dinheiro em espécie."
+          },
+          "isReserve": {
+            "type": "boolean",
+            "description": "Verdadeiro na conta de reserva."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na conta desativada, que aparece marcada como tal."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "entityName",
+          "institution",
+          "isReserve",
+          "active"
+        ]
+      },
       "SearchUser": {
         "type": "object",
         "properties": {
@@ -4982,9 +5031,9 @@
           },
           "name": {
             "type": "string",
+            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas. Não é único.",
             "minLength": 1,
             "maxLength": 120,
-            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas. Não é único.",
             "example": "Nubank"
           },
           "type": {
@@ -5050,9 +5099,9 @@
           },
           "name": {
             "type": "string",
+            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas. Não é único.",
             "minLength": 1,
             "maxLength": 120,
-            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas. Não é único.",
             "example": "Nubank"
           },
           "type": {
@@ -5119,55 +5168,6 @@
         },
         "required": [
           "version",
-          "active"
-        ]
-      },
-      "SearchAccount": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "O id da conta."
-          },
-          "name": {
-            "type": "string",
-            "description": "O nome da conta.",
-            "example": "Nubank"
-          },
-          "entityName": {
-            "type": "string",
-            "description": "O nome da entidade dona, para o complemento.",
-            "example": "Ana Lima"
-          },
-          "institution": {
-            "type": "string",
-            "enum": [
-              "nubank",
-              "caixa",
-              "mercado_pago",
-              "bradesco",
-              "itau",
-              "banco_do_brasil",
-              "other"
-            ],
-            "description": "O banco, que escolhe o leitor dos extratos importados (regra 6.4). `other` para um banco que a importação não lê e para o dinheiro em espécie."
-          },
-          "isReserve": {
-            "type": "boolean",
-            "description": "Verdadeiro na conta de reserva."
-          },
-          "active": {
-            "type": "boolean",
-            "description": "Falso na conta desativada, que aparece marcada como tal."
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "entityName",
-          "institution",
-          "isReserve",
           "active"
         ]
       }

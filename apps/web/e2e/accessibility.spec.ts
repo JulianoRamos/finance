@@ -10,6 +10,7 @@ import {
   openTestCompany,
   openTestGroup,
 } from './support/entities';
+import { openTestAccount } from './support/accounts';
 import { createPendingTestUser, createTestUser, openTestUser, signIn, uniqueOrigin } from './support/users';
 import { screenAlert } from './support/screen';
 
@@ -181,6 +182,41 @@ const SCREENS: readonly Screen[] = [
       const entity = await openTestCompany(page, baseURL);
       await page.getByRole('button', { name: 'Desativar entidade' }).click();
       await expect(page.getByRole('alertdialog', { name: `Desativar a ${entity.name}?` })).toBeVisible();
+    },
+  },
+  {
+    name: 'a lista das contas com o detalhe de uma conta',
+    open: async (page, baseURL) => {
+      const account = await openTestAccount(page, baseURL);
+      await expect(page.getByRole('region', { name: account.name })).toContainText('R$ 1.234.567,89');
+      await expect(
+        page.getByRole('region', { name: 'Lista de contas' }).getByRole('link', { name: new RegExp(account.name) }),
+      ).toBeVisible();
+    },
+  },
+  {
+    name: 'a nova conta',
+    open: async (page, baseURL) => {
+      await openTestAccount(page, baseURL, '/accounts/new');
+      await expect(page.getByRole('button', { name: 'Criar conta' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a confirmação de desativar a conta',
+    open: async (page, baseURL) => {
+      const account = await openTestAccount(page, baseURL);
+      await page.getByRole('button', { name: 'Desativar conta' }).click();
+      await expect(page.getByRole('alertdialog', { name: `Desativar a conta ${account.name}?` })).toBeVisible();
+    },
+  },
+  {
+    name: 'a lista das contas no celular',
+    open: async (page, baseURL) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      const account = await openTestAccount(page, baseURL, '/accounts');
+      await expect(
+        page.getByRole('region', { name: 'Lista de contas' }).getByRole('link', { name: new RegExp(account.name) }),
+      ).toBeVisible();
     },
   },
   {

@@ -15,7 +15,8 @@ import { FinancialGroupsService } from './financial-groups.service.js';
   controllers: [EntitiesController, FinancialGroupsController, FinancialContextController, EquityStakesController],
   providers: [EntitiesService, EquityStakesService, FinancialGroupsService, FinancialContextService],
   // A Identidade lê as entidades para a tabela de permissões e resolve o contexto financeiro para
-  // conferir a permissão nele, e a Pesquisa procura as entidades e os grupos (LLD, seção 3).
+  // conferir a permissão nele, a Pesquisa procura as entidades e os grupos, e as Contas leem o nome e o
+  // estado da entidade dona (LLD, seção 3).
   exports: [EntitiesService, FinancialContextService, FinancialGroupsService],
 })
 export class EntitiesModule {}

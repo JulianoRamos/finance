@@ -1,27 +1,10 @@
 import type { AuditHistoryEntry, EntityType } from '@/api/entities';
 
 import { formatCalendarDate, formatFraction, formatInstant } from '../../../_shell/format';
+import type { HistoryItem, HistoryLine } from '../../../_shell/history-panel';
 import { formatTaxId } from '../tax-id-format';
 
-// O histórico de alterações como o painel o mostra (LLD, seção 4.4): cada alteração numa frase, com os
-// campos nos rótulos e nos formatos da tela. A api devolve o que mudou em JSON, campo a campo.
-
-/** Um campo que mudou, já formatado: o valor vazio é nulo, e a tela o diz "vazio". */
-export interface HistoryLine {
-  readonly label: string;
-  readonly before: string | null;
-  readonly after: string | null;
-}
-
-/** Uma alteração como o painel a mostra. */
-export interface HistoryItem {
-  readonly id: string;
-  /** A frase: quem fez e o quê, como "Ana Lima alterou". */
-  readonly sentence: string;
-  /** Quando, como `dd/mm/aaaa hh:mm`. */
-  readonly occurredAt: string;
-  readonly lines: readonly HistoryLine[];
-}
+// O histórico da entidade como o painel o mostra: a api devolve o que mudou em JSON, campo a campo.
 
 /** O nome de cada operação, como a tela o mostra. */
 const OPERATION_NAMES: Readonly<Record<string, string>> = { clinic: 'Clínica' };

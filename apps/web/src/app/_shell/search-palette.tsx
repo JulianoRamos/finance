@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRightLeft, CornerDownLeft, Lock, type LucideIcon, Search } from 'lucide-react';
+import { ArrowRightLeft, CornerDownLeft, Lock, type LucideIcon, Search, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Dialog } from 'radix-ui';
 import {
@@ -17,6 +17,7 @@ import {
 import type { SearchResults } from '@/api/search';
 
 import { FOCUS_RING } from '../_access/access-screen';
+import { accountBadge, bankText } from './account-text';
 import { SECONDARY_BUTTON } from './buttons';
 import { CONTEXT_ICONS, useContextSelector } from './context-selector';
 import { groupCountsSummary } from './context-text';
@@ -40,9 +41,9 @@ interface Option {
   /** O texto antes do nome, como "Trocar para", que não é destacado. */
   readonly prefix?: string;
   readonly name: string;
-  /** O complemento em `mute` depois do nome: o e-mail, o resumo do grupo, a seção do destino. */
+  /** O complemento em `mute` depois do nome: o e-mail, o resumo do grupo, a dona e o banco da conta, a seção do destino. */
   readonly detail?: string;
-  /** O selo à direita: o tipo da entidade, "Desativada" ou "Desativado" no usuário. */
+  /** O selo à direita: o tipo da entidade, "Reserva" na conta, "Desativada", ou "Desativado" no usuário. */
   readonly badge?: string;
   readonly run: OptionRun;
 }
@@ -123,6 +124,20 @@ function recordGroups(data: SearchResults): OptionGroup[] {
         detail: groupCountsSummary(group),
         run: { kind: 'open', href: `/financial-groups/${group.id}` },
       })),
+    },
+    {
+      label: 'Contas',
+      options: data.accounts.map((account) => {
+        const badge = accountBadge(account);
+        return {
+          key: `account:${account.id}`,
+          icon: Wallet,
+          name: account.name,
+          detail: `${account.entityName} · ${bankText(account)}`,
+          ...(badge !== null && { badge }),
+          run: { kind: 'open', href: `/accounts/${account.id}` },
+        };
+      }),
     },
     {
       label: 'Usuários',

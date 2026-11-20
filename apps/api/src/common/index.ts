@@ -40,9 +40,11 @@ export {
 } from './page.js';
 export { PrismaService } from './prisma.service.js';
 export {
+  AccountType,
   AuditAction,
   Decimal,
   EntityType,
+  Institution,
   isForeignKeyViolation,
   isUniqueViolation,
   type JsonObject,
