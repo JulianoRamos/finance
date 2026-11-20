@@ -54,6 +54,7 @@ As versões exatas são fixadas no ticket que cria cada app, na versão estável
 | XLSX | `exceljs` | Leitura dos extratos e geração dos relatórios |
 | OFX | Leitor próprio | O OFX 1.x dos bancos brasileiros é SGML com variações; o leitor é pequeno e testado com as amostras |
 | PDF | `pdfmake` | Relatórios, no servidor, sem navegador |
+| Leitura de PDF | `unpdf` | O texto do extrato e da fatura em PDF com a posição de cada trecho (`extractTextItems`), para o leitor montar as linhas da tabela. Sem OCR: o leitor só aceita PDF com texto |
 | Backup | `pg_dump`, `pg_restore`, `tar` e `age` | No contêiner da `api`; a cópia externa usa `@aws-sdk/client-s3` |
 | Interface | Next.js 16 (App Router), React 19, Tailwind CSS 4 | Os componentes são do `design-system.md` |
 | Cliente da API | `openapi-typescript` e `openapi-fetch` | Tipos gerados do `openapi.json` |
@@ -163,13 +164,15 @@ Os valores de `institution` são os nomes dos bancos, e por isso não são tradu
 | `installment` | `entry_id`, `number`, `amount`, `due_date`, `account_id`, `direction`, `card_statement_id`, `canceled_at`, `is_estimated` | Única `(entry_id, number, direction)` |
 | `recurrence` | `entity_id`, o modelo do lançamento (descrição, categoria, finalidade, conta, `estimated_amount`), `frequency` (`weekly`, `monthly`, `yearly`), `day`, `start_date`, `end_date`, `active` | |
 
+A árvore das pessoas físicas nasce com a migração que cria a tabela, com categorias de primeiro nível que a família edita, desativa e completa. Despesas: Moradia, Alimentação, Transporte, Saúde, Educação, Lazer, Vestuário, Serviços e assinaturas, Impostos e taxas, Despesas financeiras (onde entram os juros e encargos do cartão, regra 6.7) e Outras. Receitas: Salário, Pró-labore, Distribuição de lucros, Rendimentos e Outras.
+
 A transferência, a aplicação e o resgate são lançamentos com duas parcelas, uma de saída e uma de entrada, cada uma na sua conta. O repasse cria um lançamento em cada entidade (regra 6.9).
 
 ### 4.7 Importação
 
 | Tabela | Colunas que carregam regra | Restrições |
 | --- | --- | --- |
-| `imported_file` | `account_id`, `file_name`, `sha256_hash`, `format` (`ofx`, `csv`, `xlsx`), `parser`, `period_start`, `period_end`, `document_id`, `status` (`preview`, `confirmed`, `discarded`), `imported_by_id` | Único `(account_id, sha256_hash)` quando confirmado |
+| `imported_file` | `account_id`, `file_name`, `sha256_hash`, `format` (`ofx`, `csv`, `xlsx`, `pdf`), `parser`, `period_start`, `period_end`, `document_id`, `status` (`preview`, `confirmed`, `discarded`), `imported_by_id` | Único `(account_id, sha256_hash)` quando confirmado |
 
 As linhas da prévia não são gravadas: a prévia é recalculada do arquivo guardado até a confirmação.
 
@@ -261,6 +264,8 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 | `document_link` | `document_id`, `record_type`, `record_id` | |
 | `backup` | `type` (`automatic`, `manual`), `started_at`, `finished_at`, `status` (`in_progress`, `success`, `failure`), `file_name`, `size`, `sha256_hash`, `external_copy` (`not_configured`, `success`, `failure`), `error` | |
 
+O módulo Documentos nasce na fase 2 com o que a importação usa: a tabela `document`, o volume de documentos (`DOCUMENTS_DIR`) e a função pública de guardar e ler um arquivo, sem tela. O `document_link` e o anexo pela interface entram na fase 6.
+
 ## 5. Contratos
 
 **Arquivos do contrato:** o `apps/api/openapi.json`, para as rotas, e o `apps/api/prisma/schema/`, para as tabelas. Eles entram em "Valores da skill de plano", no `AGENTS.md` da raiz, no ticket que cria a `api`, junto com o comando do contrato.
@@ -345,11 +350,14 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 
 ### 6.4 Importação e duplicidade
 
-- O leitor é escolhido pela `institution` da conta e pelo formato do arquivo. Um arquivo que nenhum leitor reconhece falha antes da prévia, com a mensagem de qual banco e formato eram esperados, e nada é gravado.
+- **Leitores por amostra:** cada leitor nasce com a amostra anonimizada do arquivo real (HLD, seções 10 e 12). Na fase 2 entram os que já têm amostra: o extrato do Nubank (OFX e CSV), a fatura do Nubank (OFX), o extrato do Itaú (PDF) e as faturas do Mercado Pago e do Bradesco (PDF). Os outros (o extrato do Mercado Pago e o do Bradesco, os do Banco do Brasil e as faturas do Itaú e da Caixa) entram num ticket por banco e formato, quando a amostra chegar.
+- O leitor é escolhido pela `institution` da conta e pelo formato do arquivo. A codificação do arquivo vem dos bytes, e não do cabeçalho: a fatura OFX do Nubank declara `USASCII` e `CHARSET:1252` e vem em UTF-8. Um arquivo que nenhum leitor reconhece falha antes da prévia, com a mensagem de qual banco e formato eram esperados, e nada é gravado.
 - **Arquivo repetido:** um arquivo com o mesmo SHA-256 já confirmado na mesma conta é recusado inteiro.
-- **Linha repetida:** a `dedup_key` de cada linha é o identificador do banco (o `FITID` do OFX), quando existe. Sem ele, é o hash da conta, da data, do valor, do sentido, da descrição normalizada (sem espaços repetidos, em minúsculas) e do número de ordem da linha entre as idênticas do mesmo arquivo. Uma linha com chave já gravada fica de fora, e a prévia a mostra como duplicada. O número de ordem preserva duas compras iguais no mesmo dia.
+- **Linha repetida:** quando o banco dá um identificador (o `FITID` do OFX, o `Identificador` do CSV do Nubank), a `dedup_key` de cada linha é esse identificador sem o sufixo depois de `:`, com o sentido, o valor e o número de ordem da linha entre as idênticas nesses três campos no mesmo arquivo. Assim os formatos do mesmo banco dão a mesma chave, e uma linha que divide o identificador com outra não some: o Nubank marca o estorno, no OFX, com o identificador da transação original mais `:reversal` e, no CSV, com o mesmo identificador e o sinal contrário; e, na fatura do cartão, a compra internacional e o IOF dela vêm com o mesmo identificador e valores diferentes. Sem identificador, a chave é o hash da conta, da data, do valor, do sentido, da descrição normalizada (sem espaços repetidos, em minúsculas) e do número de ordem da linha entre as idênticas do mesmo arquivo. Uma linha com chave já gravada fica de fora, e a prévia a mostra como duplicada. O número de ordem preserva duas compras iguais no mesmo dia.
 - **Movimentação manual:** uma linha importada com a mesma conta, o mesmo valor e sentido e data até 3 dias antes ou depois de uma movimentação manual ainda não substituída, e só essa, substitui a manual: a manual some, e as conciliações dela passam para a importada.
 - A confirmação grava tudo numa transação; o arquivo original fica guardado como documento da conta.
+- **PDF:** o extrato da conta do Itaú e as faturas dos cartões do Mercado Pago e do Bradesco só saem em PDF. O leitor de cada um monta as linhas da tabela pela posição do texto (data, descrição e valor) e deixa de fora as linhas de saldo e de resumo; na fatura, a data vem sem o ano, que o leitor tira do período da fatura. O `pdf` só vale para os leitores que o declaram. Esses arquivos não trazem identificador do banco, e a chave de duplicidade é o hash, como acima.
+- **Sem arquivo legível:** o extrato da conta da Caixa só sai como imagem, sem texto, e não é importado: a importação não tem OCR. As movimentações dessa conta são registradas à mão (com o "já pago", regra 6.5), e o saldo é conferido com o banco pelo ajuste (regra 6.3).
 
 ### 6.5 Conciliação
 
@@ -358,6 +366,7 @@ O `stock_receipt` é a entrada de estoque, e o `stock_issue`, a baixa. `quantity
 - **Parcial:** uma movimentação pode liquidar várias parcelas, e uma parcela pode ser liquidada por várias movimentações. A soma conciliada nunca passa do valor da movimentação nem do valor da parcela.
 - **Valor estimado:** conciliar uma parcela estimada (de recorrência) atualiza o valor dela para o da movimentação.
 - **Recebível:** a movimentação do repasse da adquirente concilia com recebíveis, pela mesma regra, com o valor líquido.
+- **Lançamento já pago:** o cadastro do lançamento tem a opção "já pago", com a conta e a data do pagamento. A rota que o grava é do módulo Conciliação, que, numa transação só, cria o lançamento (por Lançamentos), a movimentação manual de cada parcela paga (por Contas, `source = 'manual'`) e a conciliação entre elas. Quando o extrato chega, a importada substitui a manual (regra 6.4), e a conciliação passa para ela. O Lançamentos não chama a Conciliação: é ela que chama ele (seção 3).
 
 ### 6.6 Situação da parcela
 
@@ -402,6 +411,7 @@ Os tipos permitidos por par de entidades e o efeito em cada lado:
 | Transferência familiar | Pessoa física → pessoa física | neutro | neutro |
 | A classificar | Qualquer par | neutro | neutro |
 
+- **Por fase:** o módulo nasce na fase 2 com o que acontece entre pessoas físicas, a transferência familiar e o empréstimo (com as devoluções e o saldo em aberto, regra 6.11). Os tipos com empresa, o "a classificar" e o reembolso pendente (regra 6.10) entram na fase 3.
 - O pró-labore e a distribuição de lucros exigem que a pessoa física tenha participação societária vigente na empresa.
 - Um repasse a classificar gera alerta enquanto não tem tipo.
 - **Visão Familiar e outros grupos:** num grupo, o repasse entre duas entidades do grupo some dos totais, porque é interno; o repasse com uma entidade de fora conta pelo efeito do lado de dentro. O saldo do grupo é a soma dos saldos das contas dos membros.
@@ -460,6 +470,7 @@ Os tipos permitidos por par de entidades e o efeito em cada lado:
 
 ### 6.18 Planejamento, indicadores e alertas
 
+- **Painel do Início:** desde a fase 2, o Início mostra os números do mês do contexto escolhido, qualquer que seja ele: o saldo das contas, as receitas e as despesas e, quando o contexto tem pessoas físicas, o custo de vida e a taxa de poupança, com a troca do mês. Os números de cada fase seguinte entram nele na fase deles.
 - **Custo de vida:** a soma das despesas das pessoas físicas do contexto, pela data de pagamento, incluindo bens de consumo e parcelas de dívidas, sem os lançamentos neutros.
 - **Taxa de poupança:** (aplicações − resgates) ÷ receitas das pessoas físicas do contexto no mês. As aplicações são os lançamentos `investment` e as transferências para conta de reserva; os resgates, o contrário. Sem receita no mês, a taxa não é calculada.
 - **Meta:** o acumulado é a soma dos saldos das contas e dos valores dos bens ligados a ela. Uma conta ou bem pode estar em mais de uma meta, e o acumulado não é dividido entre elas.

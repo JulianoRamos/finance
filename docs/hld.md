@@ -52,7 +52,7 @@ Cada módulo é dono de um pedaço do domínio: das tabelas dele, das regras del
 | Lançamentos | Lançamentos, parcelas e as situações delas, recorrências, categorias, finalidade e transferências. É o dono das contas a pagar e a receber | 2 |
 | Importação | Os arquivos importados, os leitores de cada banco e formato e a detecção de duplicidade. Grava as movimentações pelos Contas | 2 |
 | Conciliação | A ligação entre movimentação e lançamento, as sugestões e a conciliação automática | 2 |
-| Repasses | Repasses e os tipos deles, reembolso pendente e empréstimo entre entidades | 3 |
+| Repasses | Repasses e os tipos deles, reembolso pendente e empréstimo entre entidades | 2 em diante: a transferência familiar e o empréstimo entre pessoas físicas na 2, o resto na 3 |
 | Recebimentos | Formas de pagamento, taxa de recebimento, recebíveis, antecipação e estorno | 3 |
 | Clínica | Clientes, procedimentos, atendimentos, pacotes e sessões, situação fiscal e anonimização de clientes. Só responde em empresa com a operação de clínica ligada | 4 |
 | Estoque | Produtos, lotes, entradas, baixas e custo médio | 4 |
@@ -62,7 +62,7 @@ Cada módulo é dono de um pedaço do domínio: das tabelas dele, das regras del
 | Indicadores | Os números consolidados: resultado, custo de vida, taxa de poupança, patrimônio líquido, resultado gerencial e fluxo de caixa. Só lê | 2 em diante |
 | Relatórios | A exportação em PDF e XLSX do que os outros módulos calculam. Só lê | 6 |
 | Alertas | A lista de alertas que os outros módulos levantam e o que o usuário já leu | 3 em diante |
-| Documentos | Os arquivos anexados, os metadados deles e o vínculo com os registros | 6 |
+| Documentos | Os arquivos anexados, os metadados deles e o vínculo com os registros | 2 em diante: o arquivo importado na 2, o anexo pela interface na 6 |
 | Backup | Os backups automáticos e manuais, o histórico, a retenção e a verificação de integridade | 6 |
 
 ### Regras entre módulos
