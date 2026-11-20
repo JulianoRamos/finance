@@ -122,11 +122,14 @@ Base de 4px.
 | --- | --- | --- |
 | `container-form` | 400px | Largura máxima do formulário das telas de acesso (seção 4.1) |
 | `container-menu` | 288px | Largura dos menus da barra lateral (seção 4.5) |
+| `container-search` | 240px | Largura do campo da pesquisa na barra superior (seção 4.1) |
 | `container-menu-list` | 360px | Altura máxima da lista do seletor de contexto, que rola entre a busca e o atalho (seção 4.1) |
 | `container-sidebar` | 280px | Largura da barra lateral aberta (seção 4.1) |
 | `container-panel` | 520px | Largura máxima do painel lateral (seção 4.5) |
 | `container-section` | 560px | Largura máxima de uma seção de formulário dentro de um cartão e dos diálogos (seção 4.5) |
 | `container-table` | 640px | Largura mínima da área de uma tabela: numa área mais estreita, ela vira a lista de itens (seção 4.4) |
+| `container-palette` | 640px | Largura máxima da paleta de pesquisa (seção 4.5) |
+| `container-palette-list` | 420px | Altura máxima da lista da paleta de pesquisa, que rola entre o campo e o rodapé (seção 4.5) |
 
 ### 2.4 Raio, borda e elevação
 
@@ -176,7 +179,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
   - **Botão da conta,** no rodapé: avatar, nome e e-mail. Abre o menu da conta, com o nome e o e-mail no topo, Minha conta e Sair.
   - **Recolhida:** 64px, só com os ícones do logo, do seletor, da navegação e do avatar, cada um com o nome do destino na dica e no `aria-label`. Quem recolhe e abre a barra é o botão na barra superior.
 - **Barra superior:** 56px, fundo `surface`, borda inferior `hairline`, fixa no topo ao rolar. À esquerda, o botão da barra lateral, uma divisória e o caminho da página ("Configurações › Entidades"), em que só os níveis que são uma página têm link. À direita:
-  - a **pesquisa**, um campo de 240px com o atalho ⌘K, que abre a paleta de pesquisa (seção 4.5);
+  - a **pesquisa**, um campo de 240px com o atalho ⌘K (Ctrl K fora do Mac), que abre a paleta de pesquisa (seção 4.5). Abaixo de 768px, ele vira um botão de ícone fantasma, com o nome "Pesquisar" no `aria-label` e na dica;
   - o **tema**, um botão que abre a escolha entre claro, escuro e sistema (seção 2.1);
   - os **alertas**, com um ponto `accent` quando há algo novo;
   - as **configurações**, uma engrenagem que abre o menu com os cadastros (Entidades, Grupos financeiros, Usuários e acessos). As configurações ficam só aí, e não na barra lateral. Numa tela de configuração, a engrenagem e o item do menu ficam em `accent-soft`.
@@ -248,7 +251,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
 - **Confirmação destrutiva:** diz o que vai acontecer e o que não volta, e o botão repete a ação ("Cancelar pacote"), em vez de "Sim".
 - **Menu:** nível 2, raio `radius-md`, itens de 36px (40px quando trazem um ícone num quadrado, como no seletor de contexto), rótulos de grupo em `eyebrow` `mute`, divisórias `hairline` entre os grupos, e o destrutivo por último, em `negative`.
 - **Painel lateral:** abre pela direita, por cima de tudo, com até 520px de largura, fundo `surface`, borda esquerda `hairline`, nível 2 e o fundo da página escurecido a 40%. Rola por dentro e fecha com Esc e com o botão de fechar. Serve para consultar algo ao lado do item, como o histórico de alterações.
-- **Paleta de pesquisa:** um diálogo de 640px, a 120px do topo, aberto pelo campo da barra superior ou por ⌘K (Ctrl+K). Tem o campo de 56px, os resultados agrupados por tipo, com o primeiro em `surface-subtle` e o trecho encontrado em `accent-soft`, e um rodapé em `body-sm` com os atalhos (↑ ↓, ↵ e Esc). Sem nada digitado, mostra os destinos e as ações mais comuns; sem resultado, diz o que a pesquisa procura.
+- **Paleta de pesquisa:** um diálogo de 640px, a 120px do topo, aberto pelo campo da barra superior ou por ⌘K (Ctrl+K). Tem o campo de 56px, os resultados agrupados por tipo, com o primeiro em `surface-subtle` e o trecho encontrado em `accent-soft`, e um rodapé em `body-sm` com os atalhos (↑ ↓, ↵ e Esc). Sem nada digitado (ou com menos de 2 caracteres), mostra os destinos (Ir para) e as ações mais comuns (Ações). Com o termo, mostra, nesta ordem, as Entidades, os Grupos financeiros, os Usuários, os Contextos ("Trocar para", de cada grupo e de cada entidade ativa encontrados) e os destinos e as ações cujo nome bate com o termo; cada registro traz o complemento à direita (o tipo da entidade, com "Desativada" quando for o caso, o resumo do grupo, o e-mail do usuário). Sem resultado, diz o que a pesquisa procura; quando a `api` não responde, os registros dão lugar ao erro de carregamento, e os destinos e as ações continuam. No celular, a paleta ocupa a largura da tela menos 16px de cada lado, a 16px do topo.
 - **Estado vazio:** ícone, uma frase do que falta e a ação que resolve ("Nenhuma conta ainda. Cadastrar conta").
 - **Carregando:** blocos cinza (`surface-subtle`) no formato do conteúdo, e não um indicador girando no meio da página.
 - **Erro de carregamento:** a área mostra o que falhou e um botão "Tentar de novo"; o resto da página continua funcionando.

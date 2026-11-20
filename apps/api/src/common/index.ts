@@ -15,7 +15,15 @@ export {
   RequiresFinancialContext,
   type ResolvedFinancialContext,
 } from './financial-context.js';
-export { byName, IsName, NAME_COLLATION, NAME_MAX_LENGTH, nameMatches, VersionRead } from './fields.js';
+export {
+  byName,
+  IsName,
+  IsTrimmedLength,
+  NAME_COLLATION,
+  NAME_MAX_LENGTH,
+  nameMatches,
+  VersionRead,
+} from './fields.js';
 export { omit } from './omit.js';
 export {
   type Page,
@@ -23,6 +31,7 @@ export {
   PageQuery,
   type PageRequest,
   pageRequest,
+  readFirst,
   readPage,
   SearchQuery,
   searchPattern,

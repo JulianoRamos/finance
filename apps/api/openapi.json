@@ -2731,6 +2731,65 @@
           "entities"
         ]
       }
+    },
+    "/v1/search": {
+      "get": {
+        "operationId": "SearchController_search",
+        "parameters": [
+          {
+            "name": "term",
+            "required": true,
+            "in": "query",
+            "description": "O termo procurado no nome, de 2 a 120 caracteres sem contar os espaços das pontas, sem diferença de acento nem de maiúsculas, em qualquer posição (regra 6.22).",
+            "schema": {
+              "minLength": 2,
+              "maxLength": 120,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Até 5 resultados por tipo, em todos os contextos do usuário (regra 6.22): as entidades em que ele tem permissão, os grupos em que ele tem permissão em todos os membros e, só para quem gere acessos, os usuários.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResults"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o termo falta, ou tem menos de 2 ou mais de 120 caracteres sem contar os espaços das pontas (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Pesquisa entidades, grupos financeiros e usuários pelo nome.",
+        "tags": [
+          "search"
+        ]
+      }
     }
   },
   "info": {
@@ -4090,6 +4149,136 @@
         "required": [
           "version",
           "endDate"
+        ]
+      },
+      "SearchEntity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id da entidade."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "company"
+            ],
+            "description": "Pessoa física (`individual`) ou jurídica (`company`)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da entidade.",
+            "example": "Ana Lima"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na entidade desativada, que aparece marcada como tal e não é escolha de contexto (regra 6.2)."
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name",
+          "active"
+        ]
+      },
+      "SearchFinancialGroup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id do grupo."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome do grupo.",
+            "example": "Visão Familiar"
+          },
+          "isFamilyView": {
+            "type": "boolean",
+            "description": "Verdadeiro só na Visão Familiar."
+          },
+          "individuals": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Quantas pessoas físicas o grupo reúne, ativas ou não, para o resumo do grupo."
+          },
+          "companies": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Quantas empresas o grupo reúne, ativas ou não, para o resumo do grupo."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "isFamilyView",
+          "individuals",
+          "companies"
+        ]
+      },
+      "SearchUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id do usuário."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome do usuário.",
+            "example": "Bruno Lima"
+          },
+          "email": {
+            "type": "string",
+            "description": "O e-mail, que é o login, em minúsculas.",
+            "example": "bruno@exemplo.com"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso no usuário desativado, que não entra (regra 6.1)."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "active"
+        ]
+      },
+      "SearchResults": {
+        "type": "object",
+        "properties": {
+          "entities": {
+            "description": "Até 5 entidades em que o usuário tem `view` ou `operate`, as ativas primeiro, e cada grupo pelo nome.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchEntity"
+            }
+          },
+          "financialGroups": {
+            "description": "Até 5 grupos em que o usuário tem permissão em todos os membros (o grupo vazio entra), a Visão Familiar primeiro e os outros pelo nome.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchFinancialGroup"
+            }
+          },
+          "users": {
+            "description": "Até 5 usuários, os ativos primeiro, e cada grupo pelo nome. Sempre vazia para quem não gere acessos.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchUser"
+            }
+          }
+        },
+        "required": [
+          "entities",
+          "financialGroups",
+          "users"
         ]
       }
     }

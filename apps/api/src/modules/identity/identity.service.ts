@@ -13,8 +13,8 @@ import type {
 import { IdentityError } from './identity-error.js';
 import { PermissionsService } from './permissions.service.js';
 import { RecoveryLinksService } from './recovery-links.service.js';
-import { SessionsService } from './sessions.service.js';
-import { type NewUser, toUser, UsersService, versionConflict } from './users.service.js';
+import { type AuthenticatedSession, SessionsService } from './sessions.service.js';
+import { type NewUser, toUser, type UserSearchResult, UsersService, versionConflict } from './users.service.js';
 
 /** A recusa do pedido de quem gere acessos sobre o próprio acesso (regra 6.1). */
 function selfAccessChange(message: string) {
@@ -117,6 +117,14 @@ export class IdentityService {
       await this.permissions.apply(userId, input.permissions);
       return toUser(after);
     });
+  }
+
+  /**
+   * Os primeiros usuários cujo nome tem o termo (regra 6.22), só para a sessão de quem gere acessos: para
+   * as outras, a lista vem vazia.
+   */
+  async searchUsers(session: AuthenticatedSession, term: string, limit: number): Promise<UserSearchResult[]> {
+    return session.user.managesAccess ? this.users.search(term, limit) : [];
   }
 
   /** Cria um link de recuperação do usuário, com o endereço público da web. */

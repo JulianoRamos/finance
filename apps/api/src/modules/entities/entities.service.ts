@@ -4,6 +4,7 @@ import {
   apiError,
   type Clock,
   CLOCK,
+  currentVisibleEntityIds,
   type EntityType,
   isUniqueViolation,
   NAME_COLLATION,
@@ -11,6 +12,7 @@ import {
   omit,
   type Operation,
   type PageRequest,
+  readFirst,
   readPage,
   sql,
   TransactionService,
@@ -28,6 +30,14 @@ interface EntityRow {
   readonly active: boolean;
   readonly version: number;
   readonly operations: readonly { readonly operation: Operation }[];
+}
+
+/** A entidade como a pesquisa a devolve (regra 6.22). */
+export interface EntitySearchResult {
+  readonly id: string;
+  readonly type: EntityType;
+  readonly name: string;
+  readonly active: boolean;
 }
 
 /** A entidade como a rota a devolve, com as operações em ordem alfabética. */
@@ -124,6 +134,26 @@ export class EntitiesService {
       filter.page,
       async (ids) =>
         (await client.entity.findMany({ where: { id: { in: ids } }, include: { operations: true } })).map(toEntity),
+    );
+  }
+
+  /**
+   * As primeiras entidades cujo nome tem o termo, sem acento nem diferença de maiúsculas, entre as em que
+   * o usuário da requisição tem permissão, na ordem da lista (regra 6.22).
+   */
+  async search(term: string, limit: number): Promise<EntitySearchResult[]> {
+    const visibleIds = await currentVisibleEntityIds();
+    const client = this.transactions.client;
+    return readFirst(
+      client,
+      sql`SELECT id, active, name FROM entity WHERE id = ANY(${visibleIds}::uuid[]) AND ${nameMatches(term)}`,
+      sql`active DESC, name ${NAME_COLLATION}`,
+      limit,
+      (ids) =>
+        client.entity.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, type: true, name: true, active: true },
+        }),
     );
   }
 

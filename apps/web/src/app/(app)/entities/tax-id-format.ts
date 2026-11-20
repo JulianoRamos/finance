@@ -21,6 +21,3 @@ export const TYPE_NAMES: Readonly<Record<EntityType, string>> = {
   individual: 'Pessoa física',
   company: 'Pessoa jurídica',
 };
-
-/** A sigla do tipo, como o selo da lista a mostra. */
-export const TYPE_BADGES: Readonly<Record<EntityType, string>> = { individual: 'PF', company: 'PJ' };

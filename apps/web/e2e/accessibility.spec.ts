@@ -4,6 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 import {
   createTestCompany,
   createTestEquityStake,
+  createTestGroup,
   createTestIndividual,
   grantFamilyViewAccess,
   openTestCompany,
@@ -48,6 +49,31 @@ const SCREENS: readonly Screen[] = [
       await page.goto('/');
       await page.getByRole('button', { name: /^Contexto: / }).click();
       await expect(page.getByRole('dialog', { name: 'Contexto financeiro' }).getByRole('group').first()).toBeVisible();
+    },
+  },
+  {
+    name: 'a paleta de pesquisa com as sugestões',
+    open: async (page, baseURL) => {
+      await signIn(page.context(), await createTestUser(), baseURL);
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Pesquisar', exact: true }).click();
+      await expect(page.getByRole('dialog', { name: 'Pesquisar' }).getByRole('group', { name: 'Ações' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a paleta de pesquisa com resultados',
+    open: async (page, baseURL) => {
+      // O nome do usuário de teste termina num sufixo próprio, que acha também a entidade e o grupo dele.
+      const user = await createTestUser({ managesAccess: true });
+      const person = await createTestIndividual(user, `${user.name} Pessoa`);
+      await createTestGroup(user, [person], `${user.name} Grupo`);
+      await signIn(page.context(), user, baseURL);
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Pesquisar', exact: true }).click();
+      const palette = page.getByRole('dialog', { name: 'Pesquisar' });
+      await palette.getByRole('combobox', { name: 'Pesquisar' }).fill(user.name.split(' ').at(-1) ?? '');
+      await expect(palette.getByRole('group', { name: 'Usuários' })).toBeVisible();
+      await expect(palette.getByRole('group', { name: 'Contextos' })).toBeVisible();
     },
   },
   {

@@ -9,6 +9,7 @@ import {
   nameMatches,
   type Page,
   type PageRequest,
+  readFirst,
   readPage,
   searchPattern,
   sql,
@@ -59,6 +60,14 @@ export function toUser(row: UserRow): User {
   };
 }
 
+/** O usuário como a pesquisa o devolve (regra 6.22). */
+export interface UserSearchResult {
+  readonly id: string;
+  readonly name: string;
+  readonly email: string;
+  readonly active: boolean;
+}
+
 /** A recusa do e-mail que já é de outro usuário, ativo ou não. */
 function duplicateEmail(email: string) {
   return new IdentityError(`Já existe um usuário com o e-mail ${email}.`, 'DUPLICATE_EMAIL');
@@ -93,6 +102,25 @@ export class UsersService {
       sql`active DESC, name ${NAME_COLLATION}`,
       filter.page,
       async (ids) => (await client.user.findMany({ where: { id: { in: ids } } })).map(toUser),
+    );
+  }
+
+  /**
+   * Os primeiros usuários cujo nome tem o termo, sem acento nem diferença de maiúsculas, na ordem da
+   * lista (regra 6.22). Quem pode ver os usuários é conferido por quem chama.
+   */
+  search(term: string, limit: number): Promise<UserSearchResult[]> {
+    const client = this.transactions.client;
+    return readFirst(
+      client,
+      sql`SELECT id, active, name FROM "user" WHERE ${nameMatches(term)}`,
+      sql`active DESC, name ${NAME_COLLATION}`,
+      limit,
+      (ids) =>
+        client.user.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true, email: true, active: true },
+        }),
     );
   }
 

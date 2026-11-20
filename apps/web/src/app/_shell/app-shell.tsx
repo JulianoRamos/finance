@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import type { ShownContext } from './context-selector';
+import { ContextSelectorProvider, type ShownContext } from './context-selector';
 import { HintProvider } from './hint';
 import { Sidebar } from './sidebar';
 import type { ThemeChoice } from './theme';
@@ -25,13 +25,16 @@ export function AppShell({
 }>) {
   return (
     <HintProvider>
-      <div className="flex min-h-screen bg-surface-subtle">
-        <Sidebar user={user} context={context} expanded={sidebarExpanded} />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar sidebarExpanded={sidebarExpanded} managesAccess={user.managesAccess} theme={theme} />
-          <main className="flex flex-1 flex-col">{children}</main>
+      {/* O seletor de contexto fica na barra lateral, e a paleta da barra superior o abre. */}
+      <ContextSelectorProvider current={typeof context === 'string' ? null : context.reference}>
+        <div className="flex min-h-screen bg-surface-subtle">
+          <Sidebar user={user} context={context} expanded={sidebarExpanded} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <TopBar sidebarExpanded={sidebarExpanded} managesAccess={user.managesAccess} theme={theme} />
+            <main className="flex flex-1 flex-col">{children}</main>
+          </div>
         </div>
-      </div>
+      </ContextSelectorProvider>
     </HintProvider>
   );
 }

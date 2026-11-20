@@ -10,6 +10,7 @@ import { Hint } from './hint';
 import { MENU_ITEM, MENU_LABEL, MENU_PANEL } from './menu';
 import { isWithin, pageTitleOf, settingsFor } from './pages';
 import { writePreferenceCookie } from './preference-cookie';
+import { SearchPalette } from './search-palette';
 import { SIDEBAR_COOKIE } from './sidebar-state';
 import type { ThemeChoice } from './theme';
 import { ThemeMenu } from './theme-menu';
@@ -90,7 +91,7 @@ function SettingsMenu({ managesAccess }: Readonly<{ managesAccess: boolean }>) {
 
 /**
  * A barra superior (design-system.md, seção 4.1), fixa no topo: o botão da barra lateral, o caminho e,
- * à direita, o tema e as configurações.
+ * à direita, a pesquisa, o tema e as configurações.
  */
 export function TopBar({
   sidebarExpanded,
@@ -103,6 +104,7 @@ export function TopBar({
       <span aria-hidden="true" className="hidden h-4 w-px bg-hairline lg:block" />
       <Breadcrumb />
       <div className="ml-auto flex items-center gap-1">
+        <SearchPalette managesAccess={managesAccess} />
         <ThemeMenu choice={theme} />
         <SettingsMenu managesAccess={managesAccess} />
       </div>
