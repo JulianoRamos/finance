@@ -3,7 +3,7 @@
 import { Building2, Check, ChevronsUpDown, Settings2, User, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Popover } from 'radix-ui';
-import { useEffect, useId, useRef, useState, useTransition } from 'react';
+import { createContext, type ReactNode, use, useEffect, useId, useRef, useState, useTransition } from 'react';
 
 import type { ContextOptionGroup, ContextOptions } from '@/api/financial-context';
 
@@ -12,6 +12,51 @@ import { chooseFinancialContextAction, searchFinancialContextsAction } from './c
 import { Hint } from './hint';
 import { MENU_PANEL } from './menu';
 import { SEARCH_DELAY_MS } from './pagination';
+
+/** O estado do seletor que a paleta de pesquisa também usa: se ele está aberto e a troca do contexto. */
+interface SelectorState {
+  readonly open: boolean;
+  readonly setOpen: (open: boolean) => void;
+  /** Troca o contexto pelo escolhido e anuncia a troca; escolher o atual não muda nada. */
+  readonly choose: (reference: string, name: string) => void;
+}
+
+const SelectorContext = createContext<SelectorState | null>(null);
+
+/**
+ * O estado do seletor, na estrutura do app, para a paleta de pesquisa abri-lo e trocar o contexto como ele:
+ * a troca é anunciada ao leitor de tela.
+ */
+export function ContextSelectorProvider({
+  current,
+  children,
+}: Readonly<{ current: string | null; children: ReactNode }>) {
+  const [open, setOpen] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
+  const [, startTransition] = useTransition();
+  function choose(reference: string, name: string) {
+    if (reference === current) return;
+    startTransition(async () => {
+      await chooseFinancialContextAction(reference);
+      setAnnouncement(`Contexto: ${name}`);
+    });
+  }
+  return (
+    <SelectorContext value={{ open, setOpen, choose }}>
+      {children}
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
+    </SelectorContext>
+  );
+}
+
+/** O estado do seletor, que só existe dentro da estrutura do app. */
+export function useContextSelector(): SelectorState {
+  const state = use(SelectorContext);
+  if (!state) throw new Error('O seletor de contexto fica dentro do ContextSelectorProvider.');
+  return state;
+}
 
 /** O ícone do tipo do contexto: grupo, pessoa física ou empresa. */
 export type ContextIcon = 'group' | 'individual' | 'company';
@@ -34,7 +79,8 @@ const NO_CONTEXT = {
   unavailable: { name: 'Contexto indisponível', summary: 'Tente de novo em instantes' },
 } as const;
 
-const ICONS = { group: Users, individual: User, company: Building2 } as const;
+/** O ícone de cada tipo de contexto, também na paleta de pesquisa. */
+export const CONTEXT_ICONS = { group: Users, individual: User, company: Building2 } as const;
 
 /** Os grupos do seletor, na ordem dele: a chave das escolhas, o rótulo e o ícone. */
 const OPTION_GROUPS = [
@@ -45,7 +91,7 @@ const OPTION_GROUPS = [
 
 /** O ícone num quadrado com borda `hairline` (design-system.md, seção 4.1): de 32px no botão, de 28px no menu. */
 function IconBox({ icon, small = false }: Readonly<{ icon: ContextIcon | 'manage'; small?: boolean }>) {
-  const Icon = icon === 'manage' ? Settings2 : ICONS[icon];
+  const Icon = icon === 'manage' ? Settings2 : CONTEXT_ICONS[icon];
   return (
     <span
       aria-hidden="true"
@@ -108,11 +154,9 @@ function OptionGroup({
 export function ContextSelector({ shown, expanded }: Readonly<{ shown: ShownContext; expanded: boolean }>) {
   const current = typeof shown === 'string' ? null : shown;
   const { name, summary } = typeof shown === 'string' ? NO_CONTEXT[shown] : shown;
-  const [open, setOpen] = useState(false);
+  const { open, setOpen, choose: chooseContext } = useContextSelector();
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState<ContextOptions | null | undefined>(undefined);
-  const [announcement, setAnnouncement] = useState('');
-  const [, startTransition] = useTransition();
   const latest = useRef(0);
 
   // Pede as escolhas da busca à api quando o seletor abre e depois de cada pausa na digitação; só a
@@ -138,107 +182,98 @@ export function ContextSelector({ shown, expanded }: Readonly<{ shown: ShownCont
 
   function choose(reference: string, chosenName: string) {
     close();
-    if (reference === current?.reference) return;
-    startTransition(async () => {
-      await chooseFinancialContextAction(reference);
-      setAnnouncement(`Contexto: ${chosenName}`);
-    });
+    chooseContext(reference, chosenName);
   }
 
   const shape = expanded
     ? 'size-10 justify-center lg:h-12 lg:w-full lg:justify-start lg:px-2'
     : 'size-10 justify-center';
   return (
-    <>
-      <Popover.Root
-        open={open}
-        onOpenChange={(next) => {
-          if (next) setOpen(true);
-          else close();
-        }}
-      >
-        <Hint label={`Contexto: ${name}`} expanded={expanded}>
-          <Popover.Trigger
-            className={`group mb-4 flex flex-none cursor-pointer items-center gap-2 rounded-sm hover:bg-surface-subtle aria-expanded:bg-accent-soft ${shape} ${FOCUS_RING}`}
+    <Popover.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (next) setOpen(true);
+        else close();
+      }}
+    >
+      <Hint label={`Contexto: ${name}`} expanded={expanded}>
+        <Popover.Trigger
+          className={`group mb-4 flex flex-none cursor-pointer items-center gap-2 rounded-sm hover:bg-surface-subtle aria-expanded:bg-accent-soft ${shape} ${FOCUS_RING}`}
+        >
+          <IconBox icon={current?.icon ?? 'group'} />
+          <span
+            className={
+              expanded ? 'sr-only text-left lg:not-sr-only lg:flex lg:min-w-0 lg:flex-1 lg:flex-col' : 'sr-only'
+            }
           >
-            <IconBox icon={current?.icon ?? 'group'} />
-            <span
-              className={
-                expanded ? 'sr-only text-left lg:not-sr-only lg:flex lg:min-w-0 lg:flex-1 lg:flex-col' : 'sr-only'
-              }
-            >
-              <span className="truncate text-label text-ink">
-                <span className="sr-only">Contexto: </span>
-                {name}
-              </span>
-              <span className="truncate text-body-sm text-mute group-aria-expanded:text-body">{summary}</span>
+            <span className="truncate text-label text-ink">
+              <span className="sr-only">Contexto: </span>
+              {name}
             </span>
-            {expanded && (
-              <ChevronsUpDown
-                size={16}
-                strokeWidth={1.5}
-                aria-hidden="true"
-                className="ml-auto hidden flex-none text-body lg:block"
-              />
-            )}
-          </Popover.Trigger>
-        </Hint>
-        <Popover.Portal>
-          <Popover.Content
-            side="right"
-            align="start"
-            sideOffset={8}
-            aria-label="Contexto financeiro"
-            className={`${MENU_PANEL} max-h-(--radix-popover-content-available-height)`}
-          >
-            <input
-              type="search"
-              aria-label="Buscar entidade ou grupo"
-              placeholder="Buscar entidade ou grupo"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-              }}
-              className={`m-1 h-9 flex-none rounded-sm border border-field-border bg-surface px-3 text-body-md text-ink placeholder:text-mute hover:border-body ${FOCUS_RING}`}
+            <span className="truncate text-body-sm text-mute group-aria-expanded:text-body">{summary}</span>
+          </span>
+          {expanded && (
+            <ChevronsUpDown
+              size={16}
+              strokeWidth={1.5}
+              aria-hidden="true"
+              className="ml-auto hidden flex-none text-body lg:block"
             />
-            {options === null && (
-              <p role="alert" className="px-2 py-1 text-body-sm text-negative">
-                Não foi possível carregar os contextos. Tente de novo em instantes.
-              </p>
-            )}
-            {options && (
-              // A lista rola entre a busca e o atalho, até a altura `container-menu-list` (design-system.md, seção 4.1).
-              <div className="flex max-h-(--container-menu-list) min-h-0 flex-col overflow-y-auto">
-                {OPTION_GROUPS.map(({ key, label, icon }) => (
-                  <OptionGroup
-                    key={key}
-                    label={label}
-                    icon={icon}
-                    group={options[key]}
-                    current={current?.reference ?? null}
-                    onChoose={choose}
-                  />
-                ))}
-                {OPTION_GROUPS.every(({ key }) => options[key].total === 0) && (
-                  <p className="px-2 py-1 text-body-sm text-mute">Nenhum contexto com esse nome.</p>
-                )}
-              </div>
-            )}
-            <div className="-mx-1 h-px flex-none bg-hairline" />
-            <Link
-              href="/entities"
-              onClick={close}
-              className={`flex h-10 flex-none items-center gap-2 rounded-sm px-2 text-body hover:bg-surface-subtle hover:text-ink ${FOCUS_RING}`}
-            >
-              <IconBox icon="manage" small />
-              Gerenciar entidades e grupos
-            </Link>
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
-      <p aria-live="polite" className="sr-only">
-        {announcement}
-      </p>
-    </>
+          )}
+        </Popover.Trigger>
+      </Hint>
+      <Popover.Portal>
+        <Popover.Content
+          side="right"
+          align="start"
+          sideOffset={8}
+          aria-label="Contexto financeiro"
+          className={`${MENU_PANEL} max-h-(--radix-popover-content-available-height)`}
+        >
+          <input
+            type="search"
+            aria-label="Buscar entidade ou grupo"
+            placeholder="Buscar entidade ou grupo"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+            }}
+            className={`m-1 h-9 flex-none rounded-sm border border-field-border bg-surface px-3 text-body-md text-ink placeholder:text-mute hover:border-body ${FOCUS_RING}`}
+          />
+          {options === null && (
+            <p role="alert" className="px-2 py-1 text-body-sm text-negative">
+              Não foi possível carregar os contextos. Tente de novo em instantes.
+            </p>
+          )}
+          {options && (
+            // A lista rola entre a busca e o atalho, até a altura `container-menu-list` (design-system.md, seção 4.1).
+            <div className="flex max-h-(--container-menu-list) min-h-0 flex-col overflow-y-auto">
+              {OPTION_GROUPS.map(({ key, label, icon }) => (
+                <OptionGroup
+                  key={key}
+                  label={label}
+                  icon={icon}
+                  group={options[key]}
+                  current={current?.reference ?? null}
+                  onChoose={choose}
+                />
+              ))}
+              {OPTION_GROUPS.every(({ key }) => options[key].total === 0) && (
+                <p className="px-2 py-1 text-body-sm text-mute">Nenhum contexto com esse nome.</p>
+              )}
+            </div>
+          )}
+          <div className="-mx-1 h-px flex-none bg-hairline" />
+          <Link
+            href="/entities"
+            onClick={close}
+            className={`flex h-10 flex-none items-center gap-2 rounded-sm px-2 text-body hover:bg-surface-subtle hover:text-ink ${FOCUS_RING}`}
+          >
+            <IconBox icon="manage" small />
+            Gerenciar entidades e grupos
+          </Link>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

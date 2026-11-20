@@ -9,13 +9,28 @@ function counted(count: number, singular: string, plural: string): string {
   return `${String(count)} ${count === 1 ? singular : plural}`;
 }
 
+/** Quantas pessoas físicas e quantas empresas um grupo reúne. */
+interface EntityCounts {
+  readonly individuals: number;
+  readonly companies: number;
+}
+
 /**
  * Quantas entidades o contexto reúne, contando só os tipos presentes: "2 pessoas físicas",
  * "1 pessoa física e 1 empresa". Vazio num grupo sem membros.
  */
 export function entitiesCount(context: FinancialContext): string {
+  return countsText(countsOf(context));
+}
+
+/** Quantas pessoas físicas e quantas empresas o contexto reúne. */
+function countsOf(context: FinancialContext): EntityCounts {
   const individuals = context.entities.filter((entity) => entity.type === 'individual').length;
-  const companies = context.entities.length - individuals;
+  return { individuals, companies: context.entities.length - individuals };
+}
+
+/** As contagens por tipo, por extenso, só com os tipos presentes. */
+function countsText({ individuals, companies }: EntityCounts): string {
   const parts = [
     ...(individuals > 0 ? [counted(individuals, 'pessoa física', 'pessoas físicas')] : []),
     ...(companies > 0 ? [counted(companies, 'empresa', 'empresas')] : []),
@@ -36,10 +51,14 @@ export function contextType(context: FinancialContext): string {
   return KIND_NAMES[contextKind(context)];
 }
 
+/** O resumo do grupo pelas contagens por tipo: "Grupo · 2 pessoas físicas", ou "Grupo · Sem membros". */
+export function groupCountsSummary(counts: EntityCounts): string {
+  return `Grupo · ${counts.individuals + counts.companies === 0 ? 'Sem membros' : countsText(counts)}`;
+}
+
 /** A linha do seletor abaixo do nome: o tipo e, num grupo, o resumo ("Grupo · 2 pessoas físicas"). */
 function contextSummary(context: FinancialContext): string {
-  if (context.kind !== 'group') return contextType(context);
-  return `Grupo · ${context.entities.length === 0 ? 'Sem membros' : entitiesCount(context)}`;
+  return context.kind === 'group' ? groupCountsSummary(countsOf(context)) : contextType(context);
 }
 
 /**

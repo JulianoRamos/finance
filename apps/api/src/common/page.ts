@@ -127,12 +127,39 @@ export async function readPage<T extends { readonly id: string }>(
     SELECT
       (SELECT count(*)::int FROM found) AS total,
       ARRAY(SELECT id::text AS page_id FROM found ORDER BY ${order}, id LIMIT ${request.pageSize} OFFSET ${request.offset}) AS ids`;
-  const ids = row?.ids ?? [];
-  const byId = new Map((ids.length > 0 ? await read(ids) : []).map((item) => [item.id, item]));
   return {
-    items: ids.flatMap((id) => byId.get(id) ?? []),
+    items: await readInOrder(row?.ids ?? [], read),
     total: row?.total ?? 0,
     page: request.page,
     pageSize: request.pageSize,
   };
+}
+
+/**
+ * Os primeiros registros do filtro, até o limite, sem o total nem a paginação, como a pesquisa os pede
+ * (regra 6.22). `found` e `order` seguem a regra do `readPage`.
+ */
+export async function readFirst<T extends { readonly id: string }>(
+  client: Transaction,
+  found: Sql,
+  order: Sql,
+  limit: number,
+  read: (ids: string[]) => Promise<T[]>,
+): Promise<T[]> {
+  const rows = await client.$queryRaw<{ page_id: string }[]>`
+    WITH found AS (${found})
+    SELECT id::text AS page_id FROM found ORDER BY ${order}, id LIMIT ${limit}`;
+  return readInOrder(
+    rows.map((row) => row.page_id),
+    read,
+  );
+}
+
+/** Os registros dos ids, lidos em qualquer ordem e devolvidos na ordem dos ids. */
+async function readInOrder<T extends { readonly id: string }>(
+  ids: string[],
+  read: (ids: string[]) => Promise<T[]>,
+): Promise<T[]> {
+  const byId = new Map((ids.length > 0 ? await read(ids) : []).map((item) => [item.id, item]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
 }

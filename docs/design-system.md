@@ -122,11 +122,14 @@ Base de 4px.
 | --- | --- | --- |
 | `container-form` | 400px | Largura máxima do formulário das telas de acesso (seção 4.1) |
 | `container-menu` | 288px | Largura dos menus da barra lateral (seção 4.5) |
+| `container-search` | 240px | Largura do campo da pesquisa na barra superior (seção 4.1) |
 | `container-menu-list` | 360px | Altura máxima da lista do seletor de contexto, que rola entre a busca e o atalho (seção 4.1) |
 | `container-sidebar` | 280px | Largura da barra lateral aberta (seção 4.1) |
 | `container-panel` | 520px | Largura máxima do painel lateral (seção 4.5) |
 | `container-section` | 560px | Largura máxima de uma seção de formulário dentro de um cartão e dos diálogos (seção 4.5) |
 | `container-table` | 640px | Largura mínima da área de uma tabela: numa área mais estreita, ela vira a lista de itens (seção 4.4) |
+| `container-palette` | 640px | Largura máxima da paleta de pesquisa (seção 4.5) |
+| `container-palette-list` | 420px | Altura máxima da lista da paleta de pesquisa, que rola entre o campo e o rodapé (seção 4.5) |
 
 ### 2.4 Raio, borda e elevação
 
@@ -176,7 +179,7 @@ A base é o shadcn/ui, sobre os primitivos do Radix, com o código no próprio r
   - **Botão da conta,** no rodapé: avatar, nome e e-mail. Abre o menu da conta, com o nome e o e-mail no topo, Minha conta e Sair.
   - **Recolhida:** 64px, só com os ícones do logo, do seletor, da navegação e do avatar, cada um com o nome do destino na dica e no `aria-label`. Quem recolhe e abre a barra é o botão na barra superior.
 - **Barra superior:** 56px, fundo `surface`, borda inferior `hairline`, fixa no topo ao rolar. À esquerda, o botão da barra lateral, uma divisória e o caminho da página ("Configurações › Entidades"), em que só os níveis que são uma página têm link. À direita:
-  - a **pesquisa**, um campo de 240px com o atalho ⌘K, que abre a paleta de pesquisa (seção 4.5). Abaixo de 768px, ele vira um botão de ícone fantasma, com o nome "Pesquisar" no `aria-label` e na dica;
+  - a **pesquisa**, um campo de 240px com o atalho ⌘K (Ctrl K fora do Mac), que abre a paleta de pesquisa (seção 4.5). Abaixo de 768px, ele vira um botão de ícone fantasma, com o nome "Pesquisar" no `aria-label` e na dica;
   - o **tema**, um botão que abre a escolha entre claro, escuro e sistema (seção 2.1);
   - os **alertas**, com um ponto `accent` quando há algo novo;
   - as **configurações**, uma engrenagem que abre o menu com os cadastros (Entidades, Grupos financeiros, Usuários e acessos). As configurações ficam só aí, e não na barra lateral. Numa tela de configuração, a engrenagem e o item do menu ficam em `accent-soft`.

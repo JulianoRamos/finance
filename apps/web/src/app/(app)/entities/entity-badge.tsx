@@ -1,6 +1,6 @@
 import type { EntityType } from '@/api/entities';
 
-import { TYPE_BADGES } from './tax-id-format';
+import { TYPE_BADGES } from '../../_shell/entity-type';
 
 const BADGE = 'flex-none rounded-full px-2 text-body-sm font-medium';
 

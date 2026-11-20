@@ -1,6 +1,7 @@
 import type { Entity } from '@/api/entities';
 
-import { formatTaxId, maskCpf, TYPE_BADGES } from './tax-id-format';
+import { TYPE_BADGES } from '../../_shell/entity-type';
+import { formatTaxId, maskCpf } from './tax-id-format';
 
 /** Uma entidade como a lista a mostra, já formatada. */
 export interface EntityListItem {

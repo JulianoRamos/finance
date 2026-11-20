@@ -1,7 +1,27 @@
 'use client';
 
 import { Tooltip } from 'radix-ui';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState, useSyncExternalStore } from 'react';
+
+/** A partir de 768px (`md`). */
+const MD_UP = '(min-width: 48rem)';
+
+function subscribeToMdUp(onChange: () => void): () => void {
+  const query = window.matchMedia(MD_UP);
+  query.addEventListener('change', onChange);
+  return () => {
+    query.removeEventListener('change', onChange);
+  };
+}
+
+/** Se a tela tem 768px ou mais; no servidor, que não sabe, não. */
+function useMdUp(): boolean {
+  return useSyncExternalStore(
+    subscribeToMdUp,
+    () => window.matchMedia(MD_UP).matches,
+    () => false,
+  );
+}
 
 /**
  * A dica com o nome de um botão de ícone ou de um item da barra lateral recolhida (design-system.md,
@@ -13,10 +33,23 @@ export function Hint({
   label,
   expanded,
   side = 'right',
+  hiddenFromMd = false,
   children,
-}: Readonly<{ label: string; expanded: boolean; side?: 'right' | 'bottom'; children: ReactNode }>) {
+}: Readonly<{
+  label: string;
+  expanded: boolean;
+  side?: 'right' | 'bottom';
+  /**
+   * Não abre a partir de 768px, onde o controle mostra o nome escrito, como o campo da pesquisa: nem aparece
+   * nem descreve o controle para o leitor de tela, que já ouve o nome.
+   */
+  hiddenFromMd?: boolean;
+  children: ReactNode;
+}>) {
+  const [open, setOpen] = useState(false);
+  const suppressed = useMdUp() && hiddenFromMd;
   return (
-    <Tooltip.Root>
+    <Tooltip.Root open={open && !suppressed} onOpenChange={setOpen}>
       <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content

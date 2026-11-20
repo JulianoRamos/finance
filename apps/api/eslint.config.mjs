@@ -21,6 +21,7 @@ const index = (type) => ({ element: { type, fileInternalPath: 'index.ts' } });
 // Quem pode chamar quem entre os módulos (LLD, seção 3), com as pastas dos módulos que já existem.
 // Um módulo fora da tabela, como o health, não chama nenhum outro.
 const calls = {
+  search: ['entities', 'identity'],
   identity: ['entities', 'audit'],
   entities: ['audit'],
   audit: [],

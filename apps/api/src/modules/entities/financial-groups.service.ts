@@ -5,13 +5,16 @@ import {
   byName,
   type Clock,
   CLOCK,
+  currentVisibleEntityIds,
   type EntityType,
   type FinancialContextEntityRow,
   NAME_COLLATION,
   nameMatches,
   omit,
   type PageRequest,
+  readFirst,
   readPage,
+  type Sql,
   sql,
   TransactionService,
 } from '../../common/index.js';
@@ -52,6 +55,31 @@ export function membersByName(members: readonly Pick<MemberRow, 'entity'>[]): Fi
     .map(({ entity }) => ({ id: entity.id, type: entity.type, name: entity.name, active: entity.active }))
     .sort((a, b) => byName.compare(a.name, b.name));
 }
+
+/** O grupo como a pesquisa o devolve, com quantas pessoas físicas e empresas ele reúne (regra 6.22). */
+export interface FinancialGroupSearchResult {
+  readonly id: string;
+  readonly name: string;
+  readonly isFamilyView: boolean;
+  readonly individuals: number;
+  readonly companies: number;
+}
+
+/**
+ * A consulta dos grupos cujo nome tem o termo, em que o usuário vê todos os membros (regra 6.2): o grupo
+ * vazio entra. Seleciona as colunas da ordem da lista.
+ */
+function visibleGroupsMatching(q: string | undefined, visibleIds: readonly string[]): Sql {
+  return sql`SELECT id, is_family_view, name FROM financial_group
+    WHERE ${nameMatches(q)}
+      AND NOT EXISTS (
+        SELECT 1 FROM financial_group_member member
+        WHERE member.financial_group_id = financial_group.id
+          AND NOT (member.entity_id = ANY(${[...visibleIds]}::uuid[])))`;
+}
+
+/** A ordem da lista dos grupos: a Visão Familiar primeiro, e os outros pelo nome. */
+const GROUP_ORDER = sql`is_family_view DESC, name ${NAME_COLLATION}`;
 
 /** O grupo como a rota o devolve, com os membros pelo nome. */
 function toFinancialGroup(row: GroupRow): FinancialGroup {
@@ -115,21 +143,37 @@ export class FinancialGroupsService {
     page: PageRequest;
   }): Promise<FinancialGroupPage> {
     const client = this.transactions.client;
-    // Só os grupos em que o usuário vê todos os membros (regra 6.2): o grupo vazio entra.
-    return readPage(
-      client,
-      sql`SELECT id, is_family_view, name FROM financial_group
-        WHERE ${nameMatches(filter.q)}
-          AND NOT EXISTS (
-            SELECT 1 FROM financial_group_member member
-            WHERE member.financial_group_id = financial_group.id
-              AND NOT (member.entity_id = ANY(${[...filter.visibleIds]}::uuid[])))`,
-      sql`is_family_view DESC, name ${NAME_COLLATION}`,
-      filter.page,
-      async (ids) =>
-        (await client.financialGroup.findMany({ where: { id: { in: ids } }, include: MEMBERS_WITH_ENTITY })).map(
-          toFinancialGroup,
-        ),
+    return readPage(client, visibleGroupsMatching(filter.q, filter.visibleIds), GROUP_ORDER, filter.page, async (ids) =>
+      (await client.financialGroup.findMany({ where: { id: { in: ids } }, include: MEMBERS_WITH_ENTITY })).map(
+        toFinancialGroup,
+      ),
+    );
+  }
+
+  /**
+   * Os primeiros grupos cujo nome tem o termo, sem acento nem diferença de maiúsculas, entre os em que o
+   * usuário da requisição vê todos os membros, na ordem da lista (regra 6.22), com quantas pessoas físicas e empresas
+   * cada um reúne.
+   */
+  async search(term: string, limit: number): Promise<FinancialGroupSearchResult[]> {
+    const client = this.transactions.client;
+    const visibleIds = await currentVisibleEntityIds();
+    return readFirst(client, visibleGroupsMatching(term, visibleIds), GROUP_ORDER, limit, async (ids) =>
+      (
+        await client.financialGroup.findMany({
+          where: { id: { in: ids } },
+          select: {
+            id: true,
+            name: true,
+            isFamilyView: true,
+            members: { select: { entity: { select: { type: true } } } },
+          },
+        })
+      ).map(({ members, ...group }) => ({
+        ...group,
+        individuals: members.filter(({ entity }) => entity.type === 'individual').length,
+        companies: members.filter(({ entity }) => entity.type === 'company').length,
+      })),
     );
   }
 

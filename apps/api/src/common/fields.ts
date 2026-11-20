@@ -25,18 +25,26 @@ export function nameMatches(q: string | undefined): Sql {
   return sql`(${pattern}::text IS NULL OR unaccent(lower(name)) LIKE unaccent(lower(${pattern}::text)) ESCAPE '\\')`;
 }
 
-/** O nome tem de 1 a 120 caracteres, sem contar os espaços das pontas. */
-export function IsName(options: ValidationOptions): PropertyDecorator {
+/** Um texto de `min` a `max` caracteres, sem contar os espaços das pontas. */
+export function IsTrimmedLength(min: number, max: number, options: ValidationOptions): PropertyDecorator {
   return ValidateBy(
     {
-      name: 'isName',
+      name: 'isTrimmedLength',
       validator: {
-        validate: (value) =>
-          typeof value === 'string' && value.trim().length > 0 && value.trim().length <= NAME_MAX_LENGTH,
+        validate: (value) => {
+          if (typeof value !== 'string') return false;
+          const length = value.trim().length;
+          return length >= min && length <= max;
+        },
       },
     },
     options,
   );
+}
+
+/** O nome tem de 1 a 120 caracteres, sem contar os espaços das pontas. */
+export function IsName(options: ValidationOptions): PropertyDecorator {
+  return IsTrimmedLength(1, NAME_MAX_LENGTH, options);
 }
 
 /** A versão lida, que a edição manda de volta (regra 6.20). */

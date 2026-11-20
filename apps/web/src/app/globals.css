@@ -122,11 +122,14 @@
   /* 2.3 Larguras. */
   --container-form: 400px;
   --container-menu: 288px;
+  --container-search: 240px;
   --container-menu-list: 360px;
   --container-sidebar: 280px;
   --container-panel: 520px;
   --container-section: 560px;
   --container-table: 640px;
+  --container-palette: 640px;
+  --container-palette-list: 420px;
 
   /* 2.4 Raio e elevação. O nível 0 é só a borda `hairline`. */
   --radius-sm: 6px;

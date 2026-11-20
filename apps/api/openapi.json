@@ -4220,6 +4220,36 @@
           "companies"
         ]
       },
+      "SearchUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id do usuário."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome do usuário.",
+            "example": "Bruno Lima"
+          },
+          "email": {
+            "type": "string",
+            "description": "O e-mail, que é o login, em minúsculas.",
+            "example": "bruno@exemplo.com"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso no usuário desativado, que não entra (regra 6.1)."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "active"
+        ]
+      },
       "SearchResults": {
         "type": "object",
         "properties": {
@@ -4249,36 +4279,6 @@
           "entities",
           "financialGroups",
           "users"
-        ]
-      },
-      "SearchUser": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "O id do usuário."
-          },
-          "name": {
-            "type": "string",
-            "description": "O nome do usuário.",
-            "example": "Bruno Lima"
-          },
-          "email": {
-            "type": "string",
-            "description": "O e-mail, que é o login, em minúsculas.",
-            "example": "bruno@exemplo.com"
-          },
-          "active": {
-            "type": "boolean",
-            "description": "Falso no usuário desativado, que não entra (regra 6.1)."
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "email",
-          "active"
         ]
       }
     }
