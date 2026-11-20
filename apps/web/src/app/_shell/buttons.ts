@@ -31,3 +31,6 @@ export const GHOST_ICON_BUTTON = `flex-none cursor-pointer items-center justify-
  * `aria-label` e a dica. Desabilitado, o ícone fica em `faint`.
  */
 export const SECONDARY_ICON_BUTTON = `inline-flex size-10 md:size-9 flex-none cursor-pointer items-center justify-center rounded-sm border border-hairline-strong bg-surface text-ink hover:bg-surface-subtle disabled:cursor-not-allowed disabled:text-faint disabled:hover:bg-surface ${FOCUS_RING}`;
+
+/** O botão de ícone fantasma da barra superior, de 36px (design-system.md, seção 4.1). Quem usa dá o `display`. */
+export const TOP_BAR_ICON_BUTTON = `size-9 ${GHOST_ICON_BUTTON}`;

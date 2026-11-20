@@ -5,16 +5,14 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { DropdownMenu } from 'radix-ui';
 
-import { GHOST_ICON_BUTTON } from './buttons';
+import { TOP_BAR_ICON_BUTTON } from './buttons';
 import { Hint } from './hint';
-import { MENU_ITEM, MENU_PANEL } from './menu';
+import { MENU_ITEM, MENU_LABEL, MENU_PANEL } from './menu';
 import { isWithin, pageTitleOf, settingsFor } from './pages';
+import { writePreferenceCookie } from './preference-cookie';
 import { SIDEBAR_COOKIE } from './sidebar-state';
-
-const ICON_BUTTON = `size-9 ${GHOST_ICON_BUTTON}`;
-
-/** Um ano, em segundos: o cookie da barra lateral é uma preferência, e não uma sessão. */
-const ONE_YEAR_S = 365 * 24 * 60 * 60;
+import type { ThemeChoice } from './theme';
+import { ThemeMenu } from './theme-menu';
 
 /** O botão que abre e recolhe a barra lateral. Abaixo de 1024px ela fica sempre recolhida, e ele some. */
 function SidebarToggle({ expanded }: Readonly<{ expanded: boolean }>) {
@@ -28,11 +26,10 @@ function SidebarToggle({ expanded }: Readonly<{ expanded: boolean }>) {
         aria-controls="sidebar"
         aria-expanded={expanded}
         onClick={() => {
-          // O layout lê o cookie no servidor, para a página não piscar ao carregar.
-          document.cookie = `${SIDEBAR_COOKIE}=${expanded ? 'collapsed' : 'expanded'}; path=/; max-age=${String(ONE_YEAR_S)}; samesite=lax`;
+          writePreferenceCookie(SIDEBAR_COOKIE, expanded ? 'collapsed' : 'expanded');
           router.refresh();
         }}
-        className={`hidden lg:inline-flex ${ICON_BUTTON}`}
+        className={`hidden lg:inline-flex ${TOP_BAR_ICON_BUTTON}`}
       >
         <PanelLeft size={16} strokeWidth={1.5} aria-hidden="true" />
       </button>
@@ -70,15 +67,13 @@ function SettingsMenu({ managesAccess }: Readonly<{ managesAccess: boolean }>) {
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger
         aria-label="Configurações"
-        className={`inline-flex ${ICON_BUTTON} aria-expanded:bg-accent-soft ${inSettings ? 'bg-accent-soft' : ''}`}
+        className={`inline-flex ${TOP_BAR_ICON_BUTTON} aria-expanded:bg-accent-soft ${inSettings ? 'bg-accent-soft' : ''}`}
       >
         <Settings size={16} strokeWidth={1.5} aria-hidden="true" />
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content side="bottom" align="end" sideOffset={8} className={MENU_PANEL}>
-          <DropdownMenu.Label className="px-2 pt-2 pb-1 font-mono text-eyebrow text-mute uppercase">
-            Configurações
-          </DropdownMenu.Label>
+          <DropdownMenu.Label className={MENU_LABEL}>Configurações</DropdownMenu.Label>
           {settings.map(({ href, label, icon: Icon }) => (
             <DropdownMenu.Item key={href} asChild className={`${MENU_ITEM} aria-[current=page]:bg-accent-soft`}>
               <Link href={href} aria-current={isWithin(pathname, href) ? 'page' : undefined}>
@@ -95,18 +90,20 @@ function SettingsMenu({ managesAccess }: Readonly<{ managesAccess: boolean }>) {
 
 /**
  * A barra superior (design-system.md, seção 4.1), fixa no topo: o botão da barra lateral, o caminho e,
- * à direita, as configurações.
+ * à direita, o tema e as configurações.
  */
 export function TopBar({
   sidebarExpanded,
   managesAccess,
-}: Readonly<{ sidebarExpanded: boolean; managesAccess: boolean }>) {
+  theme,
+}: Readonly<{ sidebarExpanded: boolean; managesAccess: boolean; theme: ThemeChoice }>) {
   return (
     <div className="sticky top-0 z-10 flex h-14 flex-none items-center gap-3 border-b border-hairline bg-surface pr-4 pl-3">
       <SidebarToggle expanded={sidebarExpanded} />
       <span aria-hidden="true" className="hidden h-4 w-px bg-hairline lg:block" />
       <Breadcrumb />
       <div className="ml-auto flex items-center gap-1">
+        <ThemeMenu choice={theme} />
         <SettingsMenu managesAccess={managesAccess} />
       </div>
     </div>
