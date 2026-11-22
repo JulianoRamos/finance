@@ -42,3 +42,11 @@ export function parseMoneyInput(text: string): string | null {
   const value = `${integer}.${cents.padEnd(2, '0')}`;
   return sign !== '' && value !== '0.00' ? `-${value}` : value;
 }
+
+/**
+ * O valor de uma movimentação, sempre positivo na api, com o sinal do sentido: "+ R$ 500,00" na entrada e
+ * "− R$ 182,45" na saída, como o protótipo (design-system.md, seção 3).
+ */
+export function formatFlow(amount: string, direction: 'inflow' | 'outflow'): string {
+  return `${direction === 'inflow' ? '+' : MINUS} ${formatMoney(amount)}`;
+}

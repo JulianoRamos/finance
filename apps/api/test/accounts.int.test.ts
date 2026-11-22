@@ -27,6 +27,7 @@ interface Account {
   readonly isReserve: boolean;
   readonly openingBalance: string;
   readonly openingBalanceDate: string;
+  readonly balance: string;
   readonly active: boolean;
   readonly version: number;
 }
@@ -184,6 +185,7 @@ describe('Contas', () => {
       isReserve: true,
       openingBalance: '-150.25',
       openingBalanceDate: '2026-09-01',
+      balance: '-150.25',
       active: true,
       version: 1,
     });
@@ -281,7 +283,7 @@ describe('Contas', () => {
     const edited = (await edit(token, account.id, { version: account.version, ...changes }).expect(200))
       .body as Account;
 
-    const expected = { ...account, ...changes, version: 2 };
+    const expected = { ...account, ...changes, balance: '2500.10', version: 2 };
     expect(edited).toEqual(expected);
     expect((await get(token, account.id).expect(200)).body).toEqual(expected);
 

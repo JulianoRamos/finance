@@ -27,11 +27,16 @@ import {
 import {
   Account,
   AccountActivation,
+  AccountBalance,
+  AccountBalanceQuery,
   AccountEdit,
   AccountId,
   AccountListQuery,
   AccountPage,
+  Movement,
+  MovementPage,
   NewAccount,
+  NewMovement,
 } from './accounts.dto.js';
 import { AuditHistoryPage } from '../audit/index.js';
 import { AccountsService } from './accounts.service.js';
@@ -179,7 +184,7 @@ export class AccountsController {
   @ApiOkResponse({
     type: AuditHistoryPage,
     description:
-      'A página das alterações da conta, da auditoria, com o total (LLD, seção 5), da mais recente para a mais antiga (LLD, seção 4.4).',
+      'A página das alterações da conta, da auditoria, com o total (LLD, seção 5), da mais recente para a mais antiga (LLD, seção 4.4): as da própria conta e o registro das movimentações dela.',
   })
   @ApiBadRequestResponse({
     type: ApiError,
@@ -191,5 +196,69 @@ export class AccountsController {
   @ApiNotFoundResponse(NOT_FOUND_RESPONSE)
   history(@Param() params: AccountId, @Query() query: PageQuery): Promise<AuditHistoryPage> {
     return this.accounts.history(params.id, pageRequest(query));
+  }
+
+  @Get(':id/balance')
+  @ApiOperation({ summary: 'Lê o saldo de uma conta numa data.' })
+  @ApiParam(ID_PARAM)
+  @ApiOkResponse({
+    type: AccountBalance,
+    description: 'O saldo da conta no fim do dia pedido, ou de hoje (regra 6.3).',
+  })
+  @ApiBadRequestResponse({
+    type: ApiError,
+    description: '`INVALID_INPUT`: o id não é um UUID, ou a data não é `AAAA-MM-DD` (em `fields`).',
+  })
+  @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
+  @ApiForbiddenResponse(VIEW_FORBIDDEN_RESPONSE)
+  @ApiNotFoundResponse(NOT_FOUND_RESPONSE)
+  @ApiUnprocessableEntityResponse({
+    type: ApiError,
+    description:
+      '`DATE_BEFORE_OPENING_BALANCE`: a data vem antes da data do saldo inicial, quando a conta ainda não tem saldo (regra 6.3).',
+  })
+  balance(@Param() params: AccountId, @Query() query: AccountBalanceQuery): Promise<AccountBalance> {
+    return this.accounts.balance(params.id, query.date);
+  }
+
+  @Get(':id/movements')
+  @ApiOperation({ summary: 'Lista as movimentações de uma conta.' })
+  @ApiParam(ID_PARAM)
+  @ApiOkResponse({
+    type: MovementPage,
+    description:
+      'A página das movimentações da conta, com o total (LLD, seção 5): da mais recente para a mais antiga pela data e, no mesmo dia, pela ordem do registro, a última primeiro.',
+  })
+  @ApiBadRequestResponse({
+    type: ApiError,
+    description:
+      '`INVALID_INPUT`: o id não é um UUID, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
+  })
+  @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
+  @ApiForbiddenResponse(VIEW_FORBIDDEN_RESPONSE)
+  @ApiNotFoundResponse(NOT_FOUND_RESPONSE)
+  movements(@Param() params: AccountId, @Query() query: PageQuery): Promise<MovementPage> {
+    return this.accounts.movements(params.id, pageRequest(query));
+  }
+
+  @Post(':id/movements')
+  @ApiOperation({ summary: 'Registra uma movimentação manual numa conta.' })
+  @ApiParam(ID_PARAM)
+  @ApiCreatedResponse({ type: Movement, description: 'A movimentação foi registrada, com a origem `manual`.' })
+  @ApiBadRequestResponse({
+    type: ApiError,
+    description:
+      '`INVALID_INPUT`: o id não é um UUID, o sentido falta ou não é `inflow` nem `outflow`, a data não é `AAAA-MM-DD`, o valor não é uma string decimal maior que zero com até 2 casas, ou a descrição falta, é vazia ou passa de 200 caracteres (em `fields`).',
+  })
+  @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
+  @ApiForbiddenResponse(OPERATE_FORBIDDEN_RESPONSE)
+  @ApiNotFoundResponse(NOT_FOUND_RESPONSE)
+  @ApiUnprocessableEntityResponse({
+    type: ApiError,
+    description:
+      '`INACTIVE_ACCOUNT`: a conta está desativada, e não recebe movimentação nova (regra 6.20). `INACTIVE_ENTITY`: a entidade dona está desativada (regra 6.2).',
+  })
+  createMovement(@Param() params: AccountId, @Body() body: NewMovement): Promise<Movement> {
+    return this.accounts.createMovement(params.id, body);
   }
 }

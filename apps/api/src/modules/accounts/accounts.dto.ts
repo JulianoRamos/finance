@@ -9,6 +9,9 @@ import {
   IsCalendarDate,
   IsDecimalText,
   IsName,
+  IsTrimmedLength,
+  MovementDirection,
+  MovementSource,
   NAME_MAX_LENGTH,
   PageInfo,
   PageQuery,
@@ -131,6 +134,13 @@ export class Account {
   openingBalanceDate!: string;
 
   @ApiProperty({
+    description:
+      'O saldo de hoje, no fuso da api: o saldo inicial mais as entradas menos as saídas das movimentações da data do saldo inicial até hoje, inclusive (regra 6.3), em string decimal com 2 casas. Pode ser negativo.',
+    example: '4218.37',
+  })
+  balance!: string;
+
+  @ApiProperty({
     description: 'Falso na conta desativada, que some das escolhas de conta e continua nos números (regra 6.20).',
   })
   active!: boolean;
@@ -228,4 +238,103 @@ export class AccountListQuery extends PageQuery {
     'A busca: o texto procurado no nome da conta, sem diferença de acento nem de maiúsculas, em qualquer posição. Vazia ou ausente, não filtra (LLD, seção 5).',
   )
   q?: string;
+}
+
+/** O valor de uma movimentação: um `numeric(15,2)` maior que zero, com o sentido à parte (LLD, seção 4.1). */
+const MOVEMENT_AMOUNT_RANGE: DecimalRange = { above: '0', atMost: '9999999999999.99', scale: 2 };
+/** O limite de cima da descrição de uma movimentação, sem os espaços das pontas. */
+const MOVEMENT_DESCRIPTION_MAX_LENGTH = 200;
+
+const DIRECTION_DESCRIPTION =
+  'Entrada (`inflow`), o dinheiro que entra na conta, ou saída (`outflow`), o que sai dela.';
+const MOVEMENT_DATE_DESCRIPTION =
+  'O dia em que o dinheiro entrou ou saiu, `AAAA-MM-DD`. Pode vir antes do saldo inicial, e aí não entra no saldo (regra 6.3).';
+const MOVEMENT_DATE_EXAMPLE = '2026-11-19';
+const AMOUNT_DESCRIPTION =
+  'O valor, em string decimal com até 2 casas, sempre maior que zero: o sentido diz se entra ou sai (LLD, seção 4.1).';
+const AMOUNT_EXAMPLE = '182.45';
+const MOVEMENT_DESCRIPTION_DESCRIPTION = 'O que foi, como o usuário o escreve. A api tira os espaços das pontas.';
+const MOVEMENT_DESCRIPTION_EXAMPLE = 'Mercado Bom Preço';
+
+export class Movement {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ type: String, format: 'date', description: MOVEMENT_DATE_DESCRIPTION, example: MOVEMENT_DATE_EXAMPLE })
+  date!: string;
+
+  @ApiProperty({ description: MOVEMENT_DESCRIPTION_DESCRIPTION, example: MOVEMENT_DESCRIPTION_EXAMPLE })
+  description!: string;
+
+  @ApiProperty({ description: AMOUNT_DESCRIPTION, example: AMOUNT_EXAMPLE })
+  amount!: string;
+
+  @ApiProperty({ enum: MovementDirection, description: DIRECTION_DESCRIPTION })
+  direction!: MovementDirection;
+
+  @ApiProperty({
+    enum: MovementSource,
+    description: 'De onde veio: `manual`, registrada à mão. O ajuste e a importada entram nos tickets deles.',
+  })
+  source!: MovementSource;
+}
+
+export class MovementPage extends PageInfo {
+  @ApiProperty({
+    type: Movement,
+    isArray: true,
+    description: 'As movimentações da página, da mais recente para a mais antiga.',
+  })
+  items!: Movement[];
+}
+
+export class NewMovement {
+  @ApiProperty({ enum: MovementDirection, description: DIRECTION_DESCRIPTION })
+  @IsEnum(MovementDirection, { message: 'Escolha se é uma entrada ou uma saída.' })
+  direction!: MovementDirection;
+
+  @ApiProperty({ type: String, format: 'date', description: MOVEMENT_DATE_DESCRIPTION, example: MOVEMENT_DATE_EXAMPLE })
+  @IsCalendarDate({ message: 'Informe a data da movimentação.' })
+  date!: string;
+
+  @ApiProperty({ description: AMOUNT_DESCRIPTION, example: AMOUNT_EXAMPLE })
+  @IsDecimalText(MOVEMENT_AMOUNT_RANGE, {
+    message: 'Informe um valor maior que zero, com até 2 casas depois da vírgula.',
+  })
+  amount!: string;
+
+  @ApiProperty({
+    description: MOVEMENT_DESCRIPTION_DESCRIPTION,
+    minLength: 1,
+    maxLength: MOVEMENT_DESCRIPTION_MAX_LENGTH,
+    example: MOVEMENT_DESCRIPTION_EXAMPLE,
+  })
+  @IsTrimmedLength(1, MOVEMENT_DESCRIPTION_MAX_LENGTH, {
+    message: `Informe a descrição, com até ${String(MOVEMENT_DESCRIPTION_MAX_LENGTH)} caracteres.`,
+  })
+  description!: string;
+}
+
+export class AccountBalanceQuery {
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date',
+    description: 'O dia do saldo, `AAAA-MM-DD`, a partir da data do saldo inicial. Sem ele, o de hoje, no fuso da api.',
+    example: '2026-10-31',
+  })
+  @IsOptional()
+  @IsCalendarDate({ message: 'Informe a data no formato AAAA-MM-DD.' })
+  date?: string;
+}
+
+export class AccountBalance {
+  @ApiProperty({ type: String, format: 'date', description: 'O dia do saldo.', example: '2026-10-31' })
+  date!: string;
+
+  @ApiProperty({
+    description:
+      'O saldo no fim desse dia: o saldo inicial mais as entradas menos as saídas das movimentações da data do saldo inicial até ele, inclusive (regra 6.3), em string decimal com 2 casas. Pode ser negativo.',
+    example: '3540.12',
+  })
+  balance!: string;
 }

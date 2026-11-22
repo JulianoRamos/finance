@@ -63,3 +63,29 @@ export function percentToFraction(percent: string): string | null {
   const whole = digits.slice(0, -scale).replace(/^0+(?=\d)/, '');
   return `${whole}.${digits.slice(-scale)}`;
 }
+
+/** Um número com dois algarismos, como o dia e o mês de uma data. */
+function twoDigits(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+/** O dia de hoje como `AAAA-MM-DD`, no fuso do processo da web (TZ), o mesmo da api. */
+export function todayCalendarDate(): string {
+  const now = new Date();
+  return `${String(now.getFullYear())}-${twoDigits(now.getMonth() + 1)}-${twoDigits(now.getDate())}`;
+}
+
+/** O último dia do mês anterior ao da data `AAAA-MM-DD`, também como `AAAA-MM-DD`, sem passar por fuso. */
+export function endOfPreviousMonth(date: string): string {
+  const [year = 0, month = 1] = date.split('-').map(Number);
+  // O dia 0 de um mês é o último do anterior.
+  const end = new Date(Date.UTC(year, month - 1, 0));
+  return `${String(end.getUTCFullYear())}-${twoDigits(end.getUTCMonth() + 1)}-${twoDigits(end.getUTCDate())}`;
+}
+
+/** Se o texto é uma data `AAAA-MM-DD` que existe. */
+export function isCalendarDate(text: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const date = new Date(`${text}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(text);
+}

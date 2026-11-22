@@ -99,6 +99,8 @@ export function searchPattern(q: string | undefined): string | null {
 
 /** Um trecho de SQL com os valores passados como parâmetros. */
 export const sql = Prisma.sql;
+/** Os trechos de SQL unidos pelo separador, como as condições de um `OR`. */
+export const joinSql = Prisma.join;
 export type Sql = Prisma.Sql;
 
 /** Uma página de uma lista, como a rota a devolve. */

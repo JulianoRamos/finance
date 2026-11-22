@@ -4,13 +4,14 @@ import { useActionState, useEffect, useState } from 'react';
 
 import { DateField, ErrorNotice, FieldError, SubmitButton, TextField } from '../../../_access/fields';
 import { SECONDARY_BUTTON } from '../../../_shell/buttons';
+import { UNSAVED_FORM_STATE } from '../../../_shell/form-state';
 import type { ListPage } from '../../../_shell/list-page';
 import { Pagination, useSearchedPages } from '../../../_shell/pagination';
 import { SEARCH_ABOVE, SearchBox } from '../../../_shell/search-box';
 import { createEquityStakeAction, type EquityStakeFormState, searchEntityOptionsAction } from '../actions';
 import { EntityBadge } from '../entity-badge';
 import type { EntityOption } from '../entity-option';
-import { SUBFORM, UNSAVED } from './equity-stake-view';
+import { SUBFORM } from './equity-stake-view';
 
 const ROW = 'flex items-center gap-3 rounded-sm border border-hairline bg-surface px-3 py-2';
 const CONTROL = 'size-4 flex-none accent-accent';
@@ -96,7 +97,7 @@ export function EquityStakeForm({
   holders,
   onClose,
 }: Readonly<{ companyId: string; holders: ListPage<EntityOption>; onClose: () => void }>) {
-  const [state, action] = useActionState<EquityStakeFormState, FormData>(createEquityStakeAction, UNSAVED);
+  const [state, action] = useActionState<EquityStakeFormState, FormData>(createEquityStakeAction, UNSAVED_FORM_STATE);
   // O envio aceito fecha o formulário; a tabela já chega atualizada pela revalidação.
   useEffect(() => {
     if (state.saved) onClose();

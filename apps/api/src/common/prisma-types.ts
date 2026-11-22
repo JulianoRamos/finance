@@ -17,6 +17,8 @@ export {
   EntityType,
   Institution,
   LoginStep,
+  MovementDirection,
+  MovementSource,
   Operation,
   PermissionLevel,
 } from '../generated/prisma/client.js';

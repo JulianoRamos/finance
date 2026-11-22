@@ -3,6 +3,7 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import {
   type AccountType,
   apiError,
+  calendarDateOf,
   type Clock,
   CLOCK,
   currentEntityLevels,
@@ -10,6 +11,8 @@ import {
   Decimal,
   formatCalendarDate,
   type Institution,
+  type MovementDirection,
+  type MovementSource,
   NAME_COLLATION,
   nameMatches,
   type PageRequest,
@@ -22,7 +25,16 @@ import {
 } from '../../common/index.js';
 import { AuditHistoryService, type AuditHistoryPage, AuditService, type HistorySource } from '../audit/index.js';
 import { EntitiesService } from '../entities/index.js';
-import type { Account, AccountEdit, AccountPage, NewAccount } from './accounts.dto.js';
+import type {
+  Account,
+  AccountBalance,
+  AccountEdit,
+  AccountPage,
+  Movement,
+  MovementPage,
+  NewAccount,
+  NewMovement,
+} from './accounts.dto.js';
 
 /** A conta como o Prisma a lê. */
 interface AccountRow {
@@ -38,6 +50,16 @@ interface AccountRow {
   readonly version: number;
 }
 
+/** A movimentação como o Prisma a lê. */
+interface MovementRow {
+  readonly id: string;
+  readonly date: Date;
+  readonly description: string;
+  readonly amount: Decimal;
+  readonly direction: MovementDirection;
+  readonly source: MovementSource;
+}
+
 /** A conta como a pesquisa a devolve, com o nome da entidade dona (regra 6.22). */
 export interface AccountSearchResult {
   readonly id: string;
@@ -48,11 +70,17 @@ export interface AccountSearchResult {
   readonly active: boolean;
 }
 
+/**
+ * A ordem da lista das movimentações: da mais recente para a mais antiga pela data e, no mesmo dia, pela
+ * ordem do registro, a última primeiro (o uuidv7 do id cresce com o registro).
+ */
+const MOVEMENT_ORDER = sql`date DESC, created_at DESC, id DESC`;
+
 /** A ordem da lista das contas: as ativas primeiro, e cada grupo pelo nome. */
 const ACCOUNT_ORDER = sql`active DESC, name ${NAME_COLLATION}`;
 
-/** A conta como a rota a devolve, com o nome da entidade dona. */
-function toAccount(row: AccountRow, entityName: string): Account {
+/** A conta como a rota a devolve, com o nome da entidade dona e o saldo de hoje. */
+function toAccount(row: AccountRow, entityName: string, balance: Decimal): Account {
   return {
     id: row.id,
     entityId: row.entityId,
@@ -63,19 +91,43 @@ function toAccount(row: AccountRow, entityName: string): Account {
     isReserve: row.isReserve,
     openingBalance: row.openingBalance.toFixed(2),
     openingBalanceDate: formatCalendarDate(row.openingBalanceDate),
+    balance: balance.toFixed(2),
     active: row.active,
     version: row.version,
   };
 }
 
+/** A movimentação como a rota a devolve. */
+function toMovement(row: MovementRow): Movement {
+  return {
+    id: row.id,
+    date: formatCalendarDate(row.date),
+    description: row.description,
+    amount: row.amount.toFixed(2),
+    direction: row.direction,
+    source: row.source,
+  };
+}
+
+/** A recusa da entidade desativada, que não recebe nada novo (regra 6.2). */
+function inactiveEntity(message: string) {
+  return apiError(HttpStatus.UNPROCESSABLE_ENTITY, 'INACTIVE_ENTITY', message);
+}
+
 /**
- * A tabela e os campos do histórico da conta (LLD, seção 4.4): só a própria conta, por enquanto. O id, a
- * entidade dona, que não muda, os instantes de criação e de alteração e a versão não entram.
+ * As tabelas e os campos do histórico da conta (LLD, seção 4.4): a própria conta e as movimentações dela,
+ * achadas pela conta do registro gravado. O id, a entidade dona e a conta, que não mudam, os instantes de
+ * criação e de alteração e a versão não entram.
  */
 const HISTORY_SOURCES: readonly HistorySource[] = [
   {
     tableName: 'account',
     fields: ['name', 'type', 'institution', 'isReserve', 'openingBalance', 'openingBalanceDate', 'active'],
+  },
+  {
+    tableName: 'movement',
+    fields: ['date', 'description', 'amount', 'direction', 'source'],
+    recordField: 'accountId',
   },
 ];
 
@@ -183,8 +235,9 @@ export class AccountsService {
    * `view` na entidade dona.
    */
   async history(id: string, page: PageRequest): Promise<AuditHistoryPage> {
-    await this.readWithLevel(id, 'view');
-    return this.auditHistory.recordHistory(id, { sources: HISTORY_SOURCES }, page);
+    // O id lido, e não o da rota, que pode vir em maiúsculas: as movimentações casam pelo texto dele.
+    const account = await this.readWithLevel(id, 'view');
+    return this.auditHistory.recordHistory(account.id, { sources: HISTORY_SOURCES }, page);
   }
 
   /**
@@ -209,7 +262,7 @@ export class AccountsService {
           institution: input.institution,
           isReserve: input.isReserve,
           openingBalance: new Decimal(input.openingBalance),
-          openingBalanceDate: openingBalanceDate(input.openingBalanceDate),
+          openingBalanceDate: calendarDate(input.openingBalanceDate),
         }),
       );
     });
@@ -239,13 +292,7 @@ export class AccountsService {
     return this.transactions.run(async () => {
       const owner = (await this.entities.summariesOf([entityId], { lock: true })).get(entityId);
       if (!owner) throw forbidden('operate');
-      if (!owner.active) {
-        throw apiError(
-          HttpStatus.UNPROCESSABLE_ENTITY,
-          'INACTIVE_ENTITY',
-          'Uma entidade desativada não recebe conta nova. Reative-a antes.',
-        );
-      }
+      if (!owner.active) throw inactiveEntity('Uma entidade desativada não recebe conta nova. Reative-a antes.');
       const now = this.clock.now();
       const created = await this.transactions.client.account.create({
         data: {
@@ -255,7 +302,7 @@ export class AccountsService {
           institution: input.institution,
           isReserve: input.isReserve,
           openingBalance: input.openingBalance,
-          openingBalanceDate: openingBalanceDate(input.openingBalanceDate),
+          openingBalanceDate: calendarDate(input.openingBalanceDate),
           createdAt: now,
           updatedAt: now,
         },
@@ -268,7 +315,89 @@ export class AccountsService {
         before: null,
         after: created,
       });
-      return toAccount(created, owner.name);
+      // A conta acabou de nascer, sem movimentações: o saldo de hoje é o inicial.
+      return toAccount(created, owner.name, created.openingBalance);
+    });
+  }
+
+  /**
+   * O saldo da conta no fim do dia dado, ou de hoje, quando o usuário tem `view` na entidade dona: o
+   * saldo inicial mais as entradas menos as saídas da data do saldo inicial até o dia, inclusive (regra
+   * 6.3). Um dia antes da data do saldo inicial não tem saldo.
+   */
+  async balance(accountId: string, dateText: string | undefined): Promise<AccountBalance> {
+    const account = await this.readWithLevel(accountId, 'view');
+    const date = dateText === undefined ? calendarDateOf(this.clock.now()) : calendarDate(dateText);
+    if (date < account.openingBalanceDate) {
+      throw apiError(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'DATE_BEFORE_OPENING_BALANCE',
+        'A conta ainda não tinha saldo nesse dia: escolha uma data a partir da do saldo inicial.',
+      );
+    }
+    const balance = (await this.balancesOf([account.id], date)).get(account.id) ?? account.openingBalance;
+    return { date: formatCalendarDate(date), balance: balance.toFixed(2) };
+  }
+
+  /**
+   * A página das movimentações da conta, quando o usuário tem `view` na entidade dona, da mais recente
+   * para a mais antiga pela data e, no mesmo dia, pela ordem do registro.
+   */
+  async movements(accountId: string, page: PageRequest): Promise<MovementPage> {
+    const account = await this.readWithLevel(accountId, 'view');
+    const client = this.transactions.client;
+    return readPage(
+      client,
+      sql`SELECT id, date, created_at FROM movement WHERE account_id = ${account.id}::uuid`,
+      MOVEMENT_ORDER,
+      page,
+      async (ids) => (await client.movement.findMany({ where: { id: { in: ids } } })).map(toMovement),
+    );
+  }
+
+  /**
+   * Registra uma movimentação manual na conta, quando o usuário tem `operate` na entidade dona. A conta
+   * desativada e a de uma entidade desativada não recebem movimentação nova (LLD, seção 4.5).
+   */
+  createMovement(accountId: string, input: NewMovement): Promise<Movement> {
+    return this.transactions.run(async () => {
+      // A trava compartilhada segura a desativação da conta, que a altera, até a movimentação ser gravada,
+      // e a leitura depois dela já vê a desativação que veio antes.
+      await this.transactions.client.$queryRaw`SELECT 1 FROM account WHERE id = ${accountId}::uuid FOR SHARE`;
+      const account = await this.readWithLevel(accountId, 'operate');
+      if (!account.active) {
+        throw apiError(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'INACTIVE_ACCOUNT',
+          'Uma conta desativada não recebe movimentação nova. Reative-a antes.',
+        );
+      }
+      const owner = (await this.entities.summariesOf([account.entityId], { lock: true })).get(account.entityId);
+      if (!owner?.active) {
+        throw inactiveEntity('A entidade desta conta está desativada e não recebe movimentação nova. Reative-a antes.');
+      }
+      const now = this.clock.now();
+      const created = await this.transactions.client.movement.create({
+        data: {
+          accountId: account.id,
+          date: calendarDate(input.date),
+          amount: input.amount,
+          direction: input.direction,
+          description: input.description.trim(),
+          source: 'manual',
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+      await this.audit.record({
+        action: 'create',
+        tableName: 'movement',
+        recordId: created.id,
+        entityId: account.entityId,
+        before: null,
+        after: created,
+      });
+      return toMovement(created);
     });
   }
 
@@ -316,16 +445,47 @@ export class AccountsService {
     return account;
   }
 
-  /** As contas como a rota as devolve, com os nomes das entidades donas, pedidos às Entidades. */
+  /**
+   * As contas como a rota as devolve, com os nomes das entidades donas, pedidos às Entidades, e o saldo de
+   * hoje de cada uma, numa consulta só.
+   */
   private async withEntityNames(rows: readonly AccountRow[]): Promise<Account[]> {
-    const owners = await this.entities.summariesOf([...new Set(rows.map((row) => row.entityId))]);
-    return rows.map((row) => toAccount(row, owners.get(row.entityId)?.name ?? ''));
+    const [owners, balances] = await Promise.all([
+      this.entities.summariesOf([...new Set(rows.map((row) => row.entityId))]),
+      this.balancesOf(
+        rows.map((row) => row.id),
+        calendarDateOf(this.clock.now()),
+      ),
+    ]);
+    return rows.map((row) =>
+      toAccount(row, owners.get(row.entityId)?.name ?? '', balances.get(row.id) ?? row.openingBalance),
+    );
+  }
+
+  /**
+   * O saldo de cada conta no fim do dia: o saldo inicial mais as entradas menos as saídas da data do saldo
+   * inicial até o dia, inclusive (regra 6.3). A movimentação de antes do saldo inicial não entra.
+   */
+  private async balancesOf(ids: readonly string[], date: Date): Promise<ReadonlyMap<string, Decimal>> {
+    if (ids.length === 0) return new Map();
+    // O dia vai como o texto `AAAA-MM-DD`: um `Date` chegaria como instante, e o `::date` o leria no fuso
+    // da sessão do banco, que pode mudar o dia.
+    const day = formatCalendarDate(date);
+    const rows = await this.transactions.client.$queryRaw<{ id: string; balance: Decimal }[]>`
+      SELECT a.id::text AS id,
+        a.opening_balance + COALESCE(SUM(CASE m.direction WHEN 'inflow' THEN m.amount ELSE -m.amount END), 0)
+          AS balance
+      FROM account a
+      LEFT JOIN movement m ON m.account_id = a.id AND m.date >= a.opening_balance_date AND m.date <= ${day}::date
+      WHERE a.id = ANY(${[...ids]}::uuid[])
+      GROUP BY a.id`;
+    return new Map(rows.map((row) => [row.id, row.balance]));
   }
 }
 
-/** O dia do saldo inicial, já validado pelo DTO. */
-function openingBalanceDate(text: string): Date {
+/** O dia de uma data já validada pelo DTO. */
+function calendarDate(text: string): Date {
   const date = parseCalendarDate(text);
-  if (!date) throw new Error('A data do saldo inicial chegou ao serviço sem passar pela validação.');
+  if (!date) throw new Error('A data chegou ao serviço sem passar pela validação.');
   return date;
 }

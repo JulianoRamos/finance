@@ -7,9 +7,11 @@ import {
   type AccountResult,
   type AccountType,
   createAccount,
+  createMovement,
   getAccountHistory,
   type Institution,
   listAccounts,
+  type MovementDirection,
   setAccountActive,
   updateAccount,
 } from '@/api/accounts';
@@ -17,7 +19,14 @@ import {
 import { formText } from '../../_access/form-text';
 import { ACCOUNT_TYPE_NAMES, INSTITUTION_NAMES } from '../../_shell/account-text';
 import type { CommandMessage } from '../../_shell/confirm-dialog';
-import { type FormState, refusedFormState } from '../../_shell/form-state';
+import {
+  fieldRefusal,
+  type FormState,
+  refusedFormState,
+  SAVED_FORM_STATE,
+  type SavableFormState,
+  UNSAVED_FORM_STATE,
+} from '../../_shell/form-state';
 import type { HistoryItem } from '../../_shell/history-panel';
 import { listPageResult, type ListPageResult } from '../../_shell/list-page';
 import { parseMoneyInput } from '../../_shell/money';
@@ -177,4 +186,44 @@ export async function accountHistoryAction({
   page: number;
 }): Promise<ListPageResult<HistoryItem>> {
   return listPageResult(await getAccountHistory(id, page), accountHistoryItem);
+}
+
+/** O que foi enviado no formulário de uma movimentação, que volta aos campos depois de uma recusa. */
+export interface MovementFormValues {
+  readonly direction: MovementDirection;
+  readonly date: string;
+  readonly amount: string;
+  readonly description: string;
+}
+
+/** O que o diálogo de nova movimentação mostra depois de um envio. */
+export type MovementFormState = SavableFormState<MovementFormValues>;
+
+/** Os campos do diálogo com o erro ao lado, pelo nome deles no contrato. */
+const MOVEMENT_FIELDS: ReadonlySet<string> = new Set(['direction', 'date', 'amount', 'description']);
+
+/**
+ * Registra a movimentação do diálogo na conta e lê de novo o detalhe e a lista, com os saldos, o que fecha
+ * o diálogo. O valor digitado vira a string decimal da api.
+ */
+export async function createMovementAction(_previous: MovementFormState, form: FormData): Promise<MovementFormState> {
+  const values: MovementFormValues = {
+    direction: formText(form, 'direction') === 'inflow' ? 'inflow' : 'outflow',
+    date: formText(form, 'date'),
+    amount: formText(form, 'amount'),
+    description: formText(form, 'description'),
+  };
+  const amount = parseMoneyInput(values.amount);
+  if (amount === null) return fieldRefusal(values, 'amount', 'Informe o valor, maior que zero, como 1.234,56.');
+  const result = await createMovement(formText(form, 'accountId'), {
+    direction: values.direction,
+    date: values.date,
+    amount,
+    description: values.description,
+  });
+  if (result.ok) {
+    revalidatePath('/accounts', 'layout');
+    return SAVED_FORM_STATE;
+  }
+  return { ...UNSAVED_FORM_STATE, ...refusedFormState(result, values, MOVEMENT_FIELDS, {}) };
 }

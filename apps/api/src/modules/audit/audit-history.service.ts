@@ -1,6 +1,14 @@
 import { Injectable } from '@nestjs/common';
 
-import { type JsonObject, type PageRequest, readPage, type Sql, sql, TransactionService } from '../../common/index.js';
+import {
+  joinSql,
+  type JsonObject,
+  type PageRequest,
+  readPage,
+  type Sql,
+  sql,
+  TransactionService,
+} from '../../common/index.js';
 import type { AuditHistoryEntry, AuditHistoryPage } from './audit.dto.js';
 import { changesOf } from './changes.js';
 import { UserNamesRegistry } from './user-names.js';
@@ -16,6 +24,12 @@ export interface HistorySource {
    * participação. O nome dela vai no `subject`.
    */
   readonly subjectField?: string;
+  /**
+   * No histórico de um registro, o campo do registro gravado com o id dele, quando a tabela é de outros
+   * registros que pertencem a ele, como a movimentação, que tem o próprio id e entra no histórico da
+   * conta pelo `accountId`. Sem ele, a tabela casa pelo id do próprio registro.
+   */
+  readonly recordField?: string;
 }
 
 /** O que o histórico de uma entidade pede à Auditoria. */
@@ -63,7 +77,12 @@ export class AuditHistoryService {
    * de toda a entidade dona, na ordem e com os campos do `entityHistory`.
    */
   recordHistory(recordId: string, request: HistoryRequest, page: PageRequest): Promise<AuditHistoryPage> {
-    return this.history(sql`record_id = ${recordId}::uuid`, request, page);
+    const bySource = request.sources.map((source) =>
+      source.recordField === undefined
+        ? sql`(table_name = ${source.tableName} AND record_id = ${recordId}::uuid)`
+        : sql`(table_name = ${source.tableName} AND COALESCE(after, before) ->> ${source.recordField} = ${recordId})`,
+    );
+    return this.history(sql`(${joinSql(bySource, ' OR ')})`, request, page);
   }
 
   /** A página das alterações do filtro nas tabelas pedidas, da mais recente para a mais antiga. */

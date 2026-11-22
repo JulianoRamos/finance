@@ -20,6 +20,14 @@ export function formatCalendarDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * O dia do instante no fuso do processo (`TZ`, LLD, seção 9), como o `Date` da meia-noite UTC desse dia:
+ * o "hoje" da api, quando o instante é o do relógio.
+ */
+export function calendarDateOf(instant: Date): Date {
+  return new Date(Date.UTC(instant.getFullYear(), instant.getMonth(), instant.getDate()));
+}
+
 /** O campo é uma data `AAAA-MM-DD` que existe. */
 export function IsCalendarDate(options: ValidationOptions): PropertyDecorator {
   return ValidateBy(

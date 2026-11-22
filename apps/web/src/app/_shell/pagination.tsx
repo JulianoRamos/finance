@@ -115,7 +115,15 @@ export function Pagination({
   pageSize,
   total,
   onPage,
-}: Readonly<{ page: number; pageSize: number; total: number; onPage: (page: number) => void }>) {
+  label = 'Paginação',
+}: Readonly<{
+  page: number;
+  pageSize: number;
+  total: number;
+  onPage: (page: number) => void;
+  /** O nome da navegação, que distingue duas paginações na mesma tela, como a da lista e a de uma tabela. */
+  label?: string;
+}>) {
   const first = (page - 1) * pageSize + 1;
   const last = Math.min(page * pageSize, total);
   // A página depois da última, quando a lista encolheu entre dois pedidos, vem vazia, e o total continua valendo.
@@ -123,7 +131,7 @@ export function Pagination({
   if (total === 0) range = 'Nenhum resultado';
   else if (first > total) range = `Nenhum item nesta página, de ${COUNT.format(total)}`;
   return (
-    <nav aria-label="Paginação" className="mt-2 flex items-center justify-between gap-2 border-t border-hairline pt-3">
+    <nav aria-label={label} className="mt-2 flex items-center justify-between gap-2 border-t border-hairline pt-3">
       <span className="text-body-sm text-mute" aria-live="polite">
         {range}
       </span>
