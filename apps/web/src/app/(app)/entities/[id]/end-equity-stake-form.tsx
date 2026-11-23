@@ -6,9 +6,10 @@ import type { EquityStake } from '@/api/equity-stakes';
 
 import { DateField, ErrorNotice, SubmitButton } from '../../../_access/fields';
 import { SECONDARY_BUTTON } from '../../../_shell/buttons';
+import { UNSAVED_FORM_STATE } from '../../../_shell/form-state';
 import { formatFraction } from '../../../_shell/format';
 import { type EndEquityStakeFormState, endEquityStakeAction } from '../actions';
-import { periodText, SUBFORM, UNSAVED } from './equity-stake-view';
+import { periodText, SUBFORM } from './equity-stake-view';
 
 /** O formulário de encerrar uma participação sem fim com o último dia, dentro da seção, como no protótipo. */
 export function EndEquityStakeForm({
@@ -16,7 +17,7 @@ export function EndEquityStakeForm({
   stake,
   onClose,
 }: Readonly<{ companyId: string; stake: EquityStake; onClose: () => void }>) {
-  const [state, action] = useActionState<EndEquityStakeFormState, FormData>(endEquityStakeAction, UNSAVED);
+  const [state, action] = useActionState<EndEquityStakeFormState, FormData>(endEquityStakeAction, UNSAVED_FORM_STATE);
   // O envio aceito fecha o formulário; a tabela já chega atualizada pela revalidação.
   useEffect(() => {
     if (state.saved) onClose();

@@ -7,6 +7,7 @@ import { FOCUS_RING } from '../../_access/access-screen';
 import { ErrorNotice } from '../../_access/fields';
 import { LIST_ITEM, LIST_ITEM_SELECTED, NewListItem } from '../../_shell/list-item';
 import type { ListPage } from '../../_shell/list-page';
+import { MoneyValue } from '../../_shell/money-value';
 import { Pagination, useSearchedPages } from '../../_shell/pagination';
 import { SearchBox } from '../../_shell/search-box';
 import { searchAccountsAction } from './actions';
@@ -65,8 +66,9 @@ export function AccountList({ initial }: Readonly<{ initial: ListPage<AccountLis
                   )}
                 </span>
                 {/* O mute não tem contraste sobre o accent-soft do item marcado. */}
-                <span className={`text-body-sm wrap-anywhere ${selected ? 'text-body' : 'text-mute'}`}>
-                  {item.detail}
+                <span className="flex items-start justify-between gap-2 text-body-sm">
+                  <span className={`min-w-0 wrap-anywhere ${selected ? 'text-body' : 'text-mute'}`}>{item.detail}</span>
+                  <MoneyValue amount={item.balance} className="flex-none" />
                 </span>
               </Link>
             </li>

@@ -19,7 +19,7 @@ export type AccountPage = components['schemas']['AccountPage'];
 /** Uma página das contas do contexto financeiro, as ativas primeiro e cada grupo pelo nome. */
 export type AccountList = ReadResult<AccountPage>;
 
-/** O tamanho da página da lista (design-system.md, seção 4.1). */
+/** O tamanho da página da lista e da tabela das movimentações (design-system.md, seções 4.1 e 4.4). */
 const PAGE_SIZE = 10;
 
 /**
@@ -69,4 +69,35 @@ export function getAccountHistory(id: string, page: number): Promise<ReadResult<
   return readResult((init) =>
     api.GET('/v1/accounts/{id}/history', { params: { path: { id }, query: { page, pageSize: 10 } }, ...init }),
   );
+}
+
+export type Movement = components['schemas']['Movement'];
+export type MovementDirection = Movement['direction'];
+type NewMovement = components['schemas']['NewMovement'];
+export type MovementPage = components['schemas']['MovementPage'];
+export type AccountBalance = components['schemas']['AccountBalance'];
+
+/** A página das movimentações da conta, da mais recente para a mais antiga, de 10 em 10. */
+export function listMovements(id: string, page: number): Promise<ReadResult<MovementPage>> {
+  return readResult((init) =>
+    api.GET('/v1/accounts/{id}/movements', {
+      params: { path: { id }, query: { page, pageSize: PAGE_SIZE } },
+      ...init,
+    }),
+  );
+}
+
+/**
+ * O saldo da conta no fim do dia `AAAA-MM-DD`, ou o erro do contrato, que a tela diz: a data antes do saldo
+ * inicial (`DATE_BEFORE_OPENING_BALANCE`) não tem saldo.
+ */
+export function getAccountBalance(id: string, date: string): Promise<DataResult<AccountBalance>> {
+  return dataResult((signal) =>
+    api.GET('/v1/accounts/{id}/balance', { params: { path: { id }, query: { date } }, cache: 'no-store', signal }),
+  );
+}
+
+/** Registra uma movimentação manual na conta. */
+export function createMovement(id: string, body: NewMovement): Promise<DataResult<Movement>> {
+  return dataResult((signal) => api.POST('/v1/accounts/{id}/movements', { params: { path: { id } }, body, signal }));
 }

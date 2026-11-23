@@ -10,7 +10,7 @@ import {
   openTestCompany,
   openTestGroup,
 } from './support/entities';
-import { openTestAccount } from './support/accounts';
+import { openTestAccount, TEST_MOVEMENTS } from './support/accounts';
 import { createPendingTestUser, createTestUser, openTestUser, signIn, uniqueOrigin } from './support/users';
 import { screenAlert } from './support/screen';
 
@@ -207,6 +207,42 @@ const SCREENS: readonly Screen[] = [
       const account = await openTestAccount(page, baseURL);
       await page.getByRole('button', { name: 'Desativar conta' }).click();
       await expect(page.getByRole('alertdialog', { name: `Desativar a conta ${account.name}?` })).toBeVisible();
+    },
+  },
+  {
+    name: 'o detalhe da conta com movimentações',
+    open: async (page, baseURL) => {
+      // Larga o bastante para o detalhe passar de `container-table` e mostrar a tabela, e não a lista estreita.
+      await page.setViewportSize({ width: 1600, height: 900 });
+      const account = await openTestAccount(page, baseURL, undefined, { movements: TEST_MOVEMENTS });
+      await expect(page.getByRole('region', { name: account.name }).getByRole('table')).toContainText('Salário');
+    },
+  },
+  {
+    name: 'a nova movimentação',
+    open: async (page, baseURL) => {
+      const account = await openTestAccount(page, baseURL, undefined, { movements: TEST_MOVEMENTS });
+      await page.getByRole('button', { name: 'Nova movimentação' }).click();
+      await expect(page.getByRole('dialog', { name: `Nova movimentação em ${account.name}` })).toBeVisible();
+    },
+  },
+  {
+    name: 'o detalhe da conta com movimentações no celular',
+    open: async (page, baseURL) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      const account = await openTestAccount(page, baseURL, undefined, { movements: TEST_MOVEMENTS });
+      await expect(
+        page.getByRole('list', { name: `Movimentações da conta ${account.name}` }).getByRole('listitem'),
+      ).toHaveCount(2);
+    },
+  },
+  {
+    name: 'a nova movimentação no celular',
+    open: async (page, baseURL) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      const account = await openTestAccount(page, baseURL, undefined, { movements: TEST_MOVEMENTS });
+      await page.getByRole('button', { name: 'Nova movimentação' }).click();
+      await expect(page.getByRole('dialog', { name: `Nova movimentação em ${account.name}` })).toBeVisible();
     },
   },
   {

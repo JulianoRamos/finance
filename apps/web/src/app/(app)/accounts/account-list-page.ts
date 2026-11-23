@@ -10,10 +10,12 @@ export interface AccountListItem {
   readonly badge: string | null;
   /** A segunda linha: a entidade dona e o banco, como "Ana Lima · Nubank". */
   readonly detail: string;
+  /** O saldo de hoje, a string decimal da api, que o Valor mostra. */
+  readonly balance: string;
   readonly active: boolean;
 }
 
-/** A conta como a lista a mostra (design-system.md, seção 4.1). O saldo entra com as movimentações. */
+/** A conta como a lista a mostra (design-system.md, seção 4.1), com o saldo de hoje à direita. */
 export function accountListItem(account: Account): AccountListItem {
   return {
     id: account.id,
@@ -21,5 +23,6 @@ export function accountListItem(account: Account): AccountListItem {
     active: account.active,
     badge: accountBadge(account),
     detail: `${account.entityName} · ${bankText(account)}`,
+    balance: account.balance,
   };
 }

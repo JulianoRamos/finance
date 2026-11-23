@@ -4,6 +4,7 @@ import { AlertDialog } from 'radix-ui';
 import { type ReactNode, startTransition, useActionState, useRef, useState } from 'react';
 
 import { DESTRUCTIVE_BUTTON, SECONDARY_BUTTON } from './buttons';
+import { DIALOG_OVERLAY, DIALOG_SHEET, SHEET_HANDLE } from './dialog';
 
 /**
  * A confirmação de uma ação que esconde ou tira algo (design-system.md, seção 4.5): o diálogo diz o que
@@ -36,9 +37,9 @@ export function ConfirmDialog({
   return (
     <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal>
-        <AlertDialog.Overlay className="fixed inset-0 z-40 bg-ink/40" />
+        <AlertDialog.Overlay className={DIALOG_OVERLAY} />
         <AlertDialog.Content
-          className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col gap-4 rounded-t-lg border-t border-hairline bg-surface px-4 pt-2 pb-safe shadow-flutuante md:inset-x-auto md:bottom-auto md:top-1/2 md:left-1/2 md:max-w-section md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-lg md:border md:p-6"
+          className={`${DIALOG_SHEET} flex flex-col gap-4`}
           onOpenAutoFocus={() => {
             returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
           }}
@@ -50,7 +51,7 @@ export function ConfirmDialog({
             if (target?.isConnected) returnFocus(target);
           }}
         >
-          <div aria-hidden="true" className="h-1 w-9 self-center rounded-full bg-hairline-strong md:hidden" />
+          <div aria-hidden="true" className={SHEET_HANDLE} />
           <AlertDialog.Title className="text-heading-md wrap-anywhere text-ink">{title}</AlertDialog.Title>
           <AlertDialog.Description className="text-body-md text-body">{description}</AlertDialog.Description>
           {children}

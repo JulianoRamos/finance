@@ -38,3 +38,20 @@ export function refusedFormState<Values>(
   const placed = Object.keys(fields).length > 0 && Object.keys(fields).every((field) => shown.has(field));
   return { values, message: placed ? null : error.message, conflict: error.code === 'VERSION_CONFLICT', fields };
 }
+
+/**
+ * O que um formulário que fecha ao salvar mostra, como o de um diálogo ou o aberto dentro de uma seção: a
+ * recusa, como num formulário com ação, e se o envio foi aceito, que o fecha.
+ */
+export type SavableFormState<Values> = FormState<Values> & { readonly saved: boolean };
+
+/** O formulário que fecha ao salvar, antes do primeiro envio. */
+export const UNSAVED_FORM_STATE: SavableFormState<never> = { ...INITIAL_FORM_STATE, saved: false };
+
+/** O envio aceito, que fecha o formulário. */
+export const SAVED_FORM_STATE: SavableFormState<never> = { ...INITIAL_FORM_STATE, saved: true };
+
+/** A recusa de um campo, que a web confere antes de pedir à api. */
+export function fieldRefusal<Values>(values: Values, field: string, message: string): SavableFormState<Values> {
+  return { ...UNSAVED_FORM_STATE, values, fields: { [field]: message } };
+}

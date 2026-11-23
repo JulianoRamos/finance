@@ -3297,7 +3297,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A página das alterações da conta, da auditoria, com o total (LLD, seção 5), da mais recente para a mais antiga (LLD, seção 4.4).",
+            "description": "A página das alterações da conta, da auditoria, com o total (LLD, seção 5), da mais recente para a mais antiga (LLD, seção 4.4): as da própria conta e o registro das movimentações dela.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3353,6 +3353,302 @@
           }
         ],
         "summary": "Lista o histórico de alterações de uma conta.",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/v1/accounts/{id}/balance": {
+      "get": {
+        "operationId": "AccountsController_balance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da conta.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "O dia do saldo, `AAAA-MM-DD`, a partir da data do saldo inicial. Sem ele, o de hoje, no fuso da api.",
+            "schema": {
+              "format": "date",
+              "example": "2026-10-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O saldo da conta no fim do dia pedido, ou de hoje (regra 6.3).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountBalance"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, ou a data não é `AAAA-MM-DD` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na entidade dona da conta (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a conta não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`DATE_BEFORE_OPENING_BALANCE`: a data vem antes da data do saldo inicial, quando a conta ainda não tem saldo (regra 6.3).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lê o saldo de uma conta numa data.",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/v1/accounts/{id}/movements": {
+      "get": {
+        "operationId": "AccountsController_movements",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da conta.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página das movimentações da conta, com o total (LLD, seção 5): da mais recente para a mais antiga pela data e, no mesmo dia, pela ordem do registro, a última primeiro.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovementPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na entidade dona da conta (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a conta não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista as movimentações de uma conta.",
+        "tags": [
+          "accounts"
+        ]
+      },
+      "post": {
+        "operationId": "AccountsController_createMovement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da conta.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewMovement"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A movimentação foi registrada, com a origem `manual`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Movement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, o sentido falta ou não é `inflow` nem `outflow`, a data não é `AAAA-MM-DD`, o valor não é uma string decimal maior que zero com até 2 casas, ou a descrição falta, é vazia ou passa de 200 caracteres (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade dona da conta (quem só tem `view` só lê) (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a conta não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`INACTIVE_ACCOUNT`: a conta está desativada, e não recebe movimentação nova (regra 6.20). `INACTIVE_ENTITY`: a entidade dona está desativada (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Registra uma movimentação manual numa conta.",
         "tags": [
           "accounts"
         ]
@@ -4964,6 +5260,11 @@
             "description": "O dia do saldo inicial, `AAAA-MM-DD`: o saldo da conta soma as movimentações a partir dele, inclusive (regra 6.3).",
             "example": "2026-09-01"
           },
+          "balance": {
+            "type": "string",
+            "description": "O saldo de hoje, no fuso da api: o saldo inicial mais as entradas menos as saídas das movimentações da data do saldo inicial até hoje, inclusive (regra 6.3), em string decimal com 2 casas. Pode ser negativo.",
+            "example": "4218.37"
+          },
           "active": {
             "type": "boolean",
             "description": "Falso na conta desativada, que some das escolhas de conta e continua nos números (regra 6.20)."
@@ -4984,6 +5285,7 @@
           "isReserve",
           "openingBalance",
           "openingBalanceDate",
+          "balance",
           "active",
           "version"
         ]
@@ -5169,6 +5471,144 @@
         "required": [
           "version",
           "active"
+        ]
+      },
+      "AccountBalance": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do saldo.",
+            "example": "2026-10-31"
+          },
+          "balance": {
+            "type": "string",
+            "description": "O saldo no fim desse dia: o saldo inicial mais as entradas menos as saídas das movimentações da data do saldo inicial até ele, inclusive (regra 6.3), em string decimal com 2 casas. Pode ser negativo.",
+            "example": "3540.12"
+          }
+        },
+        "required": [
+          "date",
+          "balance"
+        ]
+      },
+      "Movement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia em que o dinheiro entrou ou saiu, `AAAA-MM-DD`. Pode vir antes do saldo inicial, e aí não entra no saldo (regra 6.3).",
+            "example": "2026-11-19"
+          },
+          "description": {
+            "type": "string",
+            "description": "O que foi, como o usuário o escreve. A api tira os espaços das pontas.",
+            "example": "Mercado Bom Preço"
+          },
+          "amount": {
+            "type": "string",
+            "description": "O valor, em string decimal com até 2 casas, sempre maior que zero: o sentido diz se entra ou sai (LLD, seção 4.1).",
+            "example": "182.45"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "inflow",
+              "outflow"
+            ],
+            "description": "Entrada (`inflow`), o dinheiro que entra na conta, ou saída (`outflow`), o que sai dela."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "manual"
+            ],
+            "description": "De onde veio: `manual`, registrada à mão. O ajuste e a importada entram nos tickets deles."
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "description",
+          "amount",
+          "direction",
+          "source"
+        ]
+      },
+      "MovementPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "As movimentações da página, da mais recente para a mais antiga.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Movement"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ]
+      },
+      "NewMovement": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "inflow",
+              "outflow"
+            ],
+            "description": "Entrada (`inflow`), o dinheiro que entra na conta, ou saída (`outflow`), o que sai dela."
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia em que o dinheiro entrou ou saiu, `AAAA-MM-DD`. Pode vir antes do saldo inicial, e aí não entra no saldo (regra 6.3).",
+            "example": "2026-11-19"
+          },
+          "amount": {
+            "type": "string",
+            "description": "O valor, em string decimal com até 2 casas, sempre maior que zero: o sentido diz se entra ou sai (LLD, seção 4.1).",
+            "example": "182.45"
+          },
+          "description": {
+            "type": "string",
+            "description": "O que foi, como o usuário o escreve. A api tira os espaços das pontas.",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Mercado Bom Preço"
+          }
+        },
+        "required": [
+          "direction",
+          "date",
+          "amount",
+          "description"
         ]
       }
     }

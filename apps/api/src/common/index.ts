@@ -1,7 +1,7 @@
 export { GRANTS_CREATOR_ACCESS, GrantsCreatorAccess, REQUIRED_ENTITY_LEVEL, RequiresEntityLevel } from './access.js';
 export { ApiError, apiError } from './api-error.js';
 export { UNAUTHENTICATED_RESPONSE } from './api-responses.js';
-export { formatCalendarDate, IsCalendarDate, IsNotBefore, parseCalendarDate } from './calendar-date.js';
+export { calendarDateOf, formatCalendarDate, IsCalendarDate, IsNotBefore, parseCalendarDate } from './calendar-date.js';
 export { type Clock, CLOCK } from './clock.js';
 export { CommonModule } from './common.module.js';
 export { CONFIG, type Config, readConfig } from './config.js';
@@ -29,6 +29,7 @@ export {
   type Page,
   PageInfo,
   PageQuery,
+  joinSql,
   type PageRequest,
   pageRequest,
   readFirst,
@@ -50,6 +51,8 @@ export {
   type JsonObject,
   type JsonValue,
   LoginStep,
+  MovementDirection,
+  MovementSource,
   Operation,
   PermissionLevel,
 } from './prisma-types.js';
