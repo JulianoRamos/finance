@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { createTestCompany } from './support/entities';
+import { createTestCompany, createTestIndividual } from './support/entities';
 import { createTestUser, signIn, uniqueOrigin } from './support/users';
 import { formatCnpj, uniqueCnpj } from './support/tax-ids';
 
@@ -39,7 +39,7 @@ test('o usuário cadastra, edita e desativa uma entidade', { tag: '@KAN-11-CA5' 
   await page.getByRole('button', { name: 'Salvar alterações' }).click();
 
   await expect(detail.getByRole('heading', { level: 2, name: newName })).toBeVisible();
-  // Salvar volta a lista à primeira página, sem busca.
+  // Salvar volta a lista à primeira página, sem busca, quando a entidade está nela: busca o nome novo.
   await search.fill(newName);
   const renamed = list.getByRole('link', { name: new RegExp(newName) });
   await expect(renamed).toBeVisible();
@@ -123,4 +123,52 @@ test('chegar a Entidades pelo menu ou pelo Cancelar abre a primeira entidade, se
   await expect(page).toHaveURL(opened);
 
   expect(errors).toEqual([]);
+});
+
+// Sem critério de aceite: salvar um item fora da primeira página não muda a página inicial da lista, e a
+// busca digitada fica, pedida de novo, com os dados atuais (correção da corrida que apagava a busca).
+test('salvar um item fora da primeira página mantém a busca da lista', async ({ page, baseURL }) => {
+  await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
+  const user = await createTestUser();
+  const marker = crypto.randomUUID().slice(0, 8);
+  // Dez entidades que vêm antes na ordem pelo nome empurram a buscada para fora da primeira página.
+  for (let index = 0; index < 10; index++) await createTestIndividual(user, `Aaa ${marker} ${String(index)}`);
+  const target = await createTestIndividual(user, `Zz Busca ${marker}`);
+  const newName = `${target.name} Renomeada`;
+  await signIn(page.context(), user, baseURL ?? '');
+  const list = page.getByRole('region', { name: 'Lista de entidades' });
+  const search = list.getByRole('searchbox', { name: 'Buscar entidade' });
+
+  await page.goto(`/entities/${target.id}/edit`);
+  await search.fill(target.name);
+  await expect(list.getByRole('link', { name: new RegExp(target.name) })).toBeVisible();
+  await page.getByLabel('Nome').fill(newName);
+  await page.getByRole('button', { name: 'Salvar alterações' }).click();
+
+  await expect(page.getByRole('region', { name: newName }).getByRole('heading', { level: 2 })).toHaveText(newName);
+  await expect(search).toHaveValue(target.name);
+  await expect(list.getByRole('link', { name: new RegExp(newName) })).toBeVisible();
+});
+
+// Sem critério de aceite: salvar um item da primeira página muda a página inicial, e a lista volta a ela,
+// sem busca.
+test('salvar um item da primeira página volta a lista a ela, sem busca', async ({ page, baseURL }) => {
+  await page.setExtraHTTPHeaders({ 'X-Forwarded-For': uniqueOrigin() });
+  const user = await createTestUser();
+  // "Aaaa" vem antes dos nomes das outras execuções na ordem pelo nome, e fica na primeira página.
+  const target = await createTestIndividual(user, `Aaaa ${crypto.randomUUID().slice(0, 8)}`);
+  const newName = `${target.name} Renomeada`;
+  await signIn(page.context(), user, baseURL ?? '');
+  const list = page.getByRole('region', { name: 'Lista de entidades' });
+  const search = list.getByRole('searchbox', { name: 'Buscar entidade' });
+
+  await page.goto(`/entities/${target.id}/edit`);
+  await search.fill(target.name);
+  await expect(list.getByRole('link', { name: new RegExp(target.name) })).toBeVisible();
+  await page.getByLabel('Nome').fill(newName);
+  await page.getByRole('button', { name: 'Salvar alterações' }).click();
+
+  await expect(page.getByRole('region', { name: newName }).getByRole('heading', { level: 2 })).toHaveText(newName);
+  await expect(search).toHaveValue('');
+  await expect(list.getByRole('link', { name: new RegExp(newName) })).toBeVisible();
 });

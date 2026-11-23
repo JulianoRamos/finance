@@ -48,8 +48,10 @@ export function useLatestRequest() {
 
 /**
  * A busca e a página de uma lista, que começa na página dada. A busca espera 300 ms depois da última
- * tecla e volta à primeira página; só a resposta do último pedido vale. Quando a página inicial muda,
- * como depois de salvar, a lista volta a ela, sem busca.
+ * tecla e volta à primeira página; só a resposta do último pedido vale. Quando chega outra página
+ * inicial, como depois de salvar, a lista volta a ela, sem busca. A exceção é a mesma página mandada de
+ * novo enquanto há uma busca digitada, como o servidor faz mais de uma vez depois de uma ação com
+ * `revalidatePath` e `redirect`: a busca fica, e é pedida de novo, para mostrar os dados atuais.
  */
 export function useSearchedPages<Item>(initial: ListPage<Item>, load: LoadPage<Item>) {
   const [query, setQuery] = useState('');
@@ -58,24 +60,35 @@ export function useSearchedPages<Item>(initial: ListPage<Item>, load: LoadPage<I
   const [shownQuery, setShownQuery] = useState('');
   const [failed, setFailed] = useState(false);
   const [previousInitial, setPreviousInitial] = useState(initial);
+  // Quantas vezes a lista voltou à página inicial, o que cancela os pedidos em curso.
+  const [resets, setResets] = useState(0);
+  // A busca que fica e é pedida de novo quando a mesma página inicial chega outra vez.
+  const [reread, setReread] = useState<{ readonly q: string; readonly page: number } | null>(null);
   const { request: requestLatest, cancel } = useLatestRequest();
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   if (initial !== previousInitial) {
     setPreviousInitial(initial);
-    setQuery('');
-    setShown(initial);
-    setShownQuery('');
-    setFailed(false);
+    // A página inicial é pequena (até 100 itens) e só de dados do contrato: o texto dela a compara.
+    if (query !== '' && JSON.stringify(initial) === JSON.stringify(previousInitial)) {
+      setReread({ q: query, page: query === shownQuery ? shown.page : 1 });
+    } else {
+      setQuery('');
+      setShown(initial);
+      setShownQuery('');
+      setFailed(false);
+      setResets((count) => count + 1);
+    }
   }
 
-  // Um pedido em curso quando a página inicial muda, ou quando a lista sai da tela, não vale mais.
+  // Um pedido em curso quando a lista volta à página inicial, ou quando ela sai da tela, não vale mais.
   useEffect(
     () => () => {
       cancel();
       clearTimeout(timer.current);
+      timer.current = undefined;
     },
-    [initial, cancel],
+    [resets, cancel],
   );
 
   async function request(q: string, page: number) {
@@ -87,6 +100,15 @@ export function useSearchedPages<Item>(initial: ListPage<Item>, load: LoadPage<I
       setShownQuery(q);
     }
   }
+  const requestRef = useRef(request);
+  useEffect(() => {
+    requestRef.current = request;
+  });
+
+  // A busca que ainda espera a última tecla vai ser pedida de qualquer jeito, e a resposta dela vale.
+  useEffect(() => {
+    if (reread && timer.current === undefined) void requestRef.current(reread.q, reread.page);
+  }, [reread]);
 
   return {
     query,
@@ -95,7 +117,10 @@ export function useSearchedPages<Item>(initial: ListPage<Item>, load: LoadPage<I
     search: (text: string) => {
       setQuery(text);
       clearTimeout(timer.current);
-      timer.current = setTimeout(() => void request(text, 1), SEARCH_DELAY_MS);
+      timer.current = setTimeout(() => {
+        timer.current = undefined;
+        void request(text, 1);
+      }, SEARCH_DELAY_MS);
     },
     // A busca que ainda espera a última tecla continua agendada, e a resposta dela vale por último.
     goTo: (page: number) => {
