@@ -74,11 +74,14 @@ enum MovementDirection {
   @@map("movement_direction")
 }
 
-/// De onde veio a movimentação. O ajuste (`adjustment`) e a importada (`imported`) entram nos tickets
-/// deles, com as colunas que os acompanham.
+/// De onde veio a movimentação. A importada (`imported`) entra com a importação, com as colunas que a
+/// acompanham.
 enum MovementSource {
   /// Registrada à mão pelo usuário.
   manual
+  /// O ajuste do saldo (regra 6.3): a diferença entre o saldo do banco e o calculado numa data, com o
+  /// motivo na descrição. Não é receita nem despesa.
+  adjustment
 
   @@map("movement_source")
 }
@@ -101,7 +104,8 @@ model Movement {
   /// O valor, sempre maior que zero; o sentido diz se entra ou sai.
   amount      Decimal           @db.Decimal(15, 2)
   direction   MovementDirection
-  /// O que foi, como o usuário o escreve, sem espaços nas pontas, até 200 caracteres.
+  /// O que foi, como o usuário o escreve, sem espaços nas pontas, até 200 caracteres. No ajuste, é o
+  /// motivo dele, obrigatório como toda descrição.
   description String
   source      MovementSource
   createdAt   DateTime          @map("created_at") @db.Timestamptz

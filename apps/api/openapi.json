@@ -3653,6 +3653,104 @@
           "accounts"
         ]
       }
+    },
+    "/v1/accounts/{id}/adjustments": {
+      "post": {
+        "operationId": "AccountsController_createAdjustment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da conta.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAdjustment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O ajuste foi registrado: uma movimentação de origem `adjustment`, na data pedida, com o valor e o sentido da diferença entre o saldo do banco e o calculado, e o motivo na descrição (regra 6.3).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Movement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a data não é `AAAA-MM-DD`, o saldo do banco não é uma string decimal com até 2 casas, ou o motivo falta, é vazio ou passa de 200 caracteres (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade dona da conta (quem só tem `view` só lê) (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a conta não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`BALANCE_ALREADY_MATCHES`: o saldo do banco é igual ao calculado na data, e não há o que ajustar. `DATE_BEFORE_OPENING_BALANCE`: a data vem antes da data do saldo inicial (regra 6.3). `INACTIVE_ACCOUNT`: a conta está desativada (regra 6.20). `INACTIVE_ENTITY`: a entidade dona está desativada (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Ajusta o saldo de uma conta ao do banco numa data.",
+        "tags": [
+          "accounts"
+        ]
+      }
     }
   },
   "info": {
@@ -5527,9 +5625,10 @@
           "source": {
             "type": "string",
             "enum": [
-              "manual"
+              "manual",
+              "adjustment"
             ],
-            "description": "De onde veio: `manual`, registrada à mão. O ajuste e a importada entram nos tickets deles."
+            "description": "De onde veio: `manual`, registrada à mão, ou `adjustment`, o ajuste do saldo, com o motivo na descrição (regra 6.3). A importada entra com a importação."
           }
         },
         "required": [
@@ -5609,6 +5708,34 @@
           "date",
           "amount",
           "description"
+        ]
+      },
+      "NewAdjustment": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do saldo do banco, `AAAA-MM-DD`, a partir da data do saldo inicial: o ajuste fica nesse dia, e o saldo calculado no fim dele passa a ser o do banco (regra 6.3).",
+            "example": "2026-10-31"
+          },
+          "bankBalance": {
+            "type": "string",
+            "description": "O saldo que o banco mostra no fim desse dia, em string decimal com até 2 casas. Pode ser negativo, como o de uma conta no limite.",
+            "example": "3527.22"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Por que o saldo calculado difere do banco, como o usuário o escreve. A api tira os espaços das pontas e o grava como a descrição do ajuste.",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "Tarifa não lançada"
+          }
+        },
+        "required": [
+          "date",
+          "bankBalance",
+          "reason"
         ]
       }
     }
