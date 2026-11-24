@@ -28,6 +28,19 @@ interface Screen {
 
 const heading = (page: Page, name: string) => expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
 
+/**
+ * Abre o diálogo do ajuste do saldo da conta de teste, com o saldo do banco digitado, e o registra sem o
+ * motivo, para a tela mostrar o resumo e o motivo no estado de erro.
+ */
+async function openRefusedAdjustment(page: Page, baseURL: string) {
+  const account = await openTestAccount(page, baseURL, undefined, { movements: TEST_MOVEMENTS });
+  await page.getByRole('button', { name: 'Ajustar saldo' }).click();
+  const dialog = page.getByRole('dialog', { name: `Ajustar o saldo de ${account.name}` });
+  await dialog.getByLabel('Saldo no banco (R$)').fill('1.000,00');
+  await dialog.getByRole('button', { name: 'Registrar ajuste' }).click();
+  await expect(dialog.getByLabel('Motivo')).toHaveAccessibleDescription('Diga por que o saldo difere do banco.');
+}
+
 const SCREENS: readonly Screen[] = [
   {
     name: 'a página inicial',
@@ -243,6 +256,17 @@ const SCREENS: readonly Screen[] = [
       const account = await openTestAccount(page, baseURL, undefined, { movements: TEST_MOVEMENTS });
       await page.getByRole('button', { name: 'Nova movimentação' }).click();
       await expect(page.getByRole('dialog', { name: `Nova movimentação em ${account.name}` })).toBeVisible();
+    },
+  },
+  {
+    name: 'o ajuste do saldo, com o motivo recusado',
+    open: openRefusedAdjustment,
+  },
+  {
+    name: 'o ajuste do saldo no celular, com o motivo recusado',
+    open: async (page, baseURL) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openRefusedAdjustment(page, baseURL);
     },
   },
   {

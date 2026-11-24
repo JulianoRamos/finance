@@ -36,6 +36,7 @@ import {
   Movement,
   MovementPage,
   NewAccount,
+  NewAdjustment,
   NewMovement,
 } from './accounts.dto.js';
 import { AuditHistoryPage } from '../audit/index.js';
@@ -260,5 +261,30 @@ export class AccountsController {
   })
   createMovement(@Param() params: AccountId, @Body() body: NewMovement): Promise<Movement> {
     return this.accounts.createMovement(params.id, body);
+  }
+
+  @Post(':id/adjustments')
+  @ApiOperation({ summary: 'Ajusta o saldo de uma conta ao do banco numa data.' })
+  @ApiParam(ID_PARAM)
+  @ApiCreatedResponse({
+    type: Movement,
+    description:
+      'O ajuste foi registrado: uma movimentação de origem `adjustment`, na data pedida, com o valor e o sentido da diferença entre o saldo do banco e o calculado, e o motivo na descrição (regra 6.3).',
+  })
+  @ApiBadRequestResponse({
+    type: ApiError,
+    description:
+      '`INVALID_INPUT`: o id não é um UUID, a data não é `AAAA-MM-DD`, o saldo do banco não é uma string decimal com até 2 casas, ou a diferença dele para o saldo calculado passa do maior valor de uma movimentação, ou o motivo falta, é vazio ou passa de 200 caracteres (em `fields`).',
+  })
+  @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
+  @ApiForbiddenResponse(OPERATE_FORBIDDEN_RESPONSE)
+  @ApiNotFoundResponse(NOT_FOUND_RESPONSE)
+  @ApiUnprocessableEntityResponse({
+    type: ApiError,
+    description:
+      '`BALANCE_ALREADY_MATCHES`: o saldo do banco é igual ao calculado na data, e não há o que ajustar. `DATE_BEFORE_OPENING_BALANCE`: a data vem antes da data do saldo inicial (regra 6.3). `INACTIVE_ACCOUNT`: a conta está desativada (regra 6.20). `INACTIVE_ENTITY`: a entidade dona está desativada (regra 6.2).',
+  })
+  createAdjustment(@Param() params: AccountId, @Body() body: NewAdjustment): Promise<Movement> {
+    return this.accounts.createAdjustment(params.id, body);
   }
 }

@@ -19,6 +19,7 @@ export function FormDialog({
   onOpenChange,
   trigger,
   title,
+  description,
   children,
 }: Readonly<{
   open: boolean;
@@ -26,6 +27,8 @@ export function FormDialog({
   /** O botão que abre o diálogo, e que recebe o foco de volta. */
   trigger: ReactElement;
   title: string;
+  /** A frase de apoio, abaixo do título, que o leitor de tela lê como a descrição do diálogo. */
+  description?: string;
   children: ReactNode;
 }>) {
   return (
@@ -34,8 +37,8 @@ export function FormDialog({
       <Dialog.Portal>
         <Dialog.Overlay className={DIALOG_OVERLAY} />
         <Dialog.Content
-          // O título basta: o formulário fala por si, sem uma descrição à parte.
-          aria-describedby={undefined}
+          // Sem a frase de apoio, o título basta: o formulário fala por si. Com ela, o Radix liga a descrição.
+          {...(description === undefined && { 'aria-describedby': undefined })}
           onOpenAutoFocus={(event) => {
             // O foco vai para o primeiro campo, e não para o botão de fechar, que abriria a dica dele.
             const field = event.currentTarget instanceof HTMLElement && firstField(event.currentTarget);
@@ -55,6 +58,9 @@ export function FormDialog({
               </Dialog.Close>
             </Hint>
           </div>
+          {description !== undefined && (
+            <Dialog.Description className="text-body-md wrap-anywhere text-body">{description}</Dialog.Description>
+          )}
           {children}
         </Dialog.Content>
       </Dialog.Portal>

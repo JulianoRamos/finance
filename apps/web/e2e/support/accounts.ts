@@ -3,6 +3,14 @@ import type { Page } from '@playwright/test';
 import { createTestIndividual, postAsUser, type TestEntity, uniqueName } from './entities';
 import { createTestUser, signIn, type TestUser } from './users';
 
+/** O dia de hoje menos os dias dados, como `AAAA-MM-DD`, no fuso do processo (o mesmo da web e da api). */
+export function daysAgo(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 /** O que uma conta de teste pode trocar no cadastro. */
 export interface TestAccountBody {
   readonly name?: string;

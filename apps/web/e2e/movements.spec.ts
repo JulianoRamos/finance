@@ -1,16 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-import { openTestAccount } from './support/accounts';
+import { daysAgo, openTestAccount } from './support/accounts';
 import { uniqueName } from './support/entities';
 import { uniqueOrigin } from './support/users';
-
-/** O dia de hoje menos os dias dados, como `AAAA-MM-DD`, no fuso do processo (o mesmo da web e da api). */
-function daysAgo(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
 
 test(
   'o usuário registra uma saída e uma entrada e vê os saldos mudarem',

@@ -74,6 +74,7 @@ export function getAccountHistory(id: string, page: number): Promise<ReadResult<
 export type Movement = components['schemas']['Movement'];
 export type MovementDirection = Movement['direction'];
 type NewMovement = components['schemas']['NewMovement'];
+type NewAdjustment = components['schemas']['NewAdjustment'];
 export type MovementPage = components['schemas']['MovementPage'];
 export type AccountBalance = components['schemas']['AccountBalance'];
 
@@ -100,4 +101,12 @@ export function getAccountBalance(id: string, date: string): Promise<DataResult<
 /** Registra uma movimentação manual na conta. */
 export function createMovement(id: string, body: NewMovement): Promise<DataResult<Movement>> {
   return dataResult((signal) => api.POST('/v1/accounts/{id}/movements', { params: { path: { id } }, body, signal }));
+}
+
+/**
+ * Ajusta o saldo da conta ao do banco numa data: a api grava a diferença para o saldo calculado como uma
+ * movimentação de origem `adjustment`, com o motivo na descrição (regra 6.3).
+ */
+export function createAdjustment(id: string, body: NewAdjustment): Promise<DataResult<Movement>> {
+  return dataResult((signal) => api.POST('/v1/accounts/{id}/adjustments', { params: { path: { id } }, body, signal }));
 }

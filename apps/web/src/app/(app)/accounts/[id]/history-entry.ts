@@ -3,7 +3,7 @@ import type { AuditHistoryEntry } from '@/api/entities';
 import { ACCOUNT_TYPE_NAMES, INSTITUTION_NAMES } from '../../../_shell/account-text';
 import { formatCalendarDate, formatInstant } from '../../../_shell/format';
 import type { HistoryItem, HistoryLine } from '../../../_shell/history-panel';
-import { formatMoney } from '../../../_shell/money';
+import { formatDirectedMoney, formatMoney } from '../../../_shell/money';
 
 // O histórico da conta como o painel o mostra: a api devolve o que mudou em JSON, campo a campo.
 
@@ -26,8 +26,8 @@ const ACCOUNT_FIELDS: FieldFormats = {
 };
 
 /**
- * O rótulo e o formato de cada campo da movimentação que a tela mostra. O sentido vai na frase, e a origem,
- * que por enquanto é sempre a manual, não aparece.
+ * O rótulo e o formato de cada campo da movimentação manual que a tela mostra. O sentido vai na frase, e a
+ * origem, que a frase do ajuste já diz, não aparece.
  */
 const MOVEMENT_FIELDS: FieldFormats = {
   date: { label: 'Data', format: formatCalendarDate },
@@ -58,23 +58,47 @@ function accountAction(entry: AuditHistoryEntry): string {
   return 'alterou';
 }
 
-/** O registro de uma movimentação, na frase: registrou uma entrada ou uma saída. */
+/** O valor gravado de um campo da alteração. */
+function afterOf(entry: AuditHistoryEntry, field: string): Change['after'] | undefined {
+  return entry.changes.find((change) => change.field === field)?.after;
+}
+
+/** Se a movimentação registrada é um ajuste do saldo. */
+function isAdjustment(entry: AuditHistoryEntry): boolean {
+  return afterOf(entry, 'source') === 'adjustment';
+}
+
+/** O registro de uma movimentação, na frase: registrou um ajuste, uma entrada ou uma saída. */
 function movementAction(entry: AuditHistoryEntry): string {
-  const direction = entry.changes.find((change) => change.field === 'direction')?.after;
-  return direction === 'inflow' ? 'registrou uma entrada' : 'registrou uma saída';
+  if (isAdjustment(entry)) return 'registrou um ajuste';
+  return afterOf(entry, 'direction') === 'inflow' ? 'registrou uma entrada' : 'registrou uma saída';
+}
+
+/**
+ * Os campos da movimentação que a tela mostra: no ajuste, a data, o motivo, que é a descrição dele, e o
+ * valor com o sentido, que a frase não diz.
+ */
+function movementFields(entry: AuditHistoryEntry): FieldFormats {
+  if (!isAdjustment(entry)) return MOVEMENT_FIELDS;
+  const direction = afterOf(entry, 'direction') === 'inflow' ? 'inflow' : 'outflow';
+  return {
+    ...MOVEMENT_FIELDS,
+    description: { label: 'Motivo', format: (reason) => reason },
+    amount: { label: 'Valor', format: (amount) => formatDirectedMoney(amount, direction) },
+  };
 }
 
 /** Como a tela diz a alteração de cada tabela do histórico da conta: a frase e os campos. */
 interface TableText {
   readonly action: (entry: AuditHistoryEntry) => string;
-  readonly fields: FieldFormats;
+  readonly fields: (entry: AuditHistoryEntry) => FieldFormats;
 }
 
-const ACCOUNT: TableText = { action: accountAction, fields: ACCOUNT_FIELDS };
+const ACCOUNT: TableText = { action: accountAction, fields: () => ACCOUNT_FIELDS };
 
 const TABLES: Readonly<Record<string, TableText>> = {
   account: ACCOUNT,
-  movement: { action: movementAction, fields: MOVEMENT_FIELDS },
+  movement: { action: movementAction, fields: movementFields },
 };
 
 /** A alteração como o painel do histórico da conta a mostra; sem usuário, quem fez é "O sistema". */
@@ -84,6 +108,6 @@ export function accountHistoryItem(entry: AuditHistoryEntry): HistoryItem {
     id: entry.id,
     sentence: `${entry.user?.name ?? 'O sistema'} ${table.action(entry)}`,
     occurredAt: formatInstant(entry.occurredAt),
-    lines: lines(entry.changes, table.fields),
+    lines: lines(entry.changes, table.fields(entry)),
   };
 }

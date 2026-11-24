@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useState } from 'react';
+import { type ChangeEvent, type ReactNode, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { PRIMARY_BUTTON } from '../_shell/buttons';
@@ -16,9 +16,12 @@ export type ControlSize = 'access' | 'app';
 
 const INPUT_HEIGHT: Record<ControlSize, string> = { access: 'h-11', app: 'h-10 md:h-9' };
 
+/** A aparência comum dos campos: a borda, o fundo, o texto, o erro e o foco. */
+const CONTROL = `w-full rounded-sm border border-field-border bg-surface px-3 text-body-lg text-ink hover:border-body aria-invalid:border-negative-strong md:text-body-md ${FOCUS_RING}`;
+
 /** A aparência de um campo de texto do tamanho dado, também para um campo fora de `Field`, como a busca. */
 export function inputClass(size: ControlSize): string {
-  return `w-full rounded-sm border border-field-border bg-surface px-3 text-body-lg text-ink hover:border-body aria-invalid:border-negative-strong md:text-body-md ${INPUT_HEIGHT[size]} ${FOCUS_RING}`;
+  return `${CONTROL} ${INPUT_HEIGHT[size]}`;
 }
 
 /** O botão principal das telas de acesso, de 44px; o do app é o `PRIMARY_BUTTON`. */
@@ -39,6 +42,9 @@ interface FieldProps {
   readonly required?: boolean;
   readonly placeholder?: string | undefined;
   readonly inputMode?: 'decimal' | 'numeric' | 'text';
+  /** O valor controlado e quem o recebe a cada mudança, quando a tela usa o que é digitado. */
+  readonly value?: string;
+  readonly onValueChange?: (value: string) => void;
 }
 
 /** O motivo da recusa, abaixo do campo ou do grupo de campos. */
@@ -51,44 +57,50 @@ export function FieldError({ id, error }: Readonly<{ id: string; error: string |
   );
 }
 
-/** O rótulo, o campo, a ajuda e o erro (design-system.md, seção 4.3), com o que vai à direita do campo. */
-function Field({
+/** Os atributos do controle que o rótulo, a ajuda e o erro de `FieldFrame` pedem. */
+function controlProps({
   id,
   name,
-  label,
   autoComplete,
   help,
   error,
-  type,
-  defaultValue,
-  trailing,
-  size = 'access',
   required = true,
   placeholder,
-  inputMode,
-}: FieldProps & { readonly type: string; readonly defaultValue?: string; readonly trailing?: ReactNode }) {
+  value,
+  onValueChange,
+}: FieldProps) {
   const describedBy = [help && `${id}-help`, error && `${id}-error`].filter(Boolean).join(' ') || undefined;
+  return {
+    id,
+    name,
+    required,
+    placeholder,
+    autoComplete,
+    value,
+    onChange:
+      onValueChange &&
+      ((event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        onValueChange(event.currentTarget.value);
+      }),
+    'aria-describedby': describedBy,
+    'aria-invalid': error ? true : undefined,
+  };
+}
+
+/** O rótulo, a ajuda e o erro em volta do controle (design-system.md, seção 4.3). */
+function FieldFrame({
+  id,
+  label,
+  help,
+  error,
+  children,
+}: Readonly<Pick<FieldProps, 'id' | 'label' | 'help' | 'error'> & { children: ReactNode }>) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-label text-ink">
         {label}
       </label>
-      <div className="relative flex">
-        <input
-          id={id}
-          name={name}
-          type={type}
-          required={required}
-          placeholder={placeholder}
-          inputMode={inputMode}
-          autoComplete={autoComplete}
-          defaultValue={defaultValue}
-          aria-describedby={describedBy}
-          aria-invalid={error ? true : undefined}
-          className={`${inputClass(size)} ${trailing ? 'pr-10' : ''}`}
-        />
-        {trailing}
-      </div>
+      <div className="relative flex">{children}</div>
       {help && (
         <p id={`${id}-help`} className="text-body-sm text-mute">
           {help}
@@ -99,9 +111,50 @@ function Field({
   );
 }
 
+/** Um campo de uma linha, do tipo dado, com o que vai à direita dele. */
+function Field({
+  type,
+  defaultValue,
+  trailing,
+  size = 'access',
+  inputMode,
+  ...props
+}: FieldProps & { readonly type: string; readonly defaultValue?: string; readonly trailing?: ReactNode }) {
+  return (
+    <FieldFrame {...props}>
+      <input
+        {...controlProps(props)}
+        type={type}
+        inputMode={inputMode}
+        defaultValue={defaultValue}
+        className={`${inputClass(size)} ${trailing ? 'pr-10' : ''}`}
+      />
+      {trailing}
+    </FieldFrame>
+  );
+}
+
 /** Um campo de texto. */
 export function TextField(props: FieldProps & { readonly defaultValue?: string }) {
   return <Field {...props} type="text" />;
+}
+
+/** Um campo de texto de várias linhas, com as linhas visíveis dadas. */
+export function TextAreaField({
+  rows,
+  defaultValue,
+  ...props
+}: FieldProps & { readonly defaultValue?: string; readonly rows: number }) {
+  return (
+    <FieldFrame {...props}>
+      <textarea
+        {...controlProps(props)}
+        rows={rows}
+        defaultValue={defaultValue}
+        className={`${CONTROL} resize-y py-2`}
+      />
+    </FieldFrame>
+  );
 }
 
 /** Um campo de data, com o calendário do navegador, que envia a data como `AAAA-MM-DD`. */

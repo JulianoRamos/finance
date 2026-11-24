@@ -3691,7 +3691,7 @@
             }
           },
           "400": {
-            "description": "`INVALID_INPUT`: o id não é um UUID, a data não é `AAAA-MM-DD`, o saldo do banco não é uma string decimal com até 2 casas, ou o motivo falta, é vazio ou passa de 200 caracteres (em `fields`).",
+            "description": "`INVALID_INPUT`: o id não é um UUID, a data não é `AAAA-MM-DD`, o saldo do banco não é uma string decimal com até 2 casas, ou a diferença dele para o saldo calculado passa do maior valor de uma movimentação, ou o motivo falta, é vazio ou passa de 200 caracteres (em `fields`).",
             "content": {
               "application/json": {
                 "schema": {
