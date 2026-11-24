@@ -173,6 +173,8 @@ A árvore das pessoas físicas nasce com a migração que cria a tabela, com cat
 
 A transferência, a aplicação e o resgate são lançamentos com duas parcelas, uma de saída e uma de entrada, cada uma na sua conta. O repasse cria um lançamento em cada entidade (regra 6.9).
 
+As tabelas `category`, `entry` e `installment` nascem só com o que as pessoas físicas usam: a árvore delas (`tree = 'individual'`) e os lançamentos de receita (`revenue`) e de despesa (`expense`), únicos ou parcelados, numa entidade pessoa física, pagos por ela mesma (`payer_id` é a dona). A parcela da receita é de entrada, e a da despesa, de saída. A despesa tem a finalidade obrigatória, e a receita não a tem; a categoria é da mesma natureza do lançamento (`nature` igual ao `type`), e uma categoria desativada não recebe lançamento novo. O parcelamento divide o total em centavos, com a diferença na primeira parcela (regra 6.21). As outras colunas e valores entram com quem os usa: a árvore de cada empresa e os lançamentos de empresa, com a clínica; a transferência, a aplicação e o resgate, com as transferências; o `card_statement_id`, com os cartões; a `recurrence`, o `recurrence_id` e o `is_estimated`, com as recorrências; o pagador de outra entidade, com o reembolso pendente (regra 6.10); e os outros tipos, com os módulos donos deles.
+
 ### 4.7 Importação
 
 | Tabela | Colunas que carregam regra | Restrições |
@@ -186,6 +188,8 @@ As linhas da prévia não são gravadas: a prévia é recalculada do arquivo gua
 | Tabela | Colunas que carregam regra | Restrições |
 | --- | --- | --- |
 | `reconciliation` | `movement_id`, `installment_id`, `receivable_id`, `amount`, `is_automatic`, `created_by_id` | `CHECK` de exatamente um entre `installment_id` e `receivable_id`. A soma por movimentação não passa do valor dela (regra 6.5) |
+
+A `reconciliation` nasce com o lançamento já pago (regra 6.5), só com a parcela (`installment_id`) e sempre manual (`is_automatic` falso): a conciliação da importação, as sugestões, a automática e a do recebível (`receivable_id`) entram com a importação e com os recebimentos. Com ela, a parcela paga já fica liquidada (regra 6.6).
 
 ### 4.9 Repasses
 
@@ -503,11 +507,11 @@ Toda divisão de dinheiro é feita em centavos, e a diferença dos centavos fica
 ### 6.22 Pesquisa
 
 - **Rota:** `GET /v1/search?term=<texto>`, sem o cabeçalho `Financial-Context`, porque procura em todos os contextos do usuário. O termo tem de 2 a 120 caracteres, sem contar os espaços das pontas, e é comparado sem acento e sem diferença de maiúsculas, em qualquer posição do nome; fora disso, a rota responde `400 INVALID_INPUT`.
-- **Onde procura:** nas entidades em que o usuário tem `view` ou `operate`, nos grupos em que ele tem permissão em todos os membros (a mesma regra do contexto financeiro), nas contas dessas entidades e, só para quem tem `manages_access`, nos usuários. Uma entidade desativada aparece marcada como tal.
-- **Resposta:** até 5 resultados por tipo, numa lista por tipo (`entities`, `financialGroups`, `accounts`, `users`), cada um com o id, o nome e o complemento dele: a entidade, o tipo e se está ativa; o grupo, se é a Visão Familiar e quantas pessoas físicas e empresas reúne, para o resumo; a conta, o nome da entidade dona, o banco, se é de reserva e se está ativa; o usuário, o e-mail e se está ativo. Cada lista segue a ordem da lista do cadastro: as entidades, as contas e os usuários ativos primeiro, e a Visão Familiar primeiro entre os grupos, e cada grupo pelo nome. Quem não gere acessos recebe a lista de usuários vazia.
+- **Onde procura:** nas entidades em que o usuário tem `view` ou `operate`, nos grupos em que ele tem permissão em todos os membros (a mesma regra do contexto financeiro), nas contas dessas entidades, nas categorias da árvore das pessoas físicas, para quem tem permissão em alguma pessoa física, e, só para quem tem `manages_access`, nos usuários. Uma entidade desativada aparece marcada como tal. Os lançamentos não entram: são muitos, e a lista deles tem a própria busca.
+- **Resposta:** até 5 resultados por tipo, numa lista por tipo (`entities`, `financialGroups`, `accounts`, `categories`, `users`), cada um com o id, o nome e o complemento dele: a entidade, o tipo e se está ativa; o grupo, se é a Visão Familiar e quantas pessoas físicas e empresas reúne, para o resumo; a conta, o nome da entidade dona, o banco, se é de reserva e se está ativa; a categoria, a natureza, o caminho do pai ("Casa › Energia") e se está ativa; o usuário, o e-mail e se está ativo. Cada lista segue a ordem da lista do cadastro: as entidades, as contas, as categorias e os usuários ativos primeiro, e a Visão Familiar primeiro entre os grupos, e cada grupo pelo nome. Quem não gere acessos recebe a lista de usuários vazia.
 - **Cada módulo** responde pelos próprios registros, por uma função pública que o módulo Pesquisa (`search`) chama. Um módulo novo entra na pesquisa no ticket que o cria.
 - **Telas e ações** não passam pela API: a `web` as filtra pelo termo e pelas permissões do usuário, como "Novo usuário" só para quem tem `manages_access`.
-- **Abrir um resultado:** uma entidade, um grupo, uma conta ou um usuário abre o cadastro dele; "Trocar para", o contexto financeiro dele, oferecido para os grupos e para as entidades ativas, que são as escolhas de contexto (regra 6.2).
+- **Abrir um resultado:** uma entidade, um grupo, uma conta, uma categoria ou um usuário abre o cadastro dele; "Trocar para", o contexto financeiro dele, oferecido para os grupos e para as entidades ativas, que são as escolhas de contexto (regra 6.2).
 
 ## 7. Tarefas agendadas
 
