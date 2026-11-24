@@ -175,6 +175,8 @@ A transferência, a aplicação e o resgate são lançamentos com duas parcelas,
 
 As tabelas `category`, `entry` e `installment` nascem só com o que as pessoas físicas usam: a árvore delas (`tree = 'individual'`) e os lançamentos de receita (`revenue`) e de despesa (`expense`), únicos ou parcelados, numa entidade pessoa física, pagos por ela mesma (`payer_id` é a dona). A parcela da receita é de entrada, e a da despesa, de saída. A despesa tem a finalidade obrigatória, e a receita não a tem; a categoria é da mesma natureza do lançamento (`nature` igual ao `type`), e uma categoria desativada não recebe lançamento novo. O parcelamento divide o total em centavos, com a diferença na primeira parcela (regra 6.21). As outras colunas e valores entram com quem os usa: a árvore de cada empresa e os lançamentos de empresa, com a clínica; a transferência, a aplicação e o resgate, com as transferências; o `card_statement_id`, com os cartões; a `recurrence`, o `recurrence_id` e o `is_estimated`, com as recorrências; o pagador de outra entidade, com o reembolso pendente (regra 6.10); e os outros tipos, com os módulos donos deles.
 
+Depois do registro, cada parcela muda sozinha. A correção do valor ou do vencimento muda só ela, e o total do lançamento passa a ser a soma das parcelas. O cancelamento a marca como cancelada (`canceled_at`), não volta, e o lançamento continua com as outras. A edição do lançamento não mexe nas parcelas pagas: mudar o total ou o número de parcelas refaz só as em aberto, dividindo o que falta (o total menos as pagas) em centavos, com a diferença na primeira delas (regra 6.21). A categoria muda de nome e de pai, e os lançamentos dela vão junto, mas não muda de natureza; a desativada é reativada sem confirmação.
+
 ### 4.7 Importação
 
 | Tabela | Colunas que carregam regra | Restrições |
@@ -376,6 +378,8 @@ O módulo Documentos nasce na fase 2 com o que a importação usa: a tabela `doc
 - **Valor estimado:** conciliar uma parcela estimada (de recorrência) atualiza o valor dela para o da movimentação.
 - **Recebível:** a movimentação do repasse da adquirente concilia com recebíveis, pela mesma regra, com o valor líquido.
 - **Lançamento já pago:** o cadastro do lançamento tem a opção "já pago", com a conta e a data do pagamento. A rota que o grava é do módulo Conciliação, que, numa transação só, cria o lançamento (por Lançamentos), a movimentação manual de cada parcela paga (por Contas, `source = 'manual'`) e a conciliação entre elas. Quando o extrato chega, a importada substitui a manual (regra 6.4), e a conciliação passa para ela. O Lançamentos não chama a Conciliação: é ela que chama ele (seção 3).
+- **Parcelado já pago:** no cadastro parcelado, o "já pago" vale só para a primeira parcela; as outras são pagas depois, uma a uma.
+- **Pagar e desfazer uma parcela:** uma parcela em aberto é marcada como paga pela rota do módulo Conciliação, com a conta e a data, que cria, como o já pago, a movimentação manual pelo valor em aberto e a conciliação. Desfazer o pagamento apaga a conciliação e, quando a movimentação é a manual criada pelo pagamento, ela também; a parcela volta à situação calculada (regra 6.6).
 
 ### 6.6 Situação da parcela
 
