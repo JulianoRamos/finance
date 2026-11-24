@@ -173,6 +173,8 @@ A árvore das pessoas físicas nasce com a migração que cria a tabela, com cat
 
 A transferência, a aplicação e o resgate são lançamentos com duas parcelas, uma de saída e uma de entrada, cada uma na sua conta. O repasse cria um lançamento em cada entidade (regra 6.9).
 
+As tabelas `category`, `entry` e `installment` nascem só com o que as pessoas físicas usam: a árvore delas (`tree = 'individual'`) e os lançamentos de receita (`revenue`) e de despesa (`expense`), únicos ou parcelados, numa entidade pessoa física, pagos por ela mesma (`payer_id` é a dona). A parcela da receita é de entrada, e a da despesa, de saída. A despesa tem a finalidade obrigatória, e a receita não a tem; a categoria é da mesma natureza do lançamento (`nature` igual ao `type`), e uma categoria desativada não recebe lançamento novo. O parcelamento divide o total em centavos, com a diferença na primeira parcela (regra 6.21). As outras colunas e valores entram com quem os usa: a árvore de cada empresa e os lançamentos de empresa, com a clínica; a transferência, a aplicação e o resgate, com as transferências; o `card_statement_id`, com os cartões; a `recurrence`, o `recurrence_id` e o `is_estimated`, com as recorrências; o pagador de outra entidade, com o reembolso pendente (regra 6.10); e os outros tipos, com os módulos donos deles.
+
 ### 4.7 Importação
 
 | Tabela | Colunas que carregam regra | Restrições |
@@ -186,6 +188,8 @@ As linhas da prévia não são gravadas: a prévia é recalculada do arquivo gua
 | Tabela | Colunas que carregam regra | Restrições |
 | --- | --- | --- |
 | `reconciliation` | `movement_id`, `installment_id`, `receivable_id`, `amount`, `is_automatic`, `created_by_id` | `CHECK` de exatamente um entre `installment_id` e `receivable_id`. A soma por movimentação não passa do valor dela (regra 6.5) |
+
+A `reconciliation` nasce com o lançamento já pago (regra 6.5), só com a parcela (`installment_id`) e sempre manual (`is_automatic` falso): a conciliação da importação, as sugestões, a automática e a do recebível (`receivable_id`) entram com a importação e com os recebimentos. Com ela, a parcela paga já fica liquidada (regra 6.6).
 
 ### 4.9 Repasses
 
