@@ -7,7 +7,9 @@ import {
   type AccountResult,
   type AccountType,
   createAccount,
+  createAdjustment,
   createMovement,
+  getAccountBalance,
   getAccountHistory,
   type Institution,
   listAccounts,
@@ -30,6 +32,7 @@ import {
 import type { HistoryItem } from '../../_shell/history-panel';
 import { listPageResult, type ListPageResult } from '../../_shell/list-page';
 import { parseMoneyInput } from '../../_shell/money';
+import { type BalanceOnDate, balanceOnDate } from './[id]/balance-on-date';
 import { accountHistoryItem } from './[id]/history-entry';
 import { type AccountListItem, accountListItem } from './account-list-page';
 
@@ -226,4 +229,55 @@ export async function createMovementAction(_previous: MovementFormState, form: F
     return SAVED_FORM_STATE;
   }
   return { ...UNSAVED_FORM_STATE, ...refusedFormState(result, values, MOVEMENT_FIELDS, {}) };
+}
+
+/** O saldo calculado da conta no fim do dia, pedido pelo diálogo do ajuste a cada data escolhida. */
+export async function accountBalanceAction({ id, date }: { id: string; date: string }): Promise<BalanceOnDate> {
+  return balanceOnDate(await getAccountBalance(id, date));
+}
+
+/** O que foi enviado no formulário do ajuste, que volta aos campos depois de uma recusa. */
+export interface AdjustmentFormValues {
+  readonly date: string;
+  readonly bankBalance: string;
+  readonly reason: string;
+}
+
+/** O que o diálogo do ajuste mostra depois de um envio. */
+export type AdjustmentFormState = SavableFormState<AdjustmentFormValues>;
+
+/** Os campos do diálogo do ajuste com o erro ao lado, pelo nome deles no contrato. */
+const ADJUSTMENT_FIELDS: ReadonlySet<string> = new Set(['date', 'bankBalance', 'reason']);
+
+/** As recusas de regra do ajuste que são de um campo, e o campo delas. */
+const ADJUSTMENT_FIELD_OF_CODE: Readonly<Record<string, string>> = {
+  BALANCE_ALREADY_MATCHES: 'bankBalance',
+  DATE_BEFORE_OPENING_BALANCE: 'date',
+};
+
+/**
+ * Registra o ajuste do diálogo na conta e lê de novo o detalhe e a lista, com os saldos, o que fecha o
+ * diálogo. O saldo digitado vira a string decimal da api, que calcula a diferença.
+ */
+export async function createAdjustmentAction(
+  _previous: AdjustmentFormState,
+  form: FormData,
+): Promise<AdjustmentFormState> {
+  const values: AdjustmentFormValues = {
+    date: formText(form, 'date'),
+    bankBalance: formText(form, 'bankBalance'),
+    reason: formText(form, 'reason'),
+  };
+  const bankBalance = parseMoneyInput(values.bankBalance);
+  if (bankBalance === null) return fieldRefusal(values, 'bankBalance', 'Informe o saldo do banco, como 1.234,56.');
+  const result = await createAdjustment(formText(form, 'accountId'), {
+    date: values.date,
+    bankBalance,
+    reason: values.reason,
+  });
+  if (result.ok) {
+    revalidatePath('/accounts', 'layout');
+    return SAVED_FORM_STATE;
+  }
+  return { ...UNSAVED_FORM_STATE, ...refusedFormState(result, values, ADJUSTMENT_FIELDS, ADJUSTMENT_FIELD_OF_CODE) };
 }

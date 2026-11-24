@@ -33,8 +33,10 @@ import type {
   Movement,
   MovementPage,
   NewAccount,
+  NewAdjustment,
   NewMovement,
 } from './accounts.dto.js';
+import { MOVEMENT_AMOUNT_RANGE } from './accounts.dto.js';
 
 /** A conta como o Prisma a lê. */
 interface AccountRow {
@@ -130,6 +132,15 @@ const HISTORY_SOURCES: readonly HistorySource[] = [
     recordField: 'accountId',
   },
 ];
+
+/** A recusa da data antes da do saldo inicial, quando a conta ainda não tinha saldo (regra 6.3). */
+function dateBeforeOpeningBalance() {
+  return apiError(
+    HttpStatus.UNPROCESSABLE_ENTITY,
+    'DATE_BEFORE_OPENING_BALANCE',
+    'A conta ainda não tinha saldo nesse dia: escolha uma data a partir da do saldo inicial.',
+  );
+}
 
 /** A recusa da conta que não existe. */
 function accountNotFound() {
@@ -328,15 +339,7 @@ export class AccountsService {
   async balance(accountId: string, dateText: string | undefined): Promise<AccountBalance> {
     const account = await this.readWithLevel(accountId, 'view');
     const date = dateText === undefined ? calendarDateOf(this.clock.now()) : calendarDate(dateText);
-    if (date < account.openingBalanceDate) {
-      throw apiError(
-        HttpStatus.UNPROCESSABLE_ENTITY,
-        'DATE_BEFORE_OPENING_BALANCE',
-        'A conta ainda não tinha saldo nesse dia: escolha uma data a partir da do saldo inicial.',
-      );
-    }
-    const balance = (await this.balancesOf([account.id], date)).get(account.id) ?? account.openingBalance;
-    return { date: formatCalendarDate(date), balance: balance.toFixed(2) };
+    return { date: formatCalendarDate(date), balance: (await this.balanceOn(account, date)).toFixed(2) };
   }
 
   /**
@@ -361,44 +364,94 @@ export class AccountsService {
    */
   createMovement(accountId: string, input: NewMovement): Promise<Movement> {
     return this.transactions.run(async () => {
-      // A trava compartilhada segura a desativação da conta, que a altera, até a movimentação ser gravada,
-      // e a leitura depois dela já vê a desativação que veio antes.
+      // A trava compartilhada segura a desativação da conta e o ajuste, que a travam para alterar, até a
+      // movimentação ser gravada, e a leitura depois dela já vê o que veio antes.
       await this.transactions.client.$queryRaw`SELECT 1 FROM account WHERE id = ${accountId}::uuid FOR SHARE`;
-      const account = await this.readWithLevel(accountId, 'operate');
-      if (!account.active) {
+      const account = await this.readReceivingMovements(accountId);
+      return this.insertMovement(account, {
+        date: calendarDate(input.date),
+        amount: new Decimal(input.amount),
+        direction: input.direction,
+        description: input.description.trim(),
+        source: 'manual',
+      });
+    });
+  }
+
+  /**
+   * Registra o ajuste do saldo da conta numa data, quando o usuário tem `operate` na entidade dona: a
+   * diferença entre o saldo do banco e o calculado no fim do dia, como uma movimentação de origem
+   * `adjustment` nesse dia, com o motivo na descrição (regra 6.3). As recusas da conta e da entidade
+   * desativadas são as da movimentação manual.
+   */
+  createAdjustment(accountId: string, input: NewAdjustment): Promise<Movement> {
+    return this.transactions.run(async () => {
+      // A trava exclusiva vai do cálculo do saldo à gravação: outro ajuste ou movimentação da mesma conta,
+      // que a travam também, espera, e não muda o saldo entre os dois.
+      await this.transactions.client.$queryRaw`SELECT 1 FROM account WHERE id = ${accountId}::uuid FOR UPDATE`;
+      const account = await this.readReceivingMovements(accountId);
+      const date = calendarDate(input.date);
+      const difference = new Decimal(input.bankBalance).minus(await this.balanceOn(account, date));
+      if (difference.isZero()) {
         throw apiError(
           HttpStatus.UNPROCESSABLE_ENTITY,
-          'INACTIVE_ACCOUNT',
-          'Uma conta desativada não recebe movimentação nova. Reative-a antes.',
+          'BALANCE_ALREADY_MATCHES',
+          'O saldo do banco já é o saldo calculado nesse dia: não há o que ajustar.',
         );
       }
-      const owner = (await this.entities.summariesOf([account.entityId], { lock: true })).get(account.entityId);
-      if (!owner?.active) {
-        throw inactiveEntity('A entidade desta conta está desativada e não recebe movimentação nova. Reative-a antes.');
+      // A diferença é o valor da movimentação, que tem o limite de um valor de movimentação (LLD, seção 4.1).
+      if (difference.abs().greaterThan(MOVEMENT_AMOUNT_RANGE.atMost)) {
+        const message = 'A diferença para o saldo calculado passa do maior valor de uma movimentação.';
+        throw apiError(HttpStatus.BAD_REQUEST, 'INVALID_INPUT', message, { bankBalance: message });
       }
-      const now = this.clock.now();
-      const created = await this.transactions.client.movement.create({
-        data: {
-          accountId: account.id,
-          date: calendarDate(input.date),
-          amount: input.amount,
-          direction: input.direction,
-          description: input.description.trim(),
-          source: 'manual',
-          createdAt: now,
-          updatedAt: now,
-        },
+      return this.insertMovement(account, {
+        date,
+        amount: difference.abs(),
+        direction: difference.isPositive() ? 'inflow' : 'outflow',
+        description: input.reason.trim(),
+        source: 'adjustment',
       });
-      await this.audit.record({
-        action: 'create',
-        tableName: 'movement',
-        recordId: created.id,
-        entityId: account.entityId,
-        before: null,
-        after: created,
-      });
-      return toMovement(created);
     });
+  }
+
+  /**
+   * A conta do id, quando o usuário tem `operate` na entidade dona e as duas estão ativas: a conta
+   * desativada e a de uma entidade desativada não recebem movimentação nova (LLD, seção 4.5).
+   */
+  private async readReceivingMovements(accountId: string) {
+    const account = await this.readWithLevel(accountId, 'operate');
+    if (!account.active) {
+      throw apiError(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'INACTIVE_ACCOUNT',
+        'Uma conta desativada não recebe movimentação nova. Reative-a antes.',
+      );
+    }
+    const owner = (await this.entities.summariesOf([account.entityId], { lock: true })).get(account.entityId);
+    if (!owner?.active) {
+      throw inactiveEntity('A entidade desta conta está desativada e não recebe movimentação nova. Reative-a antes.');
+    }
+    return account;
+  }
+
+  /** Grava a movimentação na conta, com a auditoria da criação, e a devolve como a rota. */
+  private async insertMovement(
+    account: AccountRow,
+    data: Pick<MovementRow, 'date' | 'amount' | 'direction' | 'description' | 'source'>,
+  ): Promise<Movement> {
+    const now = this.clock.now();
+    const created = await this.transactions.client.movement.create({
+      data: { ...data, accountId: account.id, createdAt: now, updatedAt: now },
+    });
+    await this.audit.record({
+      action: 'create',
+      tableName: 'movement',
+      recordId: created.id,
+      entityId: account.entityId,
+      before: null,
+      after: created,
+    });
+    return toMovement(created);
   }
 
   /**
@@ -460,6 +513,12 @@ export class AccountsService {
     return rows.map((row) =>
       toAccount(row, owners.get(row.entityId)?.name ?? '', balances.get(row.id) ?? row.openingBalance),
     );
+  }
+
+  /** O saldo da conta no fim do dia, ou a recusa do dia antes da data do saldo inicial, que não tem saldo. */
+  private async balanceOn(account: AccountRow, date: Date): Promise<Decimal> {
+    if (date < account.openingBalanceDate) throw dateBeforeOpeningBalance();
+    return (await this.balancesOf([account.id], date)).get(account.id) ?? account.openingBalance;
   }
 
   /**

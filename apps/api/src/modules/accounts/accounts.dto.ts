@@ -241,7 +241,7 @@ export class AccountListQuery extends PageQuery {
 }
 
 /** O valor de uma movimentação: um `numeric(15,2)` maior que zero, com o sentido à parte (LLD, seção 4.1). */
-const MOVEMENT_AMOUNT_RANGE: DecimalRange = { above: '0', atMost: '9999999999999.99', scale: 2 };
+export const MOVEMENT_AMOUNT_RANGE: DecimalRange = { above: '0', atMost: '9999999999999.99', scale: 2 };
 /** O limite de cima da descrição de uma movimentação, sem os espaços das pontas. */
 const MOVEMENT_DESCRIPTION_MAX_LENGTH = 200;
 
@@ -274,7 +274,8 @@ export class Movement {
 
   @ApiProperty({
     enum: MovementSource,
-    description: 'De onde veio: `manual`, registrada à mão. O ajuste e a importada entram nos tickets deles.',
+    description:
+      'De onde veio: `manual`, registrada à mão, ou `adjustment`, o ajuste do saldo, com o motivo na descrição (regra 6.3). A importada entra com a importação.',
   })
   source!: MovementSource;
 }
@@ -313,6 +314,38 @@ export class NewMovement {
     message: `Informe a descrição, com até ${String(MOVEMENT_DESCRIPTION_MAX_LENGTH)} caracteres.`,
   })
   description!: string;
+}
+
+export class NewAdjustment {
+  @ApiProperty({
+    type: String,
+    format: 'date',
+    description:
+      'O dia do saldo do banco, `AAAA-MM-DD`, a partir da data do saldo inicial: o ajuste fica nesse dia, e o saldo calculado no fim dele passa a ser o do banco (regra 6.3).',
+    example: '2026-10-31',
+  })
+  @IsCalendarDate({ message: 'Informe a data do saldo do banco.' })
+  date!: string;
+
+  @ApiProperty({
+    description:
+      'O saldo que o banco mostra no fim desse dia, em string decimal com até 2 casas. Pode ser negativo, como o de uma conta no limite.',
+    example: '3527.22',
+  })
+  @IsDecimalText(OPENING_BALANCE_RANGE, { message: 'Informe o saldo do banco, com até 2 casas depois da vírgula.' })
+  bankBalance!: string;
+
+  @ApiProperty({
+    description:
+      'Por que o saldo calculado difere do banco, como o usuário o escreve. A api tira os espaços das pontas e o grava como a descrição do ajuste.',
+    minLength: 1,
+    maxLength: MOVEMENT_DESCRIPTION_MAX_LENGTH,
+    example: 'Tarifa não lançada',
+  })
+  @IsTrimmedLength(1, MOVEMENT_DESCRIPTION_MAX_LENGTH, {
+    message: 'Diga por que o saldo difere do banco.',
+  })
+  reason!: string;
 }
 
 export class AccountBalanceQuery {

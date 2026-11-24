@@ -83,6 +83,12 @@ export function endOfPreviousMonth(date: string): string {
   return `${String(end.getUTCFullYear())}-${twoDigits(end.getUTCMonth() + 1)}-${twoDigits(end.getUTCDate())}`;
 }
 
+/**
+ * Uma data com o ano inteiro: enquanto a pessoa digita o ano num campo de data, ele já vale "0002-09-15",
+ * e o campo que pede algo ao servidor a cada data espera o ano completo.
+ */
+export const FULL_YEAR_DATE = /^[1-9]\d{3}-\d{2}-\d{2}$/;
+
 /** Se o texto é uma data `AAAA-MM-DD` que existe. */
 export function isCalendarDate(text: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;

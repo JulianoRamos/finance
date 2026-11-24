@@ -4,17 +4,21 @@
 /** O sinal de menos tipográfico, que o valor negativo leva. */
 const MINUS = '−';
 
+/** As partes da string decimal da api ("-1234.5"): o sinal, os inteiros e os centavos, sempre com 2 dígitos. */
+function splitDecimal(decimal: string): { negative: boolean; whole: string; cents: string } {
+  const [whole = '0', cents = ''] = decimal.replace(/^-/, '').split('.');
+  return { negative: decimal.startsWith('-'), whole, cents: cents.padEnd(2, '0').slice(0, 2) };
+}
+
 /**
  * A string decimal ("-1234.5") no formato brasileiro, sem a moeda: "−1.234,50", com o milhar em ponto e
  * sempre os centavos. A conta é feita no texto, sem passar por número, para nenhum dígito se perder.
  */
 function formatDecimal(decimal: string): { sign: string; number: string } {
-  const negative = decimal.startsWith('-');
-  const [whole = '0', cents = ''] = decimal.replace(/^-/, '').split('.');
+  const { negative, whole, cents } = splitDecimal(decimal);
   const grouped = (whole.replace(/^0+(?=\d)/, '') || '0').replace(/\B(?=(\d{3})+$)/g, '.');
-  const fraction = cents.padEnd(2, '0').slice(0, 2);
   const zero = /^0*$/.test(whole + cents);
-  return { sign: negative && !zero ? MINUS : '', number: `${grouped},${fraction}` };
+  return { sign: negative && !zero ? MINUS : '', number: `${grouped},${cents}` };
 }
 
 /** A string decimal da api ("-150.25") como dinheiro: `−R$ 150,25`, sempre com os centavos. */
@@ -49,4 +53,30 @@ export function parseMoneyInput(text: string): string | null {
  */
 export function formatFlow(amount: string, direction: 'inflow' | 'outflow'): string {
   return `${direction === 'inflow' ? '+' : MINUS} ${formatMoney(amount)}`;
+}
+
+/** A string decimal da api ("-150.25") em centavos, sem ponto flutuante. */
+function toCents(decimal: string): bigint {
+  const { negative, whole, cents } = splitDecimal(decimal);
+  const value = BigInt(whole || '0') * 100n + BigInt(cents);
+  return negative ? -value : value;
+}
+
+/**
+ * A diferença `a - b` entre duas strings decimais da api, como o valor positivo ("12.90") e o sentido:
+ * entrada quando `a` é maior, saída quando é menor; nula quando são iguais.
+ */
+export function directedDifference(a: string, b: string): { amount: string; direction: 'inflow' | 'outflow' } | null {
+  const cents = toCents(a) - toCents(b);
+  if (cents === 0n) return null;
+  const absolute = cents < 0n ? -cents : cents;
+  return {
+    amount: `${String(absolute / 100n)}.${String(absolute % 100n).padStart(2, '0')}`,
+    direction: cents < 0n ? 'outflow' : 'inflow',
+  };
+}
+
+/** Um valor positivo com o sentido por extenso: "Saída de R$ 12,90" ou "Entrada de R$ 30,00". */
+export function formatDirectedMoney(amount: string, direction: 'inflow' | 'outflow'): string {
+  return `${direction === 'inflow' ? 'Entrada' : 'Saída'} de ${formatMoney(amount)}`;
 }

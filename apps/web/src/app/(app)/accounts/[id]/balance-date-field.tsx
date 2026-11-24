@@ -4,11 +4,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { inputClass } from '../../../_access/fields';
+import { FULL_YEAR_DATE } from '../../../_shell/format';
 import { SEARCH_DELAY_MS } from '../../../_shell/pagination';
 import { withSearchParam } from '../../../_shell/search-params';
-
-/** Uma data com o ano inteiro: enquanto a pessoa digita o ano, o campo já vale "0002-09-15". */
-const FULL_YEAR_DATE = /^[1-9]\d{3}-\d{2}-\d{2}$/;
 
 /**
  * O campo do "Saldo em", ligado ao `?balanceDate=` do endereço: a data escolhida pede ao servidor o saldo

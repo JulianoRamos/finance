@@ -16,6 +16,7 @@ import { MoneyValue } from '../../../_shell/money-value';
 import { AccountHistory } from './account-history';
 import { ActivationForm } from './activation-form';
 import { BalanceDateField } from './balance-date-field';
+import { balanceOnDate } from './balance-on-date';
 import { Movements } from './movements';
 
 const PANEL = 'flex flex-col gap-6 rounded-md border border-hairline bg-surface p-4 md:p-6';
@@ -137,7 +138,12 @@ export default async function AccountDetail({ params, searchParams }: PageProps<
         </BalanceCard>
       </div>
       {movements.status === 'ok' ? (
-        <Movements account={account} movements={movements.data} today={today} />
+        <Movements
+          account={account}
+          movements={movements.data}
+          today={today}
+          balanceOn={{ date: balanceDate, result: balanceOnDate(balance) }}
+        />
       ) : (
         <LoadError>Não foi possível carregar as movimentações.</LoadError>
       )}
