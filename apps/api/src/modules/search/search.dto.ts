@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { EntityType, Institution, IsTrimmedLength, NAME_MAX_LENGTH } from '../../common/index.js';
+import { CategoryNature, EntityType, Institution, IsTrimmedLength, NAME_MAX_LENGTH } from '../../common/index.js';
 
 /**
  * O menor termo da pesquisa, sem os espaços das pontas (regra 6.22). A paleta da web não pede à api um termo
@@ -86,6 +86,29 @@ export class SearchAccount {
   active!: boolean;
 }
 
+export class SearchCategory {
+  @ApiProperty({ format: 'uuid', description: 'O id da categoria.' })
+  id!: string;
+
+  @ApiProperty({ description: 'O nome da categoria.', example: 'Energia' })
+  name!: string;
+
+  @ApiProperty({ enum: CategoryNature, description: 'Receita (`revenue`) ou despesa (`expense`), para o complemento.' })
+  nature!: CategoryNature;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'O nome da categoria pai, para o caminho do complemento ("Moradia › Energia"), ou nulo na de primeiro nível.',
+    example: 'Moradia',
+  })
+  parentName!: string | null;
+
+  @ApiProperty({ description: 'Falso na categoria desativada, que aparece marcada como tal.' })
+  active!: boolean;
+}
+
 export class SearchUser {
   @ApiProperty({ format: 'uuid', description: 'O id do usuário.' })
   id!: string;
@@ -124,6 +147,14 @@ export class SearchResults {
       'Até 5 contas das entidades em que o usuário tem `view` ou `operate`, as ativas primeiro, e cada grupo pelo nome.',
   })
   accounts!: SearchAccount[];
+
+  @ApiProperty({
+    type: SearchCategory,
+    isArray: true,
+    description:
+      'Até 5 categorias da árvore das pessoas físicas, para quem tem permissão em alguma pessoa física, as ativas primeiro, e cada grupo pelo nome.',
+  })
+  categories!: SearchCategory[];
 
   @ApiProperty({
     type: SearchUser,

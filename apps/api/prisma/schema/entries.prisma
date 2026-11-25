@@ -1,0 +1,46 @@
+// O módulo Lançamentos (LLD, seção 4.6, e regras 6.20 e 6.22): por enquanto, só a árvore de categorias
+// das pessoas físicas. Os lançamentos, as parcelas e a árvore de cada empresa entram nos tickets deles.
+
+/// A natureza da categoria, que não muda depois de criada: a de receita só classifica receitas, e a de
+/// despesa, despesas (LLD, seção 4.6).
+enum CategoryNature {
+  revenue
+  expense
+
+  @@map("category_nature")
+}
+
+/// A classificação de uma receita ou despesa numa árvore com subcategorias (GLOSSARY.md, Categoria). Por
+/// enquanto, só a árvore das pessoas físicas, que todas compartilham: a coluna `tree` e a `entity_id`, da
+/// árvore de cada empresa, entram com a clínica (LLD, seção 4.6). A árvore tem dois níveis: a categoria de
+/// primeiro nível (sem pai) e as subcategorias dela. A de primeiro nível nasce com a migração, e a família
+/// a edita, desativa e completa.
+/// Não é excluída: é desativada, e some das escolhas sem sumir dos números (regra 6.20).
+/// CHECK escrito à mão na migração (category_name_check): o nome não é vazio nem só de espaços.
+/// CHECK escrito à mão na migração (category_parent_check): a categoria não é pai dela mesma.
+/// O papel do banco da aplicação (finance_app) não tem DELETE nem TRUNCATE nesta tabela, porque a
+/// categoria é desativada, e não excluída (regra 6.20). A revogação é escrita à mão na migração.
+model Category {
+  /// uuidv7, gerado pelo banco.
+  id        String         @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// A categoria pai, ou nulo na de primeiro nível. Só uma de primeiro nível é pai, da mesma natureza, e
+  /// muda com o "mover" (LLD, seção 4.6). RESTRICT: a categoria é desativada, e não excluída.
+  parentId  String?        @map("parent_id") @db.Uuid
+  parent    Category?      @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: Restrict)
+  children  Category[]     @relation("CategoryChildren")
+  /// O nome, como o usuário quer vê-lo, sem espaços nas pontas, até 120 caracteres. Não é único.
+  name      String
+  /// Não muda depois de criada; a subcategoria tem a do pai.
+  nature    CategoryNature
+  /// A categoria desativada some das escolhas dos lançamentos novos e continua nos que já tem (regra
+  /// 6.20). Desativar a de primeiro nível desativa as subcategorias dela junto.
+  active    Boolean        @default(true)
+  createdAt DateTime       @map("created_at") @db.Timestamptz
+  updatedAt DateTime       @map("updated_at") @db.Timestamptz
+  /// O bloqueio otimista da edição e da desativação (regra 6.20).
+  version   Int            @default(1)
+
+  /// A árvore de uma natureza, de primeiro nível em primeiro nível, e as subcategorias de cada pai.
+  @@index([nature, parentId], map: "category_nature_parent_id_idx")
+  @@map("category")
+}

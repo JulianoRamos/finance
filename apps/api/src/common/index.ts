@@ -16,6 +16,7 @@ export {
   type ResolvedFinancialContext,
 } from './financial-context.js';
 export {
+  activeIs,
   byName,
   IsName,
   IsTrimmedLength,
@@ -43,6 +44,7 @@ export { PrismaService } from './prisma.service.js';
 export {
   AccountType,
   AuditAction,
+  CategoryNature,
   Decimal,
   EntityType,
   Institution,

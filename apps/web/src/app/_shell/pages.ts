@@ -1,4 +1,4 @@
-import { Building2, House, Lock, type LucideIcon, Plus, User, Users, Wallet } from 'lucide-react';
+import { Building2, House, ListTree, Lock, type LucideIcon, Plus, User, Users, Wallet } from 'lucide-react';
 
 /** Um destino da estrutura do app: o caminho, o nome e o ícone. */
 export interface Destination {
@@ -10,7 +10,13 @@ export interface Destination {
 /** A navegação da barra lateral, por grupo (design-system.md, seção 4.1). */
 export const NAVIGATION: readonly { readonly group: string; readonly items: readonly Destination[] }[] = [
   { group: 'Geral', items: [{ href: '/', label: 'Início', icon: House }] },
-  { group: 'Dinheiro', items: [{ href: '/accounts', label: 'Contas', icon: Wallet }] },
+  {
+    group: 'Dinheiro',
+    items: [
+      { href: '/accounts', label: 'Contas', icon: Wallet },
+      { href: '/categories', label: 'Categorias', icon: ListTree },
+    ],
+  },
 ];
 
 /** Um cadastro do menu das configurações, que pode ser só de quem gere acessos (regra 6.1). */
