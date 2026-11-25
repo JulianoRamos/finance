@@ -1,5 +1,6 @@
-// O módulo Lançamentos (LLD, seção 4.6, e regras 6.20 e 6.22): por enquanto, só a árvore de categorias
-// das pessoas físicas. Os lançamentos, as parcelas e a árvore de cada empresa entram nos tickets deles.
+// O módulo Lançamentos (LLD, seção 4.6, e regras 6.6, 6.8, 6.20, 6.21 e 6.22): a árvore de categorias
+// das pessoas físicas e os lançamentos de receita e de despesa delas, com as parcelas. O pagamento, a
+// correção, o cancelamento, a edição e a exclusão entram nos tickets deles, como a árvore de cada empresa.
 
 /// A natureza da categoria, que não muda depois de criada: a de receita só classifica receitas, e a de
 /// despesa, despesas (LLD, seção 4.6).
@@ -40,7 +41,121 @@ model Category {
   /// O bloqueio otimista da edição e da desativação (regra 6.20).
   version   Int            @default(1)
 
+  entries Entry[]
+
   /// A árvore de uma natureza, de primeiro nível em primeiro nível, e as subcategorias de cada pai.
   @@index([nature, parentId], map: "category_nature_parent_id_idx")
   @@map("category")
+}
+
+/// O tipo do lançamento. Por enquanto, só a receita e a despesa das pessoas físicas; a transferência, a
+/// aplicação, o resgate, o repasse, o reembolso e a compra de estoque entram com os módulos donos deles
+/// (LLD, seção 4.6).
+enum EntryType {
+  revenue
+  expense
+
+  @@map("entry_type")
+}
+
+/// Em qual indicador o lançamento entra, fixado pelo tipo (regra 6.8): a receita tem o efeito `revenue`,
+/// e a despesa, `expense`. A dedução de receita e o neutro entram com os tipos que os têm.
+enum EntryEffect {
+  revenue
+  expense
+
+  @@map("entry_effect")
+}
+
+/// Para que serve uma despesa de pessoa física (GLOSSARY.md, Finalidade): pessoal, de um dos membros, ou
+/// familiar, da casa. A receita não tem finalidade.
+enum EntryPurpose {
+  personal
+  household
+
+  @@map("entry_purpose")
+}
+
+/// O registro de um fato financeiro de uma entidade, desdobrado em parcelas (GLOSSARY.md, Lançamento).
+/// Por enquanto, só a receita e a despesa de uma pessoa física, paga por ela mesma, à vista (uma parcela)
+/// ou parcelada.
+/// Chave estrangeira escrita à mão na migração (entry_entity_id_fkey): entity_id referencia entity(id),
+/// com RESTRICT, sem relação no Prisma, porque a tabela entity é do módulo Entidades (LLD, seção 3).
+/// Chave estrangeira escrita à mão na migração (entry_payer_id_fkey): payer_id referencia entity(id), com
+/// RESTRICT, pelo mesmo motivo.
+/// CHECK escrito à mão na migração (entry_description_check): a descrição não é vazia nem só de espaços.
+/// CHECK escrito à mão na migração (entry_effect_check): o efeito é o do tipo (regra 6.8).
+/// CHECK escrito à mão na migração (entry_purpose_check): a despesa tem a finalidade, e a receita não.
+/// CHECK escrito à mão na migração (entry_payer_check): o pagador é a dona; o de outra entidade entra com o
+/// reembolso pendente (regra 6.10).
+/// CHECK escrito à mão na migração (entry_total_amount_check): o total é maior que zero.
+model Entry {
+  /// uuidv7, gerado pelo banco.
+  id           String        @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// A entidade dona, uma pessoa física, do módulo Entidades.
+  entityId     String        @map("entity_id") @db.Uuid
+  type         EntryType
+  /// Fixado pelo tipo (regra 6.8).
+  effect       EntryEffect
+  /// O que foi, como o usuário o escreve, sem espaços nas pontas, até 200 caracteres.
+  description  String
+  /// A categoria, da mesma natureza do tipo e ativa na criação. RESTRICT: a categoria é desativada, e não
+  /// excluída (regra 6.20).
+  categoryId   String        @map("category_id") @db.Uuid
+  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  /// Só na despesa, obrigatória nela; nula na receita.
+  purpose      EntryPurpose?
+  /// O dia do fato, como a data da compra ou da venda.
+  occurredOn   DateTime      @map("occurred_on") @db.Date
+  /// O total, a soma das parcelas, maior que zero (LLD, seção 4.1).
+  totalAmount  Decimal       @map("total_amount") @db.Decimal(15, 2)
+  /// A entidade que paga, por enquanto sempre a dona.
+  payerId      String        @map("payer_id") @db.Uuid
+  createdAt    DateTime      @map("created_at") @db.Timestamptz
+  updatedAt    DateTime      @map("updated_at") @db.Timestamptz
+  /// O bloqueio otimista da edição, que entra com ela (regra 6.20).
+  version      Int           @default(1)
+  installments Installment[]
+
+  /// O total do mês de cada categoria.
+  @@index([categoryId], map: "entry_category_id_idx")
+  /// Os lançamentos de cada entidade.
+  @@index([entityId], map: "entry_entity_id_idx")
+  @@map("entry")
+}
+
+/// Uma das frações em que um lançamento é dividido, com valor, vencimento e conta próprios (GLOSSARY.md,
+/// Parcela). A situação é calculada, e não guardada (regra 6.6): por enquanto, prevista ou vencida,
+/// pelo vencimento; a liquidada entra com o pagamento, e a cancelada, com o cancelamento.
+/// Chave estrangeira escrita à mão na migração (installment_account_id_fkey): account_id referencia
+/// account(id), com RESTRICT, sem relação no Prisma, porque a tabela account é do módulo Contas (LLD,
+/// seção 3).
+/// CHECK escrito à mão na migração (installment_amount_check): o valor é maior que zero.
+/// CHECK escrito à mão na migração (installment_number_check): o número é a partir de 1.
+model Installment {
+  /// uuidv7, gerado pelo banco.
+  id        String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// O lançamento. RESTRICT: a parcela é cancelada, e não excluída, e a exclusão do lançamento entra com
+  /// a regra dela (regra 6.20).
+  entryId   String            @map("entry_id") @db.Uuid
+  entry     Entry             @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  /// A ordem, de 1 ao número de parcelas, com o vencimento um mês depois da anterior.
+  number    Int
+  /// O valor, maior que zero: o total dividido em centavos, com a diferença na primeira (regra 6.21).
+  amount    Decimal           @db.Decimal(15, 2)
+  /// O vencimento, ou o recebimento, na receita.
+  dueDate   DateTime          @map("due_date") @db.Date
+  /// A conta em que a parcela é paga ou recebida, da entidade dona, do módulo Contas.
+  accountId String            @map("account_id") @db.Uuid
+  /// De entrada (`inflow`) na receita, e de saída (`outflow`) na despesa.
+  direction MovementDirection
+  createdAt DateTime          @map("created_at") @db.Timestamptz
+  updatedAt DateTime          @map("updated_at") @db.Timestamptz
+
+  @@unique([entryId, number, direction], map: "installment_entry_id_number_direction_key")
+  /// A lista do mês, pelo vencimento.
+  @@index([dueDate], map: "installment_due_date_idx")
+  /// As parcelas de uma conta.
+  @@index([accountId], map: "installment_account_id_idx")
+  @@map("installment")
 }
