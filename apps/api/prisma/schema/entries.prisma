@@ -18,6 +18,8 @@ enum CategoryNature {
 /// Não é excluída: é desativada, e some das escolhas sem sumir dos números (regra 6.20).
 /// CHECK escrito à mão na migração (category_name_check): o nome não é vazio nem só de espaços.
 /// CHECK escrito à mão na migração (category_parent_check): a categoria não é pai dela mesma.
+/// O papel do banco da aplicação (finance_app) não tem DELETE nem TRUNCATE nesta tabela, porque a
+/// categoria é desativada, e não excluída (regra 6.20). A revogação é escrita à mão na migração.
 model Category {
   /// uuidv7, gerado pelo banco.
   id        String         @id @default(dbgenerated("uuidv7()")) @db.Uuid

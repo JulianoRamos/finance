@@ -2,6 +2,7 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 
 import {
   type AccountType,
+  activeIs,
   apiError,
   calendarDateOf,
   type Clock,
@@ -205,7 +206,7 @@ export class AccountsService {
       client,
       sql`SELECT id, active, name FROM account
         WHERE entity_id = ANY(${[...filter.entityIds]}::uuid[])
-          AND (${filter.active ?? null}::boolean IS NULL OR active = ${filter.active ?? null}::boolean)
+          AND ${activeIs(filter.active)}
           AND ${nameMatches(filter.q)}`,
       ACCOUNT_ORDER,
       filter.page,

@@ -72,7 +72,7 @@ export function ConfirmDialog({
  * enquanto a ação roda, e um elemento desabilitado não recebe o foco: espera ele voltar a valer, e só
  * então o foca, se ninguém tiver levado o foco para outro lugar nesse meio-tempo.
  */
-function returnFocus(target: HTMLElement) {
+export function returnFocus(target: HTMLElement) {
   if (!target.matches(':disabled')) {
     target.focus();
     return;

@@ -41,6 +41,20 @@ async function openRefusedAdjustment(page: Page, baseURL: string) {
   await expect(dialog.getByLabel('Motivo')).toHaveAccessibleDescription('Diga por que o saldo difere do banco.');
 }
 
+/**
+ * Abre Categorias com um usuário que tem uma pessoa física, buscando a categoria semeada Moradia: a árvore é
+ * de todos os testes, e a busca a traz na primeira página.
+ */
+async function openSeededCategory(page: Page, baseURL: string) {
+  const user = await createTestUser();
+  await createTestIndividual(user);
+  await signIn(page.context(), user, baseURL);
+  await page.goto('/categories?q=Moradia');
+  const actions = page.getByRole('button', { name: 'Ações de Moradia', exact: true }).first();
+  await expect(actions).toBeVisible();
+  return actions;
+}
+
 const SCREENS: readonly Screen[] = [
   {
     name: 'a página inicial',
@@ -394,6 +408,50 @@ const SCREENS: readonly Screen[] = [
     open: async (page) => {
       await page.goto('/recover-access');
       await heading(page, 'Recuperar o acesso');
+    },
+  },
+  {
+    name: 'a árvore de categorias',
+    open: async (page, baseURL) => {
+      const user = await createTestUser();
+      await createTestIndividual(user);
+      await signIn(page.context(), user, baseURL);
+      await page.goto('/categories');
+      await expect(page.getByRole('treegrid', { name: 'Categorias de despesa' }).getByRole('row').nth(1)).toBeVisible();
+    },
+  },
+  {
+    name: 'a busca na árvore de categorias',
+    open: async (page, baseURL) => {
+      await openSeededCategory(page, baseURL);
+      await expect(page.getByRole('treegrid').locator('mark').first()).toHaveText('Moradia');
+    },
+  },
+  {
+    name: 'o menu de uma categoria aberto',
+    open: async (page, baseURL) => {
+      await (await openSeededCategory(page, baseURL)).click();
+      await expect(page.getByRole('menuitem', { name: 'Mover para…' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a nova subcategoria com o nome recusado',
+    open: async (page, baseURL) => {
+      await openSeededCategory(page, baseURL);
+      await page.getByRole('button', { name: 'Nova subcategoria em Moradia', exact: true }).first().click();
+      const dialog = page.getByRole('dialog', { name: 'Nova subcategoria em Moradia' });
+      // Um nome acima do limite de 120 caracteres, que a api recusa.
+      await dialog.getByLabel('Nome').fill('x'.repeat(121));
+      await dialog.getByRole('button', { name: 'Criar subcategoria' }).click();
+      await expect(dialog.getByLabel('Nome')).toHaveAccessibleDescription('Informe o nome, com até 120 caracteres.');
+    },
+  },
+  {
+    name: 'o mover de uma categoria',
+    open: async (page, baseURL) => {
+      await (await openSeededCategory(page, baseURL)).click();
+      await page.getByRole('menuitem', { name: 'Mover para…' }).click();
+      await expect(page.getByRole('dialog', { name: 'Mover Moradia para…' }).getByRole('radio').first()).toBeVisible();
     },
   },
 ];

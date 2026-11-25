@@ -164,7 +164,7 @@ O ajuste (regra 6.3) é uma movimentação de origem `adjustment` (`POST /v1/acc
 
 | Tabela | Colunas que carregam regra | Restrições |
 | --- | --- | --- |
-| `category` | `tree` (`individual`, `company`), `entity_id`, `parent_id`, `name`, `nature` (`revenue`, `expense`), `active` | `CHECK ((tree = 'individual') = (entity_id IS NULL))`: a árvore das pessoas físicas é uma só, e cada empresa tem a dela |
+| `category` | `tree` (`individual`, `company`), `entity_id`, `parent_id`, `name`, `nature` (`revenue`, `expense`), `active` | `CHECK ((tree = 'individual') = (entity_id IS NULL))`: a árvore das pessoas físicas é uma só, e cada empresa tem a dela. O papel da `api` não tem `DELETE` nem `TRUNCATE` nela: a categoria é desativada, e não excluída |
 | `entry` | `entity_id`, `type` (`revenue`, `expense`, `transfer`, `investment`, `redemption`, `entity_transfer`, `refund`, `stock_purchase`), `effect` (`revenue`, `revenue_deduction`, `expense`, `neutral`), `description`, `category_id`, `purpose` (`personal`, `household`), `occurred_on`, `total_amount`, `payer_id`, `recurrence_id`, `source_module`, `source_id`, `canceled_at` | `purpose` só em despesa de pessoa física. `source_module` diz o módulo dono, que é o único que altera o lançamento |
 | `installment` | `entry_id`, `number`, `amount`, `due_date`, `account_id`, `direction`, `card_statement_id`, `canceled_at`, `is_estimated` | Única `(entry_id, number, direction)` |
 | `recurrence` | `entity_id`, o modelo do lançamento (descrição, categoria, finalidade, conta, `estimated_amount`), `frequency` (`weekly`, `monthly`, `yearly`), `day`, `start_date`, `end_date`, `active` | |

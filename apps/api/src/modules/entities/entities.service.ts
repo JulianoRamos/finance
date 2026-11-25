@@ -1,9 +1,11 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 
 import {
+  activeIs,
   apiError,
   type Clock,
   CLOCK,
+  currentEntityLevels,
   currentVisibleEntityIds,
   type EntityType,
   isUniqueViolation,
@@ -12,6 +14,7 @@ import {
   omit,
   type Operation,
   type PageRequest,
+  type PermissionLevel,
   readFirst,
   readPage,
   sql,
@@ -132,7 +135,7 @@ export class EntitiesService {
     return readPage(
       client,
       sql`SELECT id, active, name FROM entity
-        WHERE (${filter.active ?? null}::boolean IS NULL OR active = ${filter.active ?? null}::boolean)
+        WHERE ${activeIs(filter.active)}
           AND (${filter.type ?? null}::text IS NULL OR type::text = ${filter.type ?? null}::text)
           AND (${filter.ids === undefined}::boolean OR id = ANY(${filter.ids ?? []}::uuid[]))
           AND (${nameMatches(filter.q)} OR (type = 'company' AND tax_id LIKE ${taxId}::text))`,
@@ -177,6 +180,21 @@ export class EntitiesService {
     const rows = await this.transactions.client.$queryRaw<{ id: string; name: string; active: boolean }[]>`
       SELECT id::text AS id, name, active FROM entity WHERE id = ANY(${[...ids]}::uuid[]) ${lock}`;
     return new Map(rows.map((row) => [row.id, { name: row.name, active: row.active }]));
+  }
+
+  /**
+   * O maior nível do usuário da requisição nas pessoas físicas, ativas ou não, ou nulo quando ele não tem
+   * permissão em nenhuma: a árvore de categorias delas é de todas, e quem a lê ou altera tem o nível em
+   * alguma (LLD, seção 4.6). Lido das permissões que a autenticação já carregou e do tipo das entidades.
+   */
+  async individualsLevel(): Promise<PermissionLevel | null> {
+    const levels = await currentEntityLevels();
+    if (levels.size === 0) return null;
+    const rows = await this.transactions.client.$queryRaw<{ id: string }[]>`
+      SELECT id::text AS id FROM entity WHERE type = 'individual' AND id = ANY(${[...levels.keys()]}::uuid[])`;
+    const found = rows.map((row) => levels.get(row.id));
+    if (found.includes('operate')) return 'operate';
+    return found.includes('view') ? 'view' : null;
   }
 
   /** A entidade do id, ativa ou desativada. */

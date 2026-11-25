@@ -14,6 +14,7 @@ export type JsonObject = Prisma.InputJsonObject;
 export {
   AccountType,
   AuditAction,
+  CategoryNature,
   EntityType,
   Institution,
   LoginStep,

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRightLeft, CornerDownLeft, Lock, type LucideIcon, Search, Wallet } from 'lucide-react';
+import { ArrowRightLeft, CornerDownLeft, ListTree, Lock, type LucideIcon, Search, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Dialog } from 'radix-ui';
 import {
@@ -18,6 +18,7 @@ import type { SearchResults } from '@/api/search';
 
 import { FOCUS_RING } from '../_access/access-screen';
 import { accountBadge, bankText } from './account-text';
+import { categoriesHref, NATURE_TEXT } from './category-text';
 import { SECONDARY_BUTTON } from './buttons';
 import { CONTEXT_ICONS, useContextSelector } from './context-selector';
 import { groupCountsSummary } from './context-text';
@@ -136,6 +137,21 @@ function recordGroups(data: SearchResults): OptionGroup[] {
           detail: `${account.entityName} · ${bankText(account)}`,
           ...(badge !== null && { badge }),
           run: { kind: 'open', href: `/accounts/${account.id}` },
+        };
+      }),
+    },
+    {
+      label: 'Categorias',
+      options: data.categories.map((category) => {
+        const nature = NATURE_TEXT[category.nature].label;
+        return {
+          key: `category:${category.id}`,
+          icon: ListTree,
+          name: category.name,
+          detail: category.parentName === null ? nature : `${nature} · ${category.parentName} › ${category.name}`,
+          ...(!category.active && { badge: 'Desativada' }),
+          // A categoria abre a árvore da natureza dela, com a busca pelo nome (LLD, regra 6.22).
+          run: { kind: 'open', href: categoriesHref({ nature: category.nature, q: category.name }) },
         };
       }),
     },

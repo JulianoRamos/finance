@@ -27,6 +27,14 @@ export function formatDate(instant: string): string {
   return DATE.format(new Date(instant));
 }
 
+const MONTH = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+/** O mês de uma data de calendário `AAAA-MM-DD`, como "nov. de 2026", sem passar por fuso. */
+export function formatMonth(date: string): string {
+  const [year = 0, month = 1] = date.split('-').map(Number);
+  return MONTH.format(new Date(Date.UTC(year, month - 1, 1)));
+}
+
 /** Uma data de calendário `AAAA-MM-DD` como `dd/mm/aaaa` (design-system.md, seção 3), sem passar por fuso. */
 export function formatCalendarDate(date: string): string {
   const [year = '', month = '', day = ''] = date.split('-');

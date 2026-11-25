@@ -73,6 +73,7 @@ describe('Pesquisa', () => {
         { id: groupId, name: `Grupo Ávila ${marker}`, isFamilyView: false, individuals: 1, companies: 1 },
       ],
       accounts: [],
+      categories: [],
       users: [{ id: user.id, name: user.name, email: user.email, active: true }],
     });
 
@@ -85,6 +86,7 @@ describe('Pesquisa', () => {
       entities: [{ id: sixth.id, type: 'company', name: sixth.name, active: false }],
       financialGroups: [],
       accounts: [],
+      categories: [],
       users: [],
     });
   });
@@ -117,10 +119,11 @@ describe('Pesquisa', () => {
           { id: empty, name: `${marker} Grupo Vazio`, isFamilyView: false, individuals: 0, companies: 0 },
         ],
       };
-      expect(seenByViewer.body).toEqual({ ...visible, accounts: [], users: [] });
+      expect(seenByViewer.body).toEqual({ ...visible, accounts: [], categories: [], users: [] });
       expect(seenByAccessManager.body).toEqual({
         ...visible,
         accounts: [],
+        categories: [],
         users: [{ id: user.id, name: user.name, email: user.email, active: true }],
       });
     },

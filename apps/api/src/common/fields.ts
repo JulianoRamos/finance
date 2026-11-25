@@ -25,6 +25,12 @@ export function nameMatches(q: string | undefined): Sql {
   return sql`(${pattern}::text IS NULL OR unaccent(lower(name)) LIKE unaccent(lower(${pattern}::text)) ESCAPE '\\')`;
 }
 
+/** A condição do estado ativo (`active`): verdadeira quando o filtro é indefinido, e aí não filtra. */
+export function activeIs(active: boolean | undefined): Sql {
+  const value = active ?? null;
+  return sql`(${value}::boolean IS NULL OR active = ${value}::boolean)`;
+}
+
 /** Um texto de `min` a `max` caracteres, sem contar os espaços das pontas. */
 export function IsTrimmedLength(min: number, max: number, options: ValidationOptions): PropertyDecorator {
   return ValidateBy(
