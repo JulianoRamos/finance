@@ -56,7 +56,7 @@ export function formatFlow(amount: string, direction: 'inflow' | 'outflow'): str
 }
 
 /** A string decimal da api ("-150.25") em centavos, sem ponto flutuante. */
-function toCents(decimal: string): bigint {
+export function toCents(decimal: string): bigint {
   const { negative, whole, cents } = splitDecimal(decimal);
   const value = BigInt(whole || '0') * 100n + BigInt(cents);
   return negative ? -value : value;
@@ -69,11 +69,12 @@ function toCents(decimal: string): bigint {
 export function directedDifference(a: string, b: string): { amount: string; direction: 'inflow' | 'outflow' } | null {
   const cents = toCents(a) - toCents(b);
   if (cents === 0n) return null;
-  const absolute = cents < 0n ? -cents : cents;
-  return {
-    amount: `${String(absolute / 100n)}.${String(absolute % 100n).padStart(2, '0')}`,
-    direction: cents < 0n ? 'outflow' : 'inflow',
-  };
+  return { amount: fromCents(cents < 0n ? -cents : cents), direction: cents < 0n ? 'outflow' : 'inflow' };
+}
+
+/** Os centavos positivos como a string decimal da api (100000n → "1000.00"). */
+export function fromCents(cents: bigint): string {
+  return `${String(cents / 100n)}.${String(cents % 100n).padStart(2, '0')}`;
 }
 
 /** Um valor positivo com o sentido por extenso: "Saída de R$ 12,90" ou "Entrada de R$ 30,00". */

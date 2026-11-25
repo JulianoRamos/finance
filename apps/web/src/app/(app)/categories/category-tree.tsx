@@ -9,11 +9,12 @@ import type { CategoryEdit, CategoryTreeItem, ParentChoice } from '@/api/categor
 
 import { ErrorNotice, inputClass } from '../../_access/fields';
 import { GHOST_ICON_BUTTON, PRIMARY_BUTTON, SECONDARY_BUTTON } from '../../_shell/buttons';
-import { categoriesHref, type CategoryParams, NATURE_TEXT } from '../../_shell/category-text';
+import { categoriesHref, categoryPath, type CategoryParams, NATURE_TEXT } from '../../_shell/category-text';
 import { ConfirmDialog } from '../../_shell/confirm-dialog';
 import { FormDialog, FormDialogCancel } from '../../_shell/form-dialog';
 import { Hint } from '../../_shell/hint';
 import { MENU_ITEM, MENU_ITEM_DESTRUCTIVE, MENU_LABEL, MENU_PANEL, MENU_SEPARATOR } from '../../_shell/menu';
+import { MoneyValue } from '../../_shell/money-value';
 import { highlight } from '../../_shell/search-text';
 import { TemporaryNotice } from '../../_shell/temporary-notice';
 import {
@@ -33,7 +34,7 @@ const NOT_SENT: CategoryCommandResult = { message: null, saved: null };
 
 /** O caminho da categoria, como o menu e o campo do renomear o dizem ("Moradia › Energia"). */
 function pathOf(category: TreeCategory, parent: TreeCategory | null): string {
-  return parent === null ? category.name : `${parent.name} › ${category.name}`;
+  return categoryPath(category.name, parent?.name ?? null);
 }
 
 /** A edição da categoria lida com o nome ou o pai trocados, como a api a recebe, com a natureza e a versão lidas. */
@@ -400,7 +401,10 @@ export function CategoryTree({
             </>
           )}
         </span>
-        <span role="gridcell" className="flex-none" />
+        <span role="gridcell" className="w-36 flex-none text-right">
+          {/* Sem lançamento no mês, a célula fica vazia, como o protótipo. */}
+          {category.monthTotal !== '0.00' && <MoneyValue amount={category.monthTotal} />}
+        </span>
         <span role="gridcell" className="flex flex-none justify-end gap-1">
           {level === 1 && category.active && <NewSubcategory parent={category} nature={category.nature} />}
           <RowMenu
@@ -445,8 +449,7 @@ export function CategoryTree({
           <span role="columnheader" className="flex-1">
             Categoria
           </span>
-          {/* O total do mês por categoria entra com os lançamentos; até lá, a coluna fica vazia. */}
-          <span role="columnheader" className="flex-none text-right whitespace-nowrap">
+          <span role="columnheader" className="w-36 flex-none text-right whitespace-nowrap">
             {month}
           </span>
           <span role="columnheader" className="w-16">

@@ -22,11 +22,13 @@ export const metadata: Metadata = { title: 'Categorias · finance' };
 /** A árvore da aba e da busca do endereço, com a paginação, depois de a página chegar da api. */
 async function TreeBody({ params }: Readonly<{ params: CategoryParams }>) {
   await connection();
+  const today = todayCalendarDate();
   const list = await listCategories({
     nature: params.nature,
     page: params.page,
     q: params.q,
     onlyActive: !params.showInactive,
+    month: today.slice(0, 7),
   });
   if (list.status === 'unauthenticated') redirect('/login');
   if (list.status === 'forbidden') {
@@ -41,7 +43,7 @@ async function TreeBody({ params }: Readonly<{ params: CategoryParams }>) {
   if (last !== null) redirect(categoriesHref({ ...params, page: last }));
   return (
     <>
-      <CategoryTree params={params} items={list.data.items} month={formatMonth(todayCalendarDate())} />
+      <CategoryTree params={params} items={list.data.items} month={formatMonth(today)} />
       {list.data.total > 0 && (
         <div className="px-4 pb-3">
           <UrlPagination page={list.data} label="Paginação das categorias" />

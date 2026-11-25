@@ -83,6 +83,25 @@ export function todayCalendarDate(): string {
   return `${String(now.getFullYear())}-${twoDigits(now.getMonth() + 1)}-${twoDigits(now.getDate())}`;
 }
 
+/** O mês de hoje como `AAAA-MM`, no fuso do processo da web (TZ), o mesmo da api. */
+export function currentMonth(): string {
+  return todayCalendarDate().slice(0, 7);
+}
+
+/** O dia anterior ao `AAAA-MM-DD`, também como `AAAA-MM-DD`, sem passar por fuso. */
+export function dayBefore(date: string): string {
+  const [year = 0, month = 1, day = 1] = date.split('-').map(Number);
+  const before = new Date(Date.UTC(year, month - 1, day - 1));
+  return `${String(before.getUTCFullYear())}-${twoDigits(before.getUTCMonth() + 1)}-${twoDigits(before.getUTCDate())}`;
+}
+
+/** O mês `AAAA-MM` deslocado de `delta` meses, sem passar por fuso. */
+export function shiftMonth(month: string, delta: number): string {
+  const [year = 0, number = 1] = month.split('-').map(Number);
+  const shifted = new Date(Date.UTC(year, number - 1 + delta, 1));
+  return `${String(shifted.getUTCFullYear())}-${twoDigits(shifted.getUTCMonth() + 1)}`;
+}
+
 /** O último dia do mês anterior ao da data `AAAA-MM-DD`, também como `AAAA-MM-DD`, sem passar por fuso. */
 export function endOfPreviousMonth(date: string): string {
   const [year = 0, month = 1] = date.split('-').map(Number);

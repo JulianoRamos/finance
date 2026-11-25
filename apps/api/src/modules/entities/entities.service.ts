@@ -45,6 +45,7 @@ export interface EntitySearchResult {
 
 /** O que outro módulo lê de uma entidade dona de registros dele, como uma conta (LLD, seção 3). */
 export interface EntitySummary {
+  readonly type: EntityType;
   readonly name: string;
   readonly active: boolean;
 }
@@ -177,9 +178,11 @@ export class EntitiesService {
   ): Promise<ReadonlyMap<string, EntitySummary>> {
     if (ids.length === 0) return new Map();
     const lock = options.lock ? sql`FOR SHARE` : sql``;
-    const rows = await this.transactions.client.$queryRaw<{ id: string; name: string; active: boolean }[]>`
-      SELECT id::text AS id, name, active FROM entity WHERE id = ANY(${[...ids]}::uuid[]) ${lock}`;
-    return new Map(rows.map((row) => [row.id, { name: row.name, active: row.active }]));
+    const rows = await this.transactions.client.$queryRaw<
+      { id: string; type: EntityType; name: string; active: boolean }[]
+    >`
+      SELECT id::text AS id, type::text AS type, name, active FROM entity WHERE id = ANY(${[...ids]}::uuid[]) ${lock}`;
+    return new Map(rows.map(({ id, ...summary }) => [id, summary]));
   }
 
   /**

@@ -1,11 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { type ReactNode, useActionState } from 'react';
+import { useActionState } from 'react';
 
 import type { Account, AccountType, Institution } from '@/api/accounts';
 
-import { DateField, ErrorNotice, FieldError, inputClass, SubmitButton, TextField } from '../../_access/fields';
+import {
+  ControlField,
+  DateField,
+  describedBy,
+  FieldError,
+  ErrorNotice,
+  inputClass,
+  SubmitButton,
+  TextField,
+} from '../../_access/fields';
 import { ACCOUNT_TYPE_NAMES, INSTITUTION_NAMES } from '../../_shell/account-text';
 import { SECONDARY_BUTTON } from '../../_shell/buttons';
 import { CHOICE, CHOICE_CONTROL } from '../../_shell/choice';
@@ -24,36 +33,6 @@ const TYPE_DESCRIPTIONS: Readonly<Record<AccountType, string>> = {
 export interface OwnerOption {
   readonly id: string;
   readonly name: string;
-}
-
-/** O rótulo, o controle, a ajuda e o erro de um campo que não é um texto simples (design-system.md, 4.3). */
-function Field({
-  id,
-  label,
-  help,
-  error,
-  children,
-}: Readonly<{ id: string; label: string; help?: string; error: string | undefined; children: ReactNode }>) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-label text-ink">
-        {label}
-      </label>
-      {children}
-      {help && (
-        <p id={`${id}-help`} className="text-body-sm text-mute">
-          {help}
-        </p>
-      )}
-      <FieldError id={`${id}-error`} error={error} />
-    </div>
-  );
-}
-
-/** As ligações do controle com a ajuda, quando há, e o erro dele. */
-function describedBy(id: string, error: string | undefined, help = true) {
-  const ids = [help && `${id}-help`, error && `${id}-error`].filter(Boolean).join(' ');
-  return { 'aria-describedby': ids || undefined, 'aria-invalid': error ? true : undefined } as const;
 }
 
 /** Os valores do formulário antes do primeiro envio: os da conta, na edição, ou os vazios. */
@@ -139,7 +118,7 @@ export function AccountForm({
           </div>
         </>
       ) : (
-        <Field
+        <ControlField
           id={`${prefix}-entity`}
           label="Entidade"
           help="A pessoa física ou a empresa dona da conta."
@@ -153,7 +132,7 @@ export function AccountForm({
             name="entityId"
             defaultValue={values.entityId}
             className={inputClass('app')}
-            {...describedBy(`${prefix}-entity`, state.fields.entityId)}
+            {...describedBy(`${prefix}-entity`, state.fields.entityId, true)}
           >
             <option value="">Selecione</option>
             {owners.map((owner) => (
@@ -162,7 +141,7 @@ export function AccountForm({
               </option>
             ))}
           </select>
-        </Field>
+        </ControlField>
       )}
       <TextField
         id={`${prefix}-name`}
@@ -199,7 +178,7 @@ export function AccountForm({
         </div>
         <FieldError id={`${prefix}-type-error`} error={state.fields.type} />
       </fieldset>
-      <Field
+      <ControlField
         id={`${prefix}-institution`}
         label="Banco"
         help="Define qual extrato a conta importa."
@@ -213,7 +192,7 @@ export function AccountForm({
           name="institution"
           defaultValue={values.institution}
           className={inputClass('app')}
-          {...describedBy(`${prefix}-institution`, state.fields.institution)}
+          {...describedBy(`${prefix}-institution`, state.fields.institution, true)}
         >
           {(Object.keys(INSTITUTION_NAMES) as Institution[]).map((institution) => (
             <option key={institution} value={institution}>
@@ -221,7 +200,7 @@ export function AccountForm({
             </option>
           ))}
         </select>
-      </Field>
+      </ControlField>
       <label className={CHOICE}>
         <input type="checkbox" name="isReserve" defaultChecked={values.isReserve} className={CHOICE_CONTROL} />
         <span className="flex flex-col gap-1">
@@ -233,7 +212,7 @@ export function AccountForm({
         </span>
       </label>
       <div className="grid gap-6 md:grid-cols-2">
-        <Field id={`${prefix}-opening-balance`} label="Saldo inicial (R$)" error={state.fields.openingBalance}>
+        <ControlField id={`${prefix}-opening-balance`} label="Saldo inicial (R$)" error={state.fields.openingBalance}>
           <input
             id={`${prefix}-opening-balance`}
             name="openingBalance"
@@ -248,9 +227,9 @@ export function AccountForm({
               const decimal = parseMoneyInput(event.currentTarget.value);
               if (decimal !== null) event.currentTarget.value = formatMoneyInput(decimal);
             }}
-            {...describedBy(`${prefix}-opening-balance`, state.fields.openingBalance, false)}
+            {...describedBy(`${prefix}-opening-balance`, state.fields.openingBalance)}
           />
-        </Field>
+        </ControlField>
         <DateField
           id={`${prefix}-opening-balance-date`}
           name="openingBalanceDate"

@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { type DataResult, dataResult, type ReadResult, readResult } from './api-error';
+import { type DataResult, dataResult, MAX_PAGE_SIZE, type ReadResult, readAllPages, readResult } from './api-error';
 import { api } from './client';
 import type { components } from './schema';
 
@@ -16,8 +16,6 @@ export type CategoryEdit = components['schemas']['CategoryEdit'];
 
 /** O tamanho da página da árvore, pelas categorias de primeiro nível (design-system.md, seção 4.6). */
 const PAGE_SIZE = 10;
-/** O maior tamanho de página que a api aceita, para ler todas as categorias de primeiro nível. */
-const MAX_PAGE_SIZE = 100;
 
 /**
  * O que a leitura da árvore devolve: a página; `forbidden` quando o usuário não tem permissão em nenhuma
@@ -30,12 +28,16 @@ export type CategoryList =
   | { status: 'unauthenticated' }
   | { status: 'unavailable' };
 
-/** A página da árvore de uma natureza, com a busca; com `onlyActive`, só as ativas. */
+/**
+ * A página da árvore de uma natureza, com a busca e o total de cada categoria no mês `AAAA-MM`; com
+ * `onlyActive`, só as ativas.
+ */
 export async function listCategories(query: {
   nature: CategoryNature;
   page: number;
   q: string;
   onlyActive: boolean;
+  month: string;
 }): Promise<CategoryList> {
   const result = await dataResult((signal) =>
     api.GET('/v1/categories', {
@@ -45,6 +47,7 @@ export async function listCategories(query: {
           page: query.page,
           pageSize: PAGE_SIZE,
           q: query.q,
+          month: query.month,
           ...(query.onlyActive && { active: true }),
         },
       },
@@ -57,23 +60,50 @@ export async function listCategories(query: {
   return { status: result.code === 'FORBIDDEN' ? 'forbidden' : 'unavailable' };
 }
 
+/** Todas as categorias de primeiro nível ativas da natureza, pelo nome, com as subcategorias ativas, lidas de 100 em 100. */
+function listActiveTree(nature: CategoryNature): Promise<ReadResult<CategoryTreeItem[]>> {
+  return readAllPages(
+    (page) =>
+      readResult((init) =>
+        api.GET('/v1/categories', {
+          params: { query: { nature, page, pageSize: MAX_PAGE_SIZE, active: true } },
+          ...init,
+        }),
+      ),
+    (item) => item,
+  );
+}
+
 /**
  * Todas as categorias de primeiro nível ativas da natureza, pelo nome, que o "Mover para…" oferece como o
- * novo pai, lidas de 100 em 100.
+ * novo pai.
  */
 export async function listParentChoices(nature: CategoryNature): Promise<ReadResult<ParentChoice[]>> {
-  const choices: ParentChoice[] = [];
-  for (let page = 1; ; page++) {
-    const result = await readResult((init) =>
-      api.GET('/v1/categories', {
-        params: { query: { nature, page, pageSize: MAX_PAGE_SIZE, active: true } },
-        ...init,
-      }),
-    );
-    if (result.status !== 'ok') return result;
-    choices.push(...result.data.items.map(({ id, name }) => ({ id, name })));
-    if (choices.length >= result.data.total || result.data.items.length === 0) return { status: 'ok', data: choices };
-  }
+  const tree = await listActiveTree(nature);
+  return tree.status === 'ok' ? { status: 'ok', data: tree.data.map(({ id, name }) => ({ id, name })) } : tree;
+}
+
+/** Uma escolha de categoria de um lançamento: o id, o nome e o nome do pai, para o caminho. */
+export interface CategoryChoice {
+  readonly id: string;
+  readonly name: string;
+  readonly parentName: string | null;
+}
+
+/**
+ * As categorias ativas da natureza que um lançamento pode escolher, na ordem da árvore: cada uma de
+ * primeiro nível seguida das subcategorias dela.
+ */
+export async function listCategoryChoices(nature: CategoryNature): Promise<ReadResult<CategoryChoice[]>> {
+  const tree = await listActiveTree(nature);
+  if (tree.status !== 'ok') return tree;
+  return {
+    status: 'ok',
+    data: tree.data.flatMap((parent) => [
+      { id: parent.id, name: parent.name, parentName: null },
+      ...parent.children.map((child) => ({ id: child.id, name: child.name, parentName: parent.name })),
+    ]),
+  };
 }
 
 /** O resultado de um comando sobre uma categoria: ela, como ficou, ou o erro do contrato. */

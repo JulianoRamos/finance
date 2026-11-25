@@ -18,7 +18,7 @@ import type { SearchResults } from '@/api/search';
 
 import { FOCUS_RING } from '../_access/access-screen';
 import { accountBadge, bankText } from './account-text';
-import { categoriesHref, NATURE_TEXT } from './category-text';
+import { categoriesHref, categoryPath, NATURE_TEXT } from './category-text';
 import { SECONDARY_BUTTON } from './buttons';
 import { CONTEXT_ICONS, useContextSelector } from './context-selector';
 import { groupCountsSummary } from './context-text';
@@ -148,7 +148,8 @@ function recordGroups(data: SearchResults): OptionGroup[] {
           key: `category:${category.id}`,
           icon: ListTree,
           name: category.name,
-          detail: category.parentName === null ? nature : `${nature} · ${category.parentName} › ${category.name}`,
+          detail:
+            category.parentName === null ? nature : `${nature} · ${categoryPath(category.name, category.parentName)}`,
           ...(!category.active && { badge: 'Desativada' }),
           // A categoria abre a árvore da natureza dela, com a busca pelo nome (LLD, regra 6.22).
           run: { kind: 'open', href: categoriesHref({ nature: category.nature, q: category.name }) },

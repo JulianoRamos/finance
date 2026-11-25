@@ -27,12 +27,20 @@ export class AuditService {
    * nunca fica para trás nem à frente do dado.
    */
   async record(entry: AuditEntry): Promise<void> {
+    await this.recordMany([entry]);
+  }
+
+  /**
+   * Grava os registros de auditoria de várias alterações do mesmo comando numa instrução só, como as
+   * parcelas de um lançamento, com as regras do `record`.
+   */
+  async recordMany(entries: readonly AuditEntry[]): Promise<void> {
     const context = currentRequestContext();
     if (!context?.transaction) {
       throw new Error('A auditoria só é gravada dentro da transação do comando que fez a alteração.');
     }
-    await context.transaction.auditLog.create({
-      data: {
+    await context.transaction.auditLog.createMany({
+      data: entries.map((entry) => ({
         userId: context.userId,
         action: entry.action,
         tableName: entry.tableName,
@@ -43,7 +51,7 @@ export class AuditService {
         // o instante da transação.
         ...(entry.before && { before: toSnapshot(entry.before) }),
         ...(entry.after && { after: toSnapshot(entry.after) }),
-      },
+      })),
     });
   }
 }

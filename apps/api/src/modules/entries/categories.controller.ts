@@ -14,7 +14,7 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 
-import { ApiError, pageRequest, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
+import { ApiError, pageRequest, parseCalendarMonth, UNAUTHENTICATED_RESPONSE } from '../../common/index.js';
 import { CategoriesService } from './categories.service.js';
 import {
   Category,
@@ -55,12 +55,12 @@ export class CategoriesController {
   @ApiOkResponse({
     type: CategoryTreePage,
     description:
-      'A página das categorias de primeiro nível da natureza, com o total delas (LLD, seção 5), cada uma com as subcategorias: a paginação é pelo primeiro nível, para nenhuma categoria ficar dividida entre duas páginas.',
+      'A página das categorias de primeiro nível da natureza, com o total delas (LLD, seção 5), cada uma com as subcategorias e o total do mês: a paginação é pelo primeiro nível, para nenhuma categoria ficar dividida entre duas páginas.',
   })
   @ApiBadRequestResponse({
     type: ApiError,
     description:
-      '`INVALID_INPUT`: a natureza falta ou não é `revenue` nem `expense`, o `active` não é `true` nem `false`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
+      '`INVALID_INPUT`: a natureza falta ou não é `revenue` nem `expense`, o `active` não é `true` nem `false`, o mês não é `AAAA-MM`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).',
   })
   @ApiUnauthorizedResponse(UNAUTHENTICATED_RESPONSE)
   @ApiForbiddenResponse({
@@ -73,6 +73,7 @@ export class CategoriesController {
       nature: query.nature,
       active: query.active === undefined ? undefined : query.active === 'true',
       q: query.q,
+      month: parseCalendarMonth(query.month) ?? undefined,
       page: pageRequest(query),
     });
   }

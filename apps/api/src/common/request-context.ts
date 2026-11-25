@@ -78,6 +78,16 @@ export function currentEntityLevels(): Promise<ReadonlyMap<string, PermissionLev
   return read();
 }
 
+/** Se o nível satisfaz o exigido: `operate` vale também para ler (regra 6.1). */
+export function satisfiesLevel(level: PermissionLevel | undefined, required: PermissionLevel): boolean {
+  return level === 'operate' || (level === 'view' && required === 'view');
+}
+
+/** Se o usuário da requisição tem o nível exigido na entidade, pelas permissões que a autenticação já leu. */
+export async function hasEntityLevel(entityId: string, required: PermissionLevel): Promise<boolean> {
+  return satisfiesLevel((await currentEntityLevels()).get(entityId.toLowerCase()), required);
+}
+
 /** Os ids das entidades em que o usuário da requisição tem permissão. */
 export async function currentVisibleEntityIds(): Promise<string[]> {
   return [...(await currentEntityLevels()).keys()];

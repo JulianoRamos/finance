@@ -7,7 +7,7 @@ import {
   calendarDateOf,
   type Clock,
   CLOCK,
-  currentEntityLevels,
+  hasEntityLevel,
   currentVisibleEntityIds,
   Decimal,
   formatCalendarDate,
@@ -17,7 +17,7 @@ import {
   NAME_COLLATION,
   nameMatches,
   type PageRequest,
-  parseCalendarDate,
+  requireCalendarDate,
   type PermissionLevel,
   readFirst,
   readPage,
@@ -70,6 +70,13 @@ export interface AccountSearchResult {
   readonly entityName: string;
   readonly institution: Institution;
   readonly isReserve: boolean;
+  readonly active: boolean;
+}
+
+/** O que outro módulo lê de uma conta em que grava registros, como as parcelas (LLD, seção 3). */
+export interface AccountSummary {
+  readonly entityId: string;
+  readonly name: string;
   readonly active: boolean;
 }
 
@@ -168,13 +175,9 @@ function forbidden(required: PermissionLevel) {
   );
 }
 
-/**
- * Confere o nível do usuário da requisição na entidade, pelas permissões que a autenticação já leu
- * (regra 6.1): `operate` vale também para ler.
- */
+/** Confere o nível do usuário da requisição na entidade (regra 6.1), ou recusa com 403. */
 async function requireEntityLevel(entityId: string, required: PermissionLevel): Promise<void> {
-  const level = (await currentEntityLevels()).get(entityId.toLowerCase());
-  if (level === undefined || (required === 'operate' && level !== 'operate')) throw forbidden(required);
+  if (!(await hasEntityLevel(entityId, required))) throw forbidden(required);
 }
 
 /**
@@ -237,6 +240,22 @@ export class AccountsService {
     );
   }
 
+  /**
+   * A dona, o nome e o estado de cada conta dos ids, para outro módulo (LLD, seção 3). Com `lock`, trava as
+   * contas até o fim da transação, para a desativação esperar a gravação de quem as usa.
+   */
+  async summariesOf(
+    ids: readonly string[],
+    options: { lock?: boolean } = {},
+  ): Promise<ReadonlyMap<string, AccountSummary>> {
+    if (ids.length === 0) return new Map();
+    const lock = options.lock ? sql`FOR SHARE` : sql``;
+    const rows = await this.transactions.client.$queryRaw<(AccountSummary & { id: string })[]>`
+      SELECT id::text AS id, entity_id::text AS "entityId", name, active
+      FROM account WHERE id = ANY(${[...ids]}::uuid[]) ${lock}`;
+    return new Map(rows.map(({ id, ...summary }) => [id, summary]));
+  }
+
   /** A conta do id, ativa ou desativada, quando o usuário tem `view` na entidade dona. */
   async get(id: string): Promise<Account> {
     return this.withEntityName(await this.readWithLevel(id, 'view'));
@@ -274,7 +293,7 @@ export class AccountsService {
           institution: input.institution,
           isReserve: input.isReserve,
           openingBalance: new Decimal(input.openingBalance),
-          openingBalanceDate: calendarDate(input.openingBalanceDate),
+          openingBalanceDate: requireCalendarDate(input.openingBalanceDate),
         }),
       );
     });
@@ -314,7 +333,7 @@ export class AccountsService {
           institution: input.institution,
           isReserve: input.isReserve,
           openingBalance: input.openingBalance,
-          openingBalanceDate: calendarDate(input.openingBalanceDate),
+          openingBalanceDate: requireCalendarDate(input.openingBalanceDate),
           createdAt: now,
           updatedAt: now,
         },
@@ -339,7 +358,7 @@ export class AccountsService {
    */
   async balance(accountId: string, dateText: string | undefined): Promise<AccountBalance> {
     const account = await this.readWithLevel(accountId, 'view');
-    const date = dateText === undefined ? calendarDateOf(this.clock.now()) : calendarDate(dateText);
+    const date = dateText === undefined ? calendarDateOf(this.clock.now()) : requireCalendarDate(dateText);
     return { date: formatCalendarDate(date), balance: (await this.balanceOn(account, date)).toFixed(2) };
   }
 
@@ -370,7 +389,7 @@ export class AccountsService {
       await this.transactions.client.$queryRaw`SELECT 1 FROM account WHERE id = ${accountId}::uuid FOR SHARE`;
       const account = await this.readReceivingMovements(accountId);
       return this.insertMovement(account, {
-        date: calendarDate(input.date),
+        date: requireCalendarDate(input.date),
         amount: new Decimal(input.amount),
         direction: input.direction,
         description: input.description.trim(),
@@ -391,7 +410,7 @@ export class AccountsService {
       // que a travam também, espera, e não muda o saldo entre os dois.
       await this.transactions.client.$queryRaw`SELECT 1 FROM account WHERE id = ${accountId}::uuid FOR UPDATE`;
       const account = await this.readReceivingMovements(accountId);
-      const date = calendarDate(input.date);
+      const date = requireCalendarDate(input.date);
       const difference = new Decimal(input.bankBalance).minus(await this.balanceOn(account, date));
       if (difference.isZero()) {
         throw apiError(
@@ -541,11 +560,4 @@ export class AccountsService {
       GROUP BY a.id`;
     return new Map(rows.map((row) => [row.id, row.balance]));
   }
-}
-
-/** O dia de uma data já validada pelo DTO. */
-function calendarDate(text: string): Date {
-  const date = parseCalendarDate(text);
-  if (!date) throw new Error('A data chegou ao serviço sem passar pela validação.');
-  return date;
 }

@@ -1,10 +1,6 @@
 import { type CategoryParams, NATURES } from '../../_shell/category-text';
 import { requestedPage } from '../../_shell/list-page';
-
-/** O primeiro valor de um parâmetro do endereço. */
-function first(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
-}
+import { firstParam as first } from '../../_shell/search-params';
 
 /**
  * O estado da tela Categorias lido do endereço (`categoriesHref` escreve o mesmo): a aba de despesa, sem

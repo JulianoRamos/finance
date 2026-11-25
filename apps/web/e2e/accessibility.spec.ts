@@ -11,6 +11,7 @@ import {
   openTestGroup,
 } from './support/entities';
 import { openTestAccount, TEST_MOVEMENTS } from './support/accounts';
+import { openTestEntry } from './support/entries';
 import { createPendingTestUser, createTestUser, openTestUser, signIn, uniqueOrigin } from './support/users';
 import { screenAlert } from './support/screen';
 
@@ -290,6 +291,55 @@ const SCREENS: readonly Screen[] = [
       const account = await openTestAccount(page, baseURL, '/accounts');
       await expect(
         page.getByRole('region', { name: 'Lista de contas' }).getByRole('link', { name: new RegExp(account.name) }),
+      ).toBeVisible();
+    },
+  },
+  {
+    name: 'a lista dos lançamentos com o detalhe de um parcelado',
+    open: async (page, baseURL) => {
+      // Larga o bastante para o detalhe passar de `container-table` e mostrar a tabela das parcelas.
+      await page.setViewportSize({ width: 1600, height: 900 });
+      const { entry } = await openTestEntry(page, baseURL);
+      await expect(
+        page.getByRole('region', { name: entry.description }).getByRole('table').getByRole('row'),
+      ).toHaveCount(4);
+      await expect(
+        page
+          .getByRole('region', { name: 'Lista de lançamentos' })
+          .getByRole('link', { name: new RegExp(entry.description) }),
+      ).toBeVisible();
+    },
+  },
+  {
+    name: 'o novo lançamento com a prévia',
+    open: async (page, baseURL) => {
+      const { account, category } = await openTestEntry(page, baseURL, '/entries/new');
+      const form = page.getByRole('form', { name: 'Novo lançamento' });
+      await form.getByLabel('Valor total (R$)').fill('5.399,90');
+      await form.getByLabel('Categoria').selectOption({ label: category.name });
+      await form.getByRole('radio', { name: 'Parcelado' }).check();
+      await form.getByLabel('Número de parcelas').fill('18');
+      await form.getByLabel('Primeiro vencimento').fill('2026-12-10');
+      await form.getByLabel('Conta').selectOption({ label: account.name });
+      await expect(form.getByRole('list', { name: 'Prévia das parcelas' }).getByRole('listitem')).toHaveCount(5);
+    },
+  },
+  {
+    name: 'a lista dos lançamentos sem resultado na busca',
+    open: async (page, baseURL) => {
+      await openTestEntry(page, baseURL, '/entries?q=nada-com-isto');
+      await expect(page.getByRole('button', { name: 'Limpar a busca' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a lista dos lançamentos no celular',
+    open: async (page, baseURL) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      const { entry } = await openTestEntry(page, baseURL, '/entries');
+      await expect(
+        page
+          .getByRole('region', { name: 'Lista de lançamentos' })
+          .getByRole('link', { name: new RegExp(entry.description) }),
       ).toBeVisible();
     },
   },
