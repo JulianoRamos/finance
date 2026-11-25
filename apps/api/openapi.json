@@ -2750,7 +2750,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Até 5 resultados por tipo, em todos os contextos do usuário (regra 6.22): as entidades em que ele tem permissão, os grupos em que ele tem permissão em todos os membros, as contas das entidades em que ele tem permissão e, só para quem gere acessos, os usuários.",
+            "description": "Até 5 resultados por tipo, em todos os contextos do usuário (regra 6.22): as entidades em que ele tem permissão, os grupos em que ele tem permissão em todos os membros, as contas das entidades em que ele tem permissão, as categorias das pessoas físicas, quando ele tem permissão em alguma, e, só para quem gere acessos, os usuários.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2785,7 +2785,7 @@
             "session": []
           }
         ],
-        "summary": "Pesquisa entidades, grupos financeiros, contas e usuários pelo nome.",
+        "summary": "Pesquisa entidades, grupos financeiros, contas, categorias e usuários pelo nome.",
         "tags": [
           "search"
         ]
@@ -3749,6 +3749,409 @@
         "summary": "Ajusta o saldo de uma conta ao do banco numa data.",
         "tags": [
           "accounts"
+        ]
+      }
+    },
+    "/v1/categories": {
+      "get": {
+        "operationId": "CategoriesController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "nature",
+            "required": true,
+            "in": "query",
+            "description": "A natureza da árvore: a de receita ou a de despesa.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "revenue",
+                "expense"
+              ]
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "`true` traz só as categorias ativas, as das escolhas dos lançamentos; `false`, só as desativadas. Sem o parâmetro, traz todas.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "A busca: o texto procurado no nome da categoria, sem diferença de acento nem de maiúsculas, em qualquer posição. Traz as categorias de primeiro nível que batem e as que têm uma subcategoria que bate, com só as subcategorias que batem. Vazia ou ausente, não filtra (LLD, seção 5).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página das categorias de primeiro nível da natureza, com o total delas (LLD, seção 5), cada uma com as subcategorias: a paginação é pelo primeiro nível, para nenhuma categoria ficar dividida entre duas páginas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryTreePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: a natureza falta ou não é `revenue` nem `expense`, o `active` não é `true` nem `false`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` em nenhuma pessoa física: a árvore das pessoas físicas é de todas elas (LLD, seção 4.6).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista a árvore de categorias das pessoas físicas de uma natureza.",
+        "tags": [
+          "categories"
+        ]
+      },
+      "post": {
+        "operationId": "CategoriesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewCategory"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A categoria foi criada, ativa, na versão 1.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o nome falta, é vazio ou passa de 120 caracteres, o pai não é um UUID, ou a natureza falta sem o pai ou não é `revenue` nem `expense` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` em nenhuma pessoa física: a árvore das pessoas físicas é de todas elas (LLD, seção 4.6).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`INVALID_PARENT`: o pai não existe. `CATEGORY_TOO_DEEP`: o pai já é uma subcategoria: a árvore tem dois níveis. `PARENT_NATURE_MISMATCH`: o pai é de outra natureza. `INACTIVE_PARENT`: o pai está desativado (LLD, seção 4.6).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Cria uma categoria ou subcategoria na árvore das pessoas físicas.",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/v1/categories/{id}": {
+      "put": {
+        "operationId": "CategoriesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da categoria.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryEdit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A categoria editada, na versão seguinte.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a versão falta, o nome falta, é vazio ou passa de 120 caracteres, o pai não é um UUID nem nulo, ou a natureza falta ou não é `revenue` nem `expense` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` em nenhuma pessoa física: a árvore das pessoas físicas é de todas elas (LLD, seção 4.6).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a categoria não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a categoria mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`CATEGORY_NATURE_IMMUTABLE`: a natureza enviada não é a atual. `INVALID_PARENT`: o pai não existe ou é a própria categoria. `CATEGORY_TOO_DEEP`: o pai já é uma subcategoria, ou a categoria tem subcategorias e iria para dentro de outra. `PARENT_NATURE_MISMATCH`: o pai é de outra natureza. `INACTIVE_PARENT`: o pai está desativado (LLD, seção 4.6).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Renomeia uma categoria ou muda o pai dela.",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/v1/categories/{id}/active": {
+      "put": {
+        "operationId": "CategoriesController_setActive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id da categoria.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryActivation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A categoria desativada ou reativada, com a versão seguinte. Desativar a de primeiro nível desativa as subcategorias dela junto; reativar reativa só ela. Pedir o estado que ela já tem responde 200 sem mudar a versão. Desativar não apaga nada (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, ou o `active` ou a versão faltam (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` em nenhuma pessoa física: a árvore das pessoas físicas é de todas elas (LLD, seção 4.6).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: a categoria não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`VERSION_CONFLICT`: a `version` enviada não é a atual: a categoria mudou desde a leitura (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`INACTIVE_PARENT`: a subcategoria não é reativada enquanto o pai dela estiver desativado (LLD, seção 4.6).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Desativa ou reativa uma categoria.",
+        "tags": [
+          "categories"
         ]
       }
     }
@@ -5230,6 +5633,46 @@
           "active"
         ]
       },
+      "SearchCategory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id da categoria."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da categoria.",
+            "example": "Energia"
+          },
+          "nature": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "Receita (`revenue`) ou despesa (`expense`), para o complemento."
+          },
+          "parentName": {
+            "type": "string",
+            "nullable": true,
+            "description": "O nome da categoria pai, para o caminho do complemento (\"Moradia › Energia\"), ou nulo na de primeiro nível.",
+            "example": "Moradia"
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na categoria desativada, que aparece marcada como tal."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "nature",
+          "parentName",
+          "active"
+        ]
+      },
       "SearchUser": {
         "type": "object",
         "properties": {
@@ -5284,6 +5727,13 @@
               "$ref": "#/components/schemas/SearchAccount"
             }
           },
+          "categories": {
+            "description": "Até 5 categorias da árvore das pessoas físicas, para quem tem permissão em alguma pessoa física, as ativas primeiro, e cada grupo pelo nome.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchCategory"
+            }
+          },
           "users": {
             "description": "Até 5 usuários, os ativos primeiro, e cada grupo pelo nome. Sempre vazia para quem não gere acessos.",
             "type": "array",
@@ -5296,6 +5746,7 @@
           "entities",
           "financialGroups",
           "accounts",
+          "categories",
           "users"
         ]
       },
@@ -5736,6 +6187,275 @@
           "date",
           "bankBalance",
           "reason"
+        ]
+      },
+      "CategoryTreeChild": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "A categoria pai, de primeiro nível e da mesma natureza, ou nulo na de primeiro nível. A árvore tem dois níveis (LLD, seção 4.6)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da categoria.",
+            "example": "Energia"
+          },
+          "nature": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "Receita (`revenue`) ou despesa (`expense`). Não muda depois de criada; a subcategoria tem a do pai (LLD, seção 4.6)."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na categoria desativada, que some das escolhas dos lançamentos novos e continua nos que já tem (regra 6.20)."
+          },
+          "version": {
+            "type": "integer",
+            "description": "A versão, que a edição e a desativação mandam de volta (regra 6.20).",
+            "example": 1
+          },
+          "matched": {
+            "type": "boolean",
+            "description": "Verdadeiro quando o nome bate com a busca (`q`). Sem busca, sempre verdadeiro."
+          }
+        },
+        "required": [
+          "id",
+          "parentId",
+          "name",
+          "nature",
+          "active",
+          "version",
+          "matched"
+        ]
+      },
+      "CategoryTreeItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "A categoria pai, de primeiro nível e da mesma natureza, ou nulo na de primeiro nível. A árvore tem dois níveis (LLD, seção 4.6)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da categoria.",
+            "example": "Energia"
+          },
+          "nature": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "Receita (`revenue`) ou despesa (`expense`). Não muda depois de criada; a subcategoria tem a do pai (LLD, seção 4.6)."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na categoria desativada, que some das escolhas dos lançamentos novos e continua nos que já tem (regra 6.20)."
+          },
+          "version": {
+            "type": "integer",
+            "description": "A versão, que a edição e a desativação mandam de volta (regra 6.20).",
+            "example": 1
+          },
+          "matched": {
+            "type": "boolean",
+            "description": "Verdadeiro quando o nome bate com a busca (`q`). Falso na categoria que só aparece porque uma subcategoria dela bate, para a tela mostrar o caminho. Sem busca, sempre verdadeiro."
+          },
+          "children": {
+            "description": "As subcategorias, pelo nome, em ordem alfabética: todas sem busca, e só as que batem com ela, com a busca.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryTreeChild"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "parentId",
+          "name",
+          "nature",
+          "active",
+          "version",
+          "matched",
+          "children"
+        ]
+      },
+      "CategoryTreePage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "As categorias de primeiro nível da página, pelo nome, em ordem alfabética, cada uma com as subcategorias.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryTreeItem"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ]
+      },
+      "NewCategory": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas. Não é único.",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Energia"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A categoria pai, de primeiro nível. Sem ela, a categoria nasce no primeiro nível."
+          },
+          "nature": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "A natureza, obrigatória na categoria de primeiro nível. Com o pai, pode faltar, e a subcategoria tem a dele; quando vem, tem de ser a do pai."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "A categoria pai, de primeiro nível e da mesma natureza, ou nulo na de primeiro nível. A árvore tem dois níveis (LLD, seção 4.6)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome da categoria.",
+            "example": "Energia"
+          },
+          "nature": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "Receita (`revenue`) ou despesa (`expense`). Não muda depois de criada; a subcategoria tem a do pai (LLD, seção 4.6)."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso na categoria desativada, que some das escolhas dos lançamentos novos e continua nos que já tem (regra 6.20)."
+          },
+          "version": {
+            "type": "integer",
+            "description": "A versão, que a edição e a desativação mandam de volta (regra 6.20).",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "parentId",
+          "name",
+          "nature",
+          "active",
+          "version"
+        ]
+      },
+      "CategoryEdit": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "name": {
+            "type": "string",
+            "description": "O nome, como o usuário quer vê-lo. A api tira os espaços das pontas. Não é único.",
+            "minLength": 1,
+            "maxLength": 120,
+            "example": "Energia"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "O pai depois da edição: o atual, outro de primeiro nível e da mesma natureza, ou nulo, que leva a categoria para o primeiro nível."
+          },
+          "nature": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "A natureza, que tem de ser a atual: a api recusa a troca com 422 `CATEGORY_NATURE_IMMUTABLE` (LLD, seção 4.6)."
+          }
+        },
+        "required": [
+          "version",
+          "name",
+          "parentId",
+          "nature"
+        ]
+      },
+      "CategoryActivation": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A versão lida (regra 6.20)."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "Falso desativa a categoria, e a de primeiro nível leva as subcategorias junto; verdadeiro a reativa, sozinha."
+          }
+        },
+        "required": [
+          "version",
+          "active"
         ]
       }
     }
