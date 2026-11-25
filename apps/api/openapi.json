@@ -4541,6 +4541,330 @@
           "entries"
         ]
       }
+    },
+    "/v1/paid-entries": {
+      "post": {
+        "operationId": "ReconciliationController_createPaidEntry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPaidEntry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O lançamento foi criado, como em `POST /v1/entries`, e, na mesma transação, a primeira parcela foi paga: a movimentação manual pelo valor dela na conta e na data do pagamento, e a conciliação entre as duas. À vista, a parcela única fica liquidada; no parcelado, só a primeira, e as outras são pagas depois, uma a uma (regra 6.5).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: a entrada de `POST /v1/entries` não passa na validação dela, a conta do pagamento falta ou não é um UUID, ou a data do pagamento não é `AAAA-MM-DD` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade, ou ela não existe (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "As recusas de `POST /v1/entries` (`ENTITY_NOT_INDIVIDUAL`, `INACTIVE_ENTITY`, `INVALID_CATEGORY`, `CATEGORY_NATURE_MISMATCH`, `INACTIVE_CATEGORY`, `INVALID_ACCOUNT` e `INACTIVE_ACCOUNT`, da conta das parcelas) e as da conta do pagamento: `INVALID_PAYMENT_ACCOUNT`, que não existe ou é de outra entidade, e `INACTIVE_PAYMENT_ACCOUNT`, que está desativada (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Registra uma receita ou uma despesa de uma pessoa física já paga.",
+        "tags": [
+          "reconciliation"
+        ]
+      }
+    },
+    "/v1/installment-payments": {
+      "get": {
+        "operationId": "ReconciliationController_listPayments",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "entryId",
+            "required": true,
+            "in": "query",
+            "description": "O lançamento: a lista traz os pagamentos das parcelas dele.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página dos pagamentos das parcelas do lançamento, pelo número da parcela, com o total (LLD, seção 5). Cada parcela liquidada tem o dela.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallmentPaymentPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o lançamento falta ou não é um UUID, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na entidade dona do lançamento (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o lançamento não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista os pagamentos das parcelas de um lançamento.",
+        "tags": [
+          "reconciliation"
+        ]
+      },
+      "post": {
+        "operationId": "ReconciliationController_payInstallment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewInstallmentPayment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "A parcela foi paga: a movimentação manual pelo valor em aberto dela, no sentido dela, na conta e na data dadas, e a conciliação entre as duas, numa transação. A parcela fica liquidada (regras 6.5 e 6.6).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallmentPayment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: a parcela ou a conta faltam ou não são UUIDs, ou a data não é `AAAA-MM-DD` (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade dona do lançamento da parcela (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`INVALID_INSTALLMENT`: a parcela não existe. `INSTALLMENT_ALREADY_SETTLED`: a parcela já está liquidada; para pagá-la de novo, desfaça antes o pagamento. `INVALID_ACCOUNT`: a conta do pagamento não existe ou é de outra entidade. `INACTIVE_ACCOUNT`: a conta do pagamento está desativada (regra 6.20). `INACTIVE_ENTITY`: a entidade dona está desativada (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Paga uma parcela em aberto.",
+        "tags": [
+          "reconciliation"
+        ]
+      }
+    },
+    "/v1/installment-payments/{id}": {
+      "delete": {
+        "operationId": "ReconciliationController_undoPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do pagamento.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "O pagamento foi desfeito: a conciliação e a movimentação manual que o pagamento criou foram excluídas, e a parcela volta à situação calculada, prevista ou vencida, com o saldo da conta de antes (regras 6.5 e 6.6)."
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade dona do lançamento da parcela (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o pagamento não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Desfaz o pagamento de uma parcela.",
+        "tags": [
+          "reconciliation"
+        ]
+      }
     }
   },
   "info": {
@@ -6938,9 +7262,10 @@
             "type": "string",
             "enum": [
               "expected",
-              "overdue"
+              "overdue",
+              "settled"
             ],
-            "description": "A situação, calculada (regra 6.6): vencida (`overdue`) quando o vencimento é anterior a hoje, no fuso da api, e prevista (`expected`) nos outros casos. A liquidada e a cancelada entram com o pagamento e o cancelamento."
+            "description": "A situação, calculada (regra 6.6): liquidada (`settled`) quando a soma conciliada é o valor; vencida (`overdue`) quando não foi liquidada e o vencimento é anterior a hoje, no fuso da api; e prevista (`expected`) nos outros casos. A parcial e a cancelada entram com a importação e com o cancelamento."
           }
         },
         "required": [
@@ -7201,9 +7526,10 @@
             "type": "string",
             "enum": [
               "expected",
-              "overdue"
+              "overdue",
+              "settled"
             ],
-            "description": "A situação, calculada (regra 6.6): vencida (`overdue`) quando o vencimento é anterior a hoje, no fuso da api, e prevista (`expected`) nos outros casos. A liquidada e a cancelada entram com o pagamento e o cancelamento."
+            "description": "A situação, calculada (regra 6.6): liquidada (`settled`) quando a soma conciliada é o valor; vencida (`overdue`) quando não foi liquidada e o vencimento é anterior a hoje, no fuso da api; e prevista (`expected`) nos outros casos. A parcial e a cancelada entram com a importação e com o cancelamento."
           }
         },
         "required": [
@@ -7247,6 +7573,212 @@
           "page",
           "pageSize",
           "items"
+        ]
+      },
+      "NewPaidEntry": {
+        "type": "object",
+        "properties": {
+          "entityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A entidade dona, uma pessoa física ativa em que o usuário tem `operate`."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "Receita (`revenue`) ou despesa (`expense`) de uma pessoa física (LLD, seção 4.6)."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "O que foi, como o usuário o escreve. A api tira os espaços das pontas.",
+            "example": "Sofá da sala"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A categoria, ativa e da natureza do tipo: de despesa na despesa, de receita na receita (LLD, seção 4.6)."
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "household"
+            ],
+            "description": "A finalidade, obrigatória na despesa e ausente na receita (GLOSSARY.md, Finalidade)."
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do fato, `AAAA-MM-DD`, como a data da compra ou da venda.",
+            "example": "2026-11-24"
+          },
+          "totalAmount": {
+            "type": "string",
+            "description": "O total, a soma das parcelas, em string decimal com até 2 casas, sempre maior que zero: o tipo diz se entra ou sai (LLD, seção 4.1).",
+            "example": "5399.90"
+          },
+          "installmentCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120,
+            "description": "Quantas parcelas mensais, de 1 (à vista) a 120. O total é dividido em centavos, com a diferença na primeira (regra 6.21).",
+            "example": 18
+          },
+          "firstDueDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O vencimento da primeira parcela, ou o recebimento, na receita, `AAAA-MM-DD`. A parcela N vence N−1 meses depois, no mesmo dia, ou no último dia do mês que não tem esse dia (LLD, seção 4.6).",
+            "example": "2026-12-10"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A conta ativa da entidade dona em que as parcelas são pagas ou recebidas."
+          },
+          "paymentAccountId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A conta ativa da entidade dona em que o pagamento foi feito, ou o recebimento entrou. Pode ser outra que a das parcelas."
+          },
+          "paymentDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do pagamento, ou do recebimento, na receita, `AAAA-MM-DD`: o da movimentação manual na conta. Pode vir antes do saldo inicial da conta, e aí não entra no saldo (regra 6.3).",
+            "example": "2026-11-24"
+          }
+        },
+        "required": [
+          "entityId",
+          "type",
+          "description",
+          "categoryId",
+          "occurredOn",
+          "totalAmount",
+          "installmentCount",
+          "firstDueDate",
+          "accountId",
+          "paymentAccountId",
+          "paymentDate"
+        ]
+      },
+      "InstallmentPayment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id do pagamento, a conciliação, que o desfazer usa."
+          },
+          "installmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A parcela que o pagamento liquida."
+          },
+          "installmentNumber": {
+            "type": "integer",
+            "description": "O número da parcela, a partir de 1.",
+            "example": 3
+          },
+          "movementId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A movimentação manual que o pagamento criou na conta."
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A conta do pagamento."
+          },
+          "accountName": {
+            "type": "string",
+            "description": "O nome atual da conta do pagamento.",
+            "example": "Nubank"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do pagamento, `AAAA-MM-DD`.",
+            "example": "2026-11-24"
+          },
+          "amount": {
+            "type": "string",
+            "description": "O valor pago, o valor em aberto da parcela no pagamento, em string decimal com 2 casas, sempre maior que zero: o sentido é o da parcela.",
+            "example": "450.00"
+          }
+        },
+        "required": [
+          "id",
+          "installmentId",
+          "installmentNumber",
+          "movementId",
+          "accountId",
+          "accountName",
+          "date",
+          "amount"
+        ]
+      },
+      "InstallmentPaymentPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "Os pagamentos da página, pelo número da parcela.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstallmentPayment"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ]
+      },
+      "NewInstallmentPayment": {
+        "type": "object",
+        "properties": {
+          "installmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A parcela em aberto que o pagamento liquida."
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A conta ativa da entidade dona do lançamento em que o pagamento foi feito, ou o recebimento entrou. Pode ser outra que a da parcela."
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do pagamento, ou do recebimento, na receita, `AAAA-MM-DD`: o da movimentação manual na conta. Pode vir antes do saldo inicial da conta, e aí não entra no saldo (regra 6.3).",
+            "example": "2026-11-24"
+          }
+        },
+        "required": [
+          "installmentId",
+          "accountId",
+          "date"
         ]
       }
     }

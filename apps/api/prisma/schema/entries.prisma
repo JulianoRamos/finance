@@ -125,32 +125,39 @@ model Entry {
 }
 
 /// Uma das frações em que um lançamento é dividido, com valor, vencimento e conta próprios (GLOSSARY.md,
-/// Parcela). A situação é calculada, e não guardada (regra 6.6): por enquanto, prevista ou vencida,
-/// pelo vencimento; a liquidada entra com o pagamento, e a cancelada, com o cancelamento.
+/// Parcela). A situação é calculada, e não guardada (regra 6.6): liquidada quando a soma conciliada é o
+/// valor, e prevista ou vencida, pelo vencimento, nos outros casos; a parcial entra com a importação, e a
+/// cancelada, com o cancelamento.
 /// Chave estrangeira escrita à mão na migração (installment_account_id_fkey): account_id referencia
 /// account(id), com RESTRICT, sem relação no Prisma, porque a tabela account é do módulo Contas (LLD,
 /// seção 3).
 /// CHECK escrito à mão na migração (installment_amount_check): o valor é maior que zero.
 /// CHECK escrito à mão na migração (installment_number_check): o número é a partir de 1.
+/// CHECK escrito à mão na migração (installment_reconciled_amount_check): a soma conciliada vai de zero ao
+/// valor (regra 6.5).
 model Installment {
   /// uuidv7, gerado pelo banco.
-  id        String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  id               String            @id @default(dbgenerated("uuidv7()")) @db.Uuid
   /// O lançamento. RESTRICT: a parcela é cancelada, e não excluída, e a exclusão do lançamento entra com
   /// a regra dela (regra 6.20).
-  entryId   String            @map("entry_id") @db.Uuid
-  entry     Entry             @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  entryId          String            @map("entry_id") @db.Uuid
+  entry            Entry             @relation(fields: [entryId], references: [id], onDelete: Restrict)
   /// A ordem, de 1 ao número de parcelas, com o vencimento um mês depois da anterior.
-  number    Int
+  number           Int
   /// O valor, maior que zero: o total dividido em centavos, com a diferença na primeira (regra 6.21).
-  amount    Decimal           @db.Decimal(15, 2)
+  amount           Decimal           @db.Decimal(15, 2)
   /// O vencimento, ou o recebimento, na receita.
-  dueDate   DateTime          @map("due_date") @db.Date
+  dueDate          DateTime          @map("due_date") @db.Date
   /// A conta em que a parcela é paga ou recebida, da entidade dona, do módulo Contas.
-  accountId String            @map("account_id") @db.Uuid
+  accountId        String            @map("account_id") @db.Uuid
   /// De entrada (`inflow`) na receita, e de saída (`outflow`) na despesa.
-  direction MovementDirection
-  createdAt DateTime          @map("created_at") @db.Timestamptz
-  updatedAt DateTime          @map("updated_at") @db.Timestamptz
+  direction        MovementDirection
+  /// A soma das conciliações da parcela, que o módulo Conciliação pede ao Lançamentos para gravar a cada
+  /// pagamento e a cada pagamento desfeito, porque o Lançamentos não lê a tabela dele (LLD, seção 3).
+  /// Igual ao valor, a parcela está liquidada (regra 6.6).
+  reconciledAmount Decimal           @default(0) @map("reconciled_amount") @db.Decimal(15, 2)
+  createdAt        DateTime          @map("created_at") @db.Timestamptz
+  updatedAt        DateTime          @map("updated_at") @db.Timestamptz
 
   @@unique([entryId, number, direction], map: "installment_entry_id_number_direction_key")
   /// A lista do mês, pelo vencimento.
