@@ -3,9 +3,13 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import {
   activeIs,
   apiError,
+  type CalendarMonth,
+  calendarMonthOfInstant,
   type CategoryNature,
   type Clock,
   CLOCK,
+  currentVisibleEntityIds,
+  type Decimal,
   NAME_COLLATION,
   nameMatches,
   type PageRequest,
@@ -18,6 +22,7 @@ import {
 } from '../../common/index.js';
 import { AuditService } from '../audit/index.js';
 import { EntitiesService } from '../entities/index.js';
+import { dueInMonth } from './installments.js';
 import type { Category, CategoryTreeItem, CategoryEdit, CategoryTreePage, NewCategory } from './entries.dto.js';
 
 /** A categoria como o Prisma a lê. */
@@ -39,6 +44,14 @@ export interface CategorySearchResult {
   readonly name: string;
   readonly nature: CategoryNature;
   readonly parentName: string | null;
+  readonly active: boolean;
+}
+
+/** O que o lançamento lê da categoria dele (LLD, seção 4.6). */
+export interface CategorySummary {
+  readonly id: string;
+  readonly name: string;
+  readonly nature: CategoryNature;
   readonly active: boolean;
 }
 
@@ -89,12 +102,14 @@ export class CategoriesService {
   /**
    * A página da árvore de uma natureza, paginada pelas categorias de primeiro nível, cada uma com as
    * subcategorias, todas pelo nome. Com `active`, só as desse estado. A busca traz as de primeiro nível
-   * que batem e as que têm uma subcategoria que bate, só com as subcategorias que batem.
+   * que batem e as que têm uma subcategoria que bate, só com as subcategorias que batem. Cada uma traz o
+   * total do mês dado, ou do de hoje (LLD, seção 4.6).
    */
   async list(filter: {
     nature: CategoryNature;
     active?: boolean | undefined;
     q?: string | undefined;
+    month?: CalendarMonth | undefined;
     page: PageRequest;
   }): Promise<CategoryTreePage> {
     await this.requireLevel('view');
@@ -115,10 +130,15 @@ export class CategoriesService {
           this.treeRows(sql`id = ANY(${ids}::uuid[])`, passes),
           this.treeRows(sql`parent_id = ANY(${ids}::uuid[]) AND ${passes}`, passes),
         ]);
+        const totals = await this.monthTotals(
+          [...parents, ...children].map((row) => row.id),
+          filter.month ?? calendarMonthOfInstant(this.clock.now()),
+        );
+        const withTotal = (row: TreeRow) => ({ ...toTreeChild(row), monthTotal: totals.get(row.id) ?? '0.00' });
         const byParent = Map.groupBy(children, (child) => child.parentId);
         return parents.map((parent): CategoryTreeItem => ({
-          ...toTreeChild(parent),
-          children: (byParent.get(parent.id) ?? []).map(toTreeChild),
+          ...withTotal(parent),
+          children: (byParent.get(parent.id) ?? []).map(withTotal),
         }));
       },
     );
@@ -145,6 +165,15 @@ export class CategoriesService {
         return rows.map(({ parent, ...row }) => ({ ...row, parentName: parent?.name ?? null }));
       },
     );
+  }
+
+  /**
+   * A natureza e o estado da categoria do id, ou nula quando ela não existe, para o lançamento. Travada até
+   * o fim da transação, para a desativação esperar a gravação do lançamento.
+   */
+  async summaryOf(id: string): Promise<CategorySummary | null> {
+    const row = await this.find(id, { lock: 'share' });
+    return row && { id: row.id, name: row.name, nature: row.nature, active: row.active };
   }
 
   /**
@@ -314,6 +343,24 @@ export class CategoriesService {
       throw parentRefused('INACTIVE_PARENT', 'A categoria pai escolhida está desativada. Reative-a antes.');
     }
     return parent;
+  }
+
+  /**
+   * O total do mês de cada categoria dos ids, em string decimal com 2 casas: a soma das parcelas que
+   * vencem no mês dos lançamentos dela e, na de primeiro nível, das subcategorias dela, todas, nas pessoas
+   * físicas em que o usuário tem permissão (LLD, seção 4.6). A categoria sem parcela no mês não aparece.
+   */
+  private async monthTotals(ids: readonly string[], month: CalendarMonth): Promise<ReadonlyMap<string, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.transactions.client.$queryRaw<{ id: string; total: Decimal }[]>`
+      SELECT c.id::text AS id, SUM(i.amount) AS total
+      FROM category c
+      JOIN category k ON k.id = c.id OR k.parent_id = c.id
+      JOIN entry e ON e.category_id = k.id AND e.entity_id = ANY(${await currentVisibleEntityIds()}::uuid[])
+      JOIN installment i ON i.entry_id = e.id AND ${dueInMonth(sql`i.due_date`, month)}
+      WHERE c.id = ANY(${[...ids]}::uuid[])
+      GROUP BY c.id`;
+    return new Map(rows.map((row) => [row.id, row.total.toFixed(2)]));
   }
 
   /**

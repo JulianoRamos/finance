@@ -15,6 +15,11 @@ export const NATURE_TEXT: Readonly<
   revenue: { tab: 'Receitas', label: 'Receita', adjective: 'receita' },
 };
 
+/** O caminho da categoria, com o pai, quando ela tem: "Moradia › Energia" (design-system.md, seção 4.3). */
+export function categoryPath(name: string, parentName: string | null): string {
+  return parentName === null ? name : `${parentName} › ${name}`;
+}
+
 /** O estado da tela Categorias, que fica no endereço. */
 export interface CategoryParams {
   readonly nature: Nature;

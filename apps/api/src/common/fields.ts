@@ -17,12 +17,17 @@ export const byName = new Intl.Collator('pt-BR');
 export const NAME_COLLATION = sql`COLLATE "pt-BR-x-icu"`;
 
 /**
- * A condição da busca no nome: o texto em qualquer posição, sem acento nem diferença de maiúsculas.
- * Verdadeira quando a busca, aparada, é vazia.
+ * A condição da busca na coluna de texto dada: o texto em qualquer posição, sem acento nem diferença de
+ * maiúsculas. Verdadeira quando a busca, aparada, é vazia.
  */
-export function nameMatches(q: string | undefined): Sql {
+export function textMatches(column: Sql, q: string | undefined): Sql {
   const pattern = searchPattern(q);
-  return sql`(${pattern}::text IS NULL OR unaccent(lower(name)) LIKE unaccent(lower(${pattern}::text)) ESCAPE '\\')`;
+  return sql`(${pattern}::text IS NULL OR unaccent(lower(${column})) LIKE unaccent(lower(${pattern}::text)) ESCAPE '\\')`;
+}
+
+/** A condição da busca no nome (`textMatches` na coluna `name`). */
+export function nameMatches(q: string | undefined): Sql {
+  return textMatches(sql`name`, q);
 }
 
 /** A condição do estado ativo (`active`): verdadeira quando o filtro é indefinido, e aí não filtra. */

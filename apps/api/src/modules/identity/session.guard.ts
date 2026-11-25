@@ -11,6 +11,7 @@ import {
   PUBLIC_ROUTE,
   REQUIRED_ENTITY_LEVEL,
   REQUIRED_FINANCIAL_CONTEXT,
+  satisfiesLevel,
   setCurrentAccess,
   setCurrentFinancialContext,
   setCurrentUser,
@@ -24,11 +25,6 @@ import { type AuthenticatedSession, SessionsService } from './sessions.service.j
 const SESSION_KEY = Symbol('session');
 
 type RequestWithSession = Request & { [SESSION_KEY]?: AuthenticatedSession };
-
-/** Se o nível do usuário, ou a falta dele, cumpre o nível exigido: `operate` também lê. */
-function satisfiesLevel(level: PermissionLevel | undefined, required: PermissionLevel): boolean {
-  return level === 'operate' || (level === 'view' && required === 'view');
-}
 
 /** A recusa do pedido sem a permissão que a rota exige (regra 6.1). */
 function forbidden(message: string) {

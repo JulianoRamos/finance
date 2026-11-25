@@ -32,6 +32,7 @@ interface Category {
 /** Uma subcategoria na árvore, como o contrato a descreve. */
 interface CategoryTreeChild extends Category {
   readonly matched: boolean;
+  readonly monthTotal: string;
 }
 
 /** Uma categoria de primeiro nível na árvore, com as subcategorias. */
@@ -182,7 +183,9 @@ describe('Categorias', () => {
         total: 1,
         page: 1,
         pageSize: 10,
-        items: [{ ...parent, matched: true, children: [{ ...child, matched: true }] }],
+        items: [
+          { ...parent, matched: true, monthTotal: '0.00', children: [{ ...child, matched: true, monthTotal: '0.00' }] },
+        ],
       });
 
       for (const body of [{ name: `${prefix} Sem natureza` }, { name: `${prefix} Sem natureza`, parentId: null }]) {
@@ -262,7 +265,12 @@ describe('Categorias', () => {
       expect(chosen.items).toEqual([]);
       const all = await treeOf(token, { nature: 'expense', q: prefix });
       expect(all.items).toEqual([
-        { ...deactivated, matched: true, children: [{ ...child, active: false, version: 2, matched: true }] },
+        {
+          ...deactivated,
+          matched: true,
+          monthTotal: '0.00',
+          children: [{ ...child, active: false, version: 2, matched: true, monthTotal: '0.00' }],
+        },
       ]);
 
       const refused = await setActive(token, { ...child, active: false, version: 2 }, true, requestId).expect(422);
@@ -271,7 +279,7 @@ describe('Categorias', () => {
       const reactivated = (await setActive(token, deactivated, true, requestId).expect(200)).body as Category;
       expect(reactivated).toEqual({ ...parent, active: true, version: 3 });
       const chosenAgain = await treeOf(token, { nature: 'expense', q: prefix, active: 'true' });
-      expect(chosenAgain.items).toEqual([{ ...reactivated, matched: true, children: [] }]);
+      expect(chosenAgain.items).toEqual([{ ...reactivated, matched: true, monthTotal: '0.00', children: [] }]);
 
       const audit = await app.get(PrismaService).auditLog.findMany({
         where: { tableName: 'category', recordId: { in: [parent.id, child.id] } },
@@ -342,6 +350,13 @@ describe('Categorias', () => {
 
     const inactive = await treeOf(token, { nature: 'expense', q: prefix, active: 'false' });
 
-    expect(inactive.items).toEqual([{ ...parent, matched: false, children: [{ ...deactivated, matched: true }] }]);
+    expect(inactive.items).toEqual([
+      {
+        ...parent,
+        matched: false,
+        monthTotal: '0.00',
+        children: [{ ...deactivated, matched: true, monthTotal: '0.00' }],
+      },
+    ]);
   });
 });

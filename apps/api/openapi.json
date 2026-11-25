@@ -3809,11 +3809,21 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "month",
+            "required": false,
+            "in": "query",
+            "description": "O mês do total de cada categoria, `AAAA-MM`. Sem ele, o de hoje, no fuso da api.",
+            "schema": {
+              "example": "2026-11",
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "A página das categorias de primeiro nível da natureza, com o total delas (LLD, seção 5), cada uma com as subcategorias: a paginação é pelo primeiro nível, para nenhuma categoria ficar dividida entre duas páginas.",
+            "description": "A página das categorias de primeiro nível da natureza, com o total delas (LLD, seção 5), cada uma com as subcategorias e o total do mês: a paginação é pelo primeiro nível, para nenhuma categoria ficar dividida entre duas páginas.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3823,7 +3833,7 @@
             }
           },
           "400": {
-            "description": "`INVALID_INPUT`: a natureza falta ou não é `revenue` nem `expense`, o `active` não é `true` nem `false`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "description": "`INVALID_INPUT`: a natureza falta ou não é `revenue` nem `expense`, o `active` não é `true` nem `false`, o mês não é `AAAA-MM`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
             "content": {
               "application/json": {
                 "schema": {
@@ -4152,6 +4162,383 @@
         "summary": "Desativa ou reativa uma categoria.",
         "tags": [
           "categories"
+        ]
+      }
+    },
+    "/v1/entries": {
+      "get": {
+        "operationId": "EntriesController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "month",
+            "required": true,
+            "in": "query",
+            "description": "O mês, `AAAA-MM`: a lista traz as parcelas que vencem nele.",
+            "schema": {
+              "example": "2026-11",
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "`revenue` traz só as receitas, e `expense`, só as despesas. Sem o parâmetro, traz as duas.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "revenue",
+                "expense"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "A busca: o texto procurado na descrição do lançamento, sem diferença de acento nem de maiúsculas, em qualquer posição. Vazia ou ausente, não filtra (LLD, seção 5).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Financial-Context",
+            "in": "header",
+            "description": "O contexto financeiro escolhido (LLD, seção 5): `entity:<id>` ou `group:<id>`, com o id em UUID.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "group:0190d3f2-6c1e-7a4b-9f00-1a2b3c4d5e6f"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página das parcelas que vencem no mês, cada uma com o lançamento dela, das pessoas físicas do contexto financeiro, com o total (LLD, seção 5): pelo vencimento, da mais recente para a mais antiga e, no mesmo dia, pela ordem do registro, a última primeiro. As empresas do contexto ficam de fora, porque os lançamentos delas entram com a clínica.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryMonthPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o cabeçalho `Financial-Context` falta ou não é `entity:<id>` nem `group:<id>` com um UUID, o mês falta ou não é `AAAA-MM`, o tipo não é `revenue` nem `expense`, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` numa entidade do contexto, ou o id do contexto não é de nenhuma entidade nem de nenhum grupo (regra 6.2).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista as parcelas do mês dos lançamentos do contexto financeiro.",
+        "tags": [
+          "entries"
+        ]
+      },
+      "post": {
+        "operationId": "EntriesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewEntry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "O lançamento foi criado, na versão 1, com as parcelas mensais a partir do primeiro vencimento: o total dividido em centavos, com a diferença na primeira (regra 6.21).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: a entidade, a categoria ou a conta faltam ou não são UUIDs, o tipo falta ou não é `revenue` nem `expense`, a descrição falta, é vazia ou passa de 200 caracteres, a finalidade falta na despesa, vem na receita ou não é `personal` nem `household`, a data do fato ou o primeiro vencimento não são `AAAA-MM-DD`, o total não é uma string decimal maior que zero com até 2 casas, ou o número de parcelas não é um inteiro de 1 a 120, ou passa do total em centavos (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `operate` na entidade, ou ela não existe (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`ENTITY_NOT_INDIVIDUAL`: a entidade é uma empresa, cujos lançamentos entram com a clínica. `INACTIVE_ENTITY`: a entidade está desativada (regra 6.2). `INVALID_CATEGORY`: a categoria não existe. `CATEGORY_NATURE_MISMATCH`: a categoria é de outra natureza que o tipo. `INACTIVE_CATEGORY`: a categoria está desativada (regra 6.20). `INVALID_ACCOUNT`: a conta não existe ou é de outra entidade. `INACTIVE_ACCOUNT`: a conta está desativada (regra 6.20).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Registra uma receita ou uma despesa de uma pessoa física, à vista ou parcelada.",
+        "tags": [
+          "entries"
+        ]
+      }
+    },
+    "/v1/entries/{id}": {
+      "get": {
+        "operationId": "EntriesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do lançamento.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O lançamento, sem as parcelas, que têm a lista delas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na entidade dona do lançamento (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o lançamento não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lê um lançamento.",
+        "tags": [
+          "entries"
+        ]
+      }
+    },
+    "/v1/entries/{id}/installments": {
+      "get": {
+        "operationId": "EntriesController_installments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "O id do lançamento.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A página, a partir de 1 (LLD, seção 5). Uma página depois da última vem com `items` vazio e o mesmo total.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Quantos itens por página, de 1 a 100 (LLD, seção 5).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A página das parcelas do lançamento, pelo número, com a situação de cada uma (regra 6.6) e o total (LLD, seção 5).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallmentPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`INVALID_INPUT`: o id não é um UUID, a `page` não é um inteiro a partir de 1, ou o `pageSize` não é um inteiro de 1 a 100 (em `fields`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED`: sem sessão, ou com a sessão encerrada, vencida pelo prazo máximo ou por inatividade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN`: o usuário não tem `view` nem `operate` na entidade dona do lançamento (regra 6.1).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND`: o lançamento não existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Lista as parcelas de um lançamento.",
+        "tags": [
+          "entries"
         ]
       }
     }
@@ -6227,6 +6614,11 @@
           "matched": {
             "type": "boolean",
             "description": "Verdadeiro quando o nome bate com a busca (`q`). Sem busca, sempre verdadeiro."
+          },
+          "monthTotal": {
+            "type": "string",
+            "description": "A soma das parcelas que vencem no mês pedido, sem as canceladas, dos lançamentos desta categoria nas pessoas físicas em que o usuário tem `view` ou `operate`, em string decimal com 2 casas (LLD, seção 4.6). Zero quando não há.",
+            "example": "2180.40"
           }
         },
         "required": [
@@ -6236,7 +6628,8 @@
           "nature",
           "active",
           "version",
-          "matched"
+          "matched",
+          "monthTotal"
         ]
       },
       "CategoryTreeItem": {
@@ -6278,6 +6671,11 @@
             "type": "boolean",
             "description": "Verdadeiro quando o nome bate com a busca (`q`). Falso na categoria que só aparece porque uma subcategoria dela bate, para a tela mostrar o caminho. Sem busca, sempre verdadeiro."
           },
+          "monthTotal": {
+            "type": "string",
+            "description": "A soma das parcelas que vencem no mês pedido, sem as canceladas, dos lançamentos desta categoria e das subcategorias dela, todas, também as que a busca e o filtro não trazem, nas pessoas físicas em que o usuário tem `view` ou `operate`, em string decimal com 2 casas (LLD, seção 4.6). Zero quando não há.",
+            "example": "2180.40"
+          },
           "children": {
             "description": "As subcategorias, pelo nome, em ordem alfabética: todas sem busca, e só as que batem com ela, com a busca.",
             "type": "array",
@@ -6294,6 +6692,7 @@
           "active",
           "version",
           "matched",
+          "monthTotal",
           "children"
         ]
       },
@@ -6456,6 +6855,398 @@
         "required": [
           "version",
           "active"
+        ]
+      },
+      "EntryMonthItem": {
+        "type": "object",
+        "properties": {
+          "entryId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id do lançamento."
+          },
+          "installmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "O id da parcela que vence no mês."
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A entidade dona, uma pessoa física."
+          },
+          "entityName": {
+            "type": "string",
+            "description": "O nome atual da entidade dona, que a lista mostra num contexto com mais de uma.",
+            "example": "Ana Lima"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "Receita (`revenue`) ou despesa (`expense`) de uma pessoa física (LLD, seção 4.6)."
+          },
+          "description": {
+            "type": "string",
+            "description": "A descrição do lançamento.",
+            "example": "Sofá da sala"
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "O nome da categoria.",
+            "example": "Móveis"
+          },
+          "categoryParentName": {
+            "type": "string",
+            "nullable": true,
+            "description": "O nome da categoria pai, para o caminho (\"Moradia › Móveis\"), ou nulo na de primeiro nível.",
+            "example": "Moradia"
+          },
+          "purpose": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "personal",
+              "household"
+            ],
+            "description": "Para que serve a despesa: pessoal (`personal`), de um dos membros, ou familiar (`household`), da casa (GLOSSARY.md, Finalidade). Nula na receita."
+          },
+          "number": {
+            "type": "integer",
+            "description": "O número da parcela, a partir de 1.",
+            "example": 3
+          },
+          "installmentCount": {
+            "type": "integer",
+            "description": "Quantas parcelas o lançamento tem; 1 no à vista.",
+            "example": 10
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O vencimento da parcela, `AAAA-MM-DD`, no mês pedido.",
+            "example": "2026-11-10"
+          },
+          "amount": {
+            "type": "string",
+            "description": "O valor da parcela, em string decimal com 2 casas, sempre maior que zero: o tipo diz se entra ou sai.",
+            "example": "450.00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "expected",
+              "overdue"
+            ],
+            "description": "A situação, calculada (regra 6.6): vencida (`overdue`) quando o vencimento é anterior a hoje, no fuso da api, e prevista (`expected`) nos outros casos. A liquidada e a cancelada entram com o pagamento e o cancelamento."
+          }
+        },
+        "required": [
+          "entryId",
+          "installmentId",
+          "entityId",
+          "entityName",
+          "type",
+          "description",
+          "categoryName",
+          "categoryParentName",
+          "purpose",
+          "number",
+          "installmentCount",
+          "dueDate",
+          "amount",
+          "status"
+        ]
+      },
+      "EntryMonthPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "As parcelas da página, cada uma com o lançamento dela, pelo vencimento, da mais recente para a mais antiga.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntryMonthItem"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
+        ]
+      },
+      "NewEntry": {
+        "type": "object",
+        "properties": {
+          "entityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A entidade dona, uma pessoa física ativa em que o usuário tem `operate`."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "Receita (`revenue`) ou despesa (`expense`) de uma pessoa física (LLD, seção 4.6)."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "O que foi, como o usuário o escreve. A api tira os espaços das pontas.",
+            "example": "Sofá da sala"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A categoria, ativa e da natureza do tipo: de despesa na despesa, de receita na receita (LLD, seção 4.6)."
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "household"
+            ],
+            "description": "A finalidade, obrigatória na despesa e ausente na receita (GLOSSARY.md, Finalidade)."
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do fato, `AAAA-MM-DD`, como a data da compra ou da venda.",
+            "example": "2026-11-24"
+          },
+          "totalAmount": {
+            "type": "string",
+            "description": "O total, a soma das parcelas, em string decimal com até 2 casas, sempre maior que zero: o tipo diz se entra ou sai (LLD, seção 4.1).",
+            "example": "5399.90"
+          },
+          "installmentCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 120,
+            "description": "Quantas parcelas mensais, de 1 (à vista) a 120. O total é dividido em centavos, com a diferença na primeira (regra 6.21).",
+            "example": 18
+          },
+          "firstDueDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O vencimento da primeira parcela, ou o recebimento, na receita, `AAAA-MM-DD`. A parcela N vence N−1 meses depois, no mesmo dia, ou no último dia do mês que não tem esse dia (LLD, seção 4.6).",
+            "example": "2026-12-10"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A conta ativa da entidade dona em que as parcelas são pagas ou recebidas."
+          }
+        },
+        "required": [
+          "entityId",
+          "type",
+          "description",
+          "categoryId",
+          "occurredOn",
+          "totalAmount",
+          "installmentCount",
+          "firstDueDate",
+          "accountId"
+        ]
+      },
+      "Entry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entityId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A entidade dona, uma pessoa física."
+          },
+          "entityName": {
+            "type": "string",
+            "description": "O nome atual da entidade dona.",
+            "example": "Ana Lima"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "expense"
+            ],
+            "description": "Receita (`revenue`) ou despesa (`expense`) de uma pessoa física (LLD, seção 4.6)."
+          },
+          "description": {
+            "type": "string",
+            "description": "A descrição.",
+            "example": "Sofá da sala"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A categoria, da natureza do tipo."
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "O nome atual da categoria.",
+            "example": "Móveis"
+          },
+          "categoryParentName": {
+            "type": "string",
+            "nullable": true,
+            "description": "O nome da categoria pai, para o caminho, ou nulo na de primeiro nível.",
+            "example": "Moradia"
+          },
+          "purpose": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "personal",
+              "household"
+            ],
+            "description": "Para que serve a despesa: pessoal (`personal`), de um dos membros, ou familiar (`household`), da casa (GLOSSARY.md, Finalidade). Nula na receita."
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date",
+            "description": "O dia do fato, `AAAA-MM-DD`, como a data da compra ou da venda.",
+            "example": "2026-11-24"
+          },
+          "totalAmount": {
+            "type": "string",
+            "description": "O total, a soma das parcelas, em string decimal com 2 casas.",
+            "example": "5399.90"
+          },
+          "installmentCount": {
+            "type": "integer",
+            "description": "Quantas parcelas o lançamento tem; 1 no à vista.",
+            "example": 18
+          },
+          "version": {
+            "type": "integer",
+            "description": "A versão, que a edição manda de volta (regra 6.20).",
+            "example": 1
+          }
+        },
+        "required": [
+          "id",
+          "entityId",
+          "entityName",
+          "type",
+          "description",
+          "categoryId",
+          "categoryName",
+          "categoryParentName",
+          "purpose",
+          "occurredOn",
+          "totalAmount",
+          "installmentCount",
+          "version"
+        ]
+      },
+      "Installment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "integer",
+            "description": "O número da parcela, a partir de 1.",
+            "example": 1
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "description": "O vencimento, ou o recebimento, na receita, `AAAA-MM-DD`.",
+            "example": "2026-12-10"
+          },
+          "amount": {
+            "type": "string",
+            "description": "O valor, em string decimal com 2 casas, sempre maior que zero.",
+            "example": "300.07"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A conta em que a parcela é paga ou recebida."
+          },
+          "accountName": {
+            "type": "string",
+            "description": "O nome atual da conta.",
+            "example": "Nubank"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "expected",
+              "overdue"
+            ],
+            "description": "A situação, calculada (regra 6.6): vencida (`overdue`) quando o vencimento é anterior a hoje, no fuso da api, e prevista (`expected`) nos outros casos. A liquidada e a cancelada entram com o pagamento e o cancelamento."
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "dueDate",
+          "amount",
+          "accountId",
+          "accountName",
+          "status"
+        ]
+      },
+      "InstallmentPage": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Quantos itens o filtro acha, em todas as páginas.",
+            "example": 37
+          },
+          "page": {
+            "type": "integer",
+            "description": "A página devolvida, a partir de 1.",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "O tamanho da página.",
+            "example": 10
+          },
+          "items": {
+            "description": "As parcelas da página, pelo número.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Installment"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "page",
+          "pageSize",
+          "items"
         ]
       }
     }

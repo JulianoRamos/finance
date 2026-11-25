@@ -2,7 +2,7 @@ import 'server-only';
 
 import { cache } from 'react';
 
-import { type DataResult, dataResult, type ReadResult, readResult } from './api-error';
+import { type DataResult, dataResult, MAX_PAGE_SIZE, type ReadResult, readAllPages, readResult } from './api-error';
 import { api } from './client';
 import type { AuditHistoryPage } from './entities';
 import { currentFinancialContext } from './financial-context';
@@ -109,4 +109,30 @@ export function createMovement(id: string, body: NewMovement): Promise<DataResul
  */
 export function createAdjustment(id: string, body: NewAdjustment): Promise<DataResult<Movement>> {
   return dataResult((signal) => api.POST('/v1/accounts/{id}/adjustments', { params: { path: { id } }, body, signal }));
+}
+
+/** Uma escolha de conta de um lançamento: o id, o nome e a entidade dona. */
+export type AccountChoice = Pick<Account, 'id' | 'name' | 'entityId'>;
+
+/**
+ * Todas as contas ativas do contexto financeiro escolhido, as que um lançamento pode escolher, pelo nome,
+ * lidas de 100 em 100.
+ */
+export async function listAccountChoices(): Promise<ReadResult<AccountChoice[]>> {
+  const context = await currentFinancialContext();
+  if (context.status === 'none') return { status: 'ok', data: [] };
+  if (context.status !== 'ok') return { status: context.status };
+  return readAllPages(
+    (page) =>
+      readResult((init) =>
+        api.GET('/v1/accounts', {
+          params: {
+            header: { 'Financial-Context': context.reference },
+            query: { page, pageSize: MAX_PAGE_SIZE, active: true },
+          },
+          ...init,
+        }),
+      ),
+    ({ id, name, entityId }) => ({ id, name, entityId }),
+  );
 }

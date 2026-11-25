@@ -1,4 +1,15 @@
-import { Building2, House, ListTree, Lock, type LucideIcon, Plus, User, Users, Wallet } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Building2,
+  House,
+  ListTree,
+  Lock,
+  type LucideIcon,
+  Plus,
+  User,
+  Users,
+  Wallet,
+} from 'lucide-react';
 
 /** Um destino da estrutura do app: o caminho, o nome e o ícone. */
 export interface Destination {
@@ -14,6 +25,7 @@ export const NAVIGATION: readonly { readonly group: string; readonly items: read
     group: 'Dinheiro',
     items: [
       { href: '/accounts', label: 'Contas', icon: Wallet },
+      { href: '/entries', label: 'Lançamentos', icon: ArrowLeftRight },
       { href: '/categories', label: 'Categorias', icon: ListTree },
     ],
   },

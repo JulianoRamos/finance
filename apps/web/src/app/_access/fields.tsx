@@ -116,10 +116,18 @@ function Field({
   type,
   defaultValue,
   trailing,
+  after,
   size = 'access',
   inputMode,
   ...props
-}: FieldProps & { readonly type: string; readonly defaultValue?: string; readonly trailing?: ReactNode }) {
+}: FieldProps & {
+  readonly type: string;
+  readonly defaultValue?: string;
+  /** O que vai dentro do campo, à direita, como o botão de mostrar a senha. */
+  readonly trailing?: ReactNode;
+  /** O que vai ao lado do campo, fora dele. */
+  readonly after?: ReactNode;
+}) {
   return (
     <FieldFrame {...props}>
       <input
@@ -130,8 +138,42 @@ function Field({
         className={`${inputClass(size)} ${trailing ? 'pr-10' : ''}`}
       />
       {trailing}
+      {after}
     </FieldFrame>
   );
+}
+
+/**
+ * O rótulo, o controle, a ajuda e o erro de um campo que não é um texto simples, como uma seleção
+ * (design-system.md, seção 4.3). O controle liga a ajuda e o erro com o `describedBy`.
+ */
+export function ControlField({
+  id,
+  label,
+  help,
+  error,
+  children,
+}: Readonly<{ id: string; label: string; help?: string; error: string | undefined; children: ReactNode }>) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-label text-ink">
+        {label}
+      </label>
+      {children}
+      {help && (
+        <p id={`${id}-help`} className="text-body-sm text-mute">
+          {help}
+        </p>
+      )}
+      <FieldError id={`${id}-error`} error={error} />
+    </div>
+  );
+}
+
+/** As ligações do controle de um `ControlField` com a ajuda, quando há, e o erro dele. */
+export function describedBy(id: string, error: string | undefined, help = false) {
+  const ids = [help && `${id}-help`, error && `${id}-error`].filter(Boolean).join(' ');
+  return { 'aria-describedby': ids || undefined, 'aria-invalid': error ? true : undefined } as const;
 }
 
 /** Um campo de texto. */
@@ -157,8 +199,11 @@ export function TextAreaField({
   );
 }
 
-/** Um campo de data, com o calendário do navegador, que envia a data como `AAAA-MM-DD`. */
-export function DateField(props: FieldProps & { readonly defaultValue?: string }) {
+/**
+ * Um campo de data, com o calendário do navegador, que envia a data como `AAAA-MM-DD`. O `after` vai ao
+ * lado do campo, como os atalhos "Hoje" e "Ontem" dos lançamentos (design-system.md, seção 4.3).
+ */
+export function DateField(props: FieldProps & { readonly defaultValue?: string; readonly after?: ReactNode }) {
   return <Field {...props} type="date" />;
 }
 

@@ -15,6 +15,13 @@ export function parseCalendarDate(text: unknown): Date | null {
   return Number.isNaN(date.getTime()) || formatCalendarDate(date) !== text ? null : date;
 }
 
+/** O dia de uma data que o DTO já validou; a que chega sem validação é um erro do código. */
+export function requireCalendarDate(text: string): Date {
+  const date = parseCalendarDate(text);
+  if (!date) throw new Error('A data chegou ao serviço sem passar pela validação.');
+  return date;
+}
+
 /** O dia do `Date`, lido em UTC, como `AAAA-MM-DD`. */
 export function formatCalendarDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -53,6 +60,40 @@ export function IsNotBefore(property: string, options: ValidationOptions): Prope
         },
       },
     },
+    options,
+  );
+}
+
+const CALENDAR_MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
+
+/** Um mês de calendário: o primeiro dia dele e o primeiro do seguinte, as datas da meia-noite UTC. */
+export interface CalendarMonth {
+  readonly start: Date;
+  readonly next: Date;
+}
+
+/** O mês em `AAAA-MM`, ou nulo quando o texto não é um mês. */
+export function parseCalendarMonth(text: unknown): CalendarMonth | null {
+  if (typeof text !== 'string') return null;
+  const match = CALENDAR_MONTH.exec(text);
+  if (!match) return null;
+  return monthOf(Number(match[1]), Number(match[2]) - 1);
+}
+
+/** O mês do instante no fuso do processo: o mês de hoje da api, quando o instante é o do relógio. */
+export function calendarMonthOfInstant(instant: Date): CalendarMonth {
+  return monthOf(instant.getFullYear(), instant.getMonth());
+}
+
+/** O mês do ano e do número dado, a partir de 0. */
+function monthOf(year: number, month: number): CalendarMonth {
+  return { start: new Date(Date.UTC(year, month, 1)), next: new Date(Date.UTC(year, month + 1, 1)) };
+}
+
+/** O campo é um mês `AAAA-MM`. */
+export function IsCalendarMonth(options: ValidationOptions): PropertyDecorator {
+  return ValidateBy(
+    { name: 'isCalendarMonth', validator: { validate: (value) => parseCalendarMonth(value) !== null } },
     options,
   );
 }

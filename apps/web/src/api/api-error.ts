@@ -71,3 +71,23 @@ export async function readResult<T>(
     return { status: 'unavailable' };
   }
 }
+
+/** O maior tamanho de página que a api aceita, para ler todos os itens de uma lista (LLD, seção 5). */
+export const MAX_PAGE_SIZE = 100;
+
+/**
+ * Todos os itens de uma lista da api, lidos página a página de 100 em 100, até o total, com cada item
+ * convertido; para na primeira leitura que não dá certo, e a devolve.
+ */
+export async function readAllPages<Item, To>(
+  readPage: (page: number) => Promise<ReadResult<{ items: Item[]; total: number }>>,
+  convert: (item: Item) => To,
+): Promise<ReadResult<To[]>> {
+  const all: To[] = [];
+  for (let page = 1; ; page++) {
+    const result = await readPage(page);
+    if (result.status !== 'ok') return result;
+    all.push(...result.data.items.map(convert));
+    if (all.length >= result.data.total || result.data.items.length === 0) return { status: 'ok', data: all };
+  }
+}
