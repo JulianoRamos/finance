@@ -36,7 +36,7 @@ const ENTRY_TYPE_DESCRIPTION = 'Receita (`revenue`) ou despesa (`expense`) de um
 const PURPOSE_DESCRIPTION =
   'Para que serve a despesa: pessoal (`personal`), de um dos membros, ou familiar (`household`), da casa (GLOSSARY.md, Finalidade). Nula na receita.';
 const STATUS_DESCRIPTION =
-  'A situação, calculada (regra 6.6): vencida (`overdue`) quando o vencimento é anterior a hoje, no fuso da api, e prevista (`expected`) nos outros casos. A liquidada e a cancelada entram com o pagamento e o cancelamento.';
+  'A situação, calculada (regra 6.6): liquidada (`settled`) quando a soma conciliada é o valor; vencida (`overdue`) quando não foi liquidada e o vencimento é anterior a hoje, no fuso da api; e prevista (`expected`) nos outros casos. A parcial e a cancelada entram com a importação e com o cancelamento.';
 const OCCURRED_ON_DESCRIPTION = 'O dia do fato, `AAAA-MM-DD`, como a data da compra ou da venda.';
 const DESCRIPTION_EXAMPLE = 'Sofá da sala';
 const ENTITY_NAME_EXAMPLE = 'Ana Lima';

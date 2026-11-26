@@ -4,6 +4,12 @@ import { createTestAccount, daysAgo } from './accounts';
 import { createTestIndividual, postAsUser, type TestEntity, uniqueName } from './entities';
 import { createTestUser, signIn } from './users';
 
+/** Uma data `AAAA-MM-DD` como a tela a mostra, `dd/mm/aaaa`. */
+export function shown(date: string): string {
+  const [year = '', month = '', day = ''] = date.split('-');
+  return `${day}/${month}/${year}`;
+}
+
 /** O lançamento de teste aberto e o que ele usa: a conta e a categoria. */
 export interface TestEntry {
   readonly entry: TestEntity & { readonly description: string };

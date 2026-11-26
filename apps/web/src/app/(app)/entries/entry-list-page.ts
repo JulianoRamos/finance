@@ -1,7 +1,7 @@
 import type { EntryMonthItem } from '@/api/entries';
 
 import { categoryPath } from '../../_shell/category-text';
-import { type EntryType, type InstallmentStatus, PURPOSE_NAMES } from './entry-text';
+import { type EntryType, type InstallmentStatus, numberText, PURPOSE_NAMES } from './entry-text';
 
 /** Uma parcela do mês como a lista a mostra, já formatada. */
 export interface EntryListItem {
@@ -33,7 +33,7 @@ export function entryListItem(item: EntryMonthItem, showEntity: boolean): EntryL
     ...(showEntity ? [item.entityName] : []),
     categoryPath(item.categoryName, item.categoryParentName),
     ...(item.purpose ? [PURPOSE_NAMES[item.purpose]] : []),
-    ...(item.installmentCount > 1 ? [`parcela ${String(item.number)} de ${String(item.installmentCount)}`] : []),
+    ...(item.installmentCount > 1 ? [`parcela ${numberText(item.number, item.installmentCount)}`] : []),
     dayAndMonth(item.dueDate),
   ];
   return {

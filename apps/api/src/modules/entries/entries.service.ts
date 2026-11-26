@@ -12,6 +12,7 @@ import {
   formatCalendarDate,
   type FinancialContextEntityRow,
   hasEntityLevel,
+  type MovementDirection,
   type PageRequest,
   type PermissionLevel,
   readPage,
@@ -57,6 +58,20 @@ interface MonthRow {
   readonly installmentCount: number;
   readonly dueDate: Date;
   readonly amount: Decimal;
+  readonly reconciledAmount: Decimal;
+}
+
+/** O que a Conciliação lê de uma parcela para pagá-la (LLD, seção 4.8). */
+export interface PaymentTarget {
+  readonly id: string;
+  readonly entityId: string;
+  /** A descrição do lançamento. */
+  readonly description: string;
+  readonly number: number;
+  readonly installmentCount: number;
+  readonly amount: Decimal;
+  readonly reconciledAmount: Decimal;
+  readonly direction: MovementDirection;
 }
 
 /**
@@ -265,7 +280,7 @@ export class EntriesService {
           amount: row.amount.toFixed(2),
           accountId: row.accountId,
           accountName: accounts.get(row.accountId)?.name ?? '',
-          status: installmentStatus(row.dueDate, today),
+          status: installmentStatus(row, today),
         }));
       },
     );
@@ -300,7 +315,7 @@ export class EntriesService {
       async (ids) =>
         client.$queryRaw<MonthRow[]>`
           SELECT i.id::text AS id, e.id::text AS "entryId", ${ENTRY_COLUMNS},
-            i.number, i.due_date AS "dueDate", i.amount
+            i.number, i.due_date AS "dueDate", i.amount, i.reconciled_amount AS "reconciledAmount"
           FROM ${ENTRY_WITH_CATEGORY} JOIN installment i ON i.entry_id = e.id
           WHERE i.id = ANY(${ids}::uuid[])`,
     );
@@ -320,9 +335,69 @@ export class EntriesService {
         installmentCount: row.installmentCount,
         dueDate: formatCalendarDate(row.dueDate),
         amount: row.amount.toFixed(2),
-        status: installmentStatus(row.dueDate, today),
+        status: installmentStatus(row, today),
       })),
     };
+  }
+
+  /**
+   * A parcela com o que o pagamento precisa, pelo id ou pelo lançamento e o número, travada até o fim da
+   * transação, ou nula quando ela não existe: a trava segura outro pagamento da mesma parcela até este ser
+   * gravado (regra 6.5).
+   */
+  async paymentTargetOf(
+    which: { readonly id: string } | { readonly entryId: string; readonly number: number },
+  ): Promise<PaymentTarget | null> {
+    const where =
+      'id' in which
+        ? sql`i.id = ${which.id}::uuid`
+        : sql`i.entry_id = ${which.entryId}::uuid AND i.number = ${which.number}`;
+    const [row] = await this.transactions.client.$queryRaw<PaymentTarget[]>`
+      SELECT i.id::text AS id, e.entity_id::text AS "entityId", e.description,
+        i.number, (SELECT count(*)::int FROM installment WHERE entry_id = e.id) AS "installmentCount",
+        i.amount, i.reconciled_amount AS "reconciledAmount", i.direction::text AS direction
+      FROM installment i JOIN entry e ON e.id = i.entry_id
+      WHERE ${where}
+      FOR UPDATE OF i`;
+    return row ?? null;
+  }
+
+  /**
+   * Soma à soma conciliada da parcela o valor dado, negativo no pagamento desfeito, com a auditoria, para a
+   * Conciliação, na transação dela (LLD, seção 4.8).
+   */
+  async addReconciledAmount(installmentId: string, delta: Decimal): Promise<void> {
+    const client = this.transactions.client;
+    const before = await client.installment.findUniqueOrThrow({
+      where: { id: installmentId },
+      include: { entry: true },
+    });
+    const { entry, ...installment } = before;
+    const after = await client.installment.update({
+      where: { id: installmentId },
+      data: { reconciledAmount: { increment: delta }, updatedAt: this.clock.now() },
+    });
+    await this.audit.record({
+      action: 'update',
+      tableName: 'installment',
+      recordId: installmentId,
+      entityId: entry.entityId,
+      before: installment,
+      after,
+    });
+  }
+
+  /**
+   * As parcelas do lançamento, pelo número, só com o id e o número, quando o usuário tem `view` na entidade
+   * dona, ou a recusa: 404 ou 403. A Conciliação as usa para os pagamentos de um lançamento.
+   */
+  async installmentNumbersOf(entryId: string): Promise<{ readonly id: string; readonly number: number }[]> {
+    const entry = await this.readWithLevel(entryId);
+    return this.transactions.client.installment.findMany({
+      where: { entryId: entry.id },
+      select: { id: true, number: true },
+      orderBy: { number: 'asc' },
+    });
   }
 
   /** O lançamento do id, quando o usuário tem `view` na entidade dona, ou a recusa: 404 ou 403. */

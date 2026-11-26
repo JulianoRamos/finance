@@ -49,12 +49,24 @@ describe('planInstallments', () => {
   });
 });
 
+/** Uma parcela de R$ 100,00 com o vencimento e a soma conciliada dados. */
+function installment(dueDate: string, reconciledAmount = '0.00') {
+  return { amount: new Decimal('100.00'), reconciledAmount: new Decimal(reconciledAmount), dueDate: day(dueDate) };
+}
+
 describe('installmentStatus', () => {
-  it('é vencida antes de hoje, e prevista a partir de hoje', () => {
+  it('em aberto, é vencida antes de hoje, e prevista a partir de hoje', () => {
     const today = day('2026-11-15');
 
-    expect(installmentStatus(day('2026-11-14'), today)).toBe('overdue');
-    expect(installmentStatus(day('2026-11-15'), today)).toBe('expected');
-    expect(installmentStatus(day('2026-12-01'), today)).toBe('expected');
+    expect(installmentStatus(installment('2026-11-14'), today)).toBe('overdue');
+    expect(installmentStatus(installment('2026-11-15'), today)).toBe('expected');
+    expect(installmentStatus(installment('2026-12-01'), today)).toBe('expected');
+  });
+
+  it('com a soma conciliada igual ao valor, é liquidada, também depois do vencimento', () => {
+    const today = day('2026-11-15');
+
+    expect(installmentStatus(installment('2026-11-01', '100.00'), today)).toBe('settled');
+    expect(installmentStatus(installment('2026-12-01', '100.00'), today)).toBe('settled');
   });
 });

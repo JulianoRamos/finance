@@ -6,7 +6,6 @@ import { useActionState, useState } from 'react';
 import type { AccountChoice } from '@/api/accounts';
 import type { CategoryChoice } from '@/api/categories';
 
-import { FOCUS_RING } from '../../_access/access-screen';
 import {
   ControlField,
   DateField,
@@ -23,6 +22,7 @@ import { formatCalendarDate } from '../../_shell/format';
 import { INITIAL_FORM_STATE } from '../../_shell/form-state';
 import { formatMoney, formatMoneyInput, parseMoneyInput } from '../../_shell/money';
 import { createEntryAction, type EntryFormState, type EntryFormValues } from './actions';
+import { DateShortcuts, type ShortcutDays } from './date-shortcuts';
 import { categoryPath } from '../../_shell/category-text';
 import {
   dueDateLabel,
@@ -87,7 +87,7 @@ function RadioGroup<T extends string>({
 }
 
 /** Os valores do formulário antes do primeiro envio. */
-function initialValues(individuals: readonly IndividualOption[]): EntryFormValues {
+function initialValues(individuals: readonly IndividualOption[], today: string): EntryFormValues {
   const [only] = individuals;
   return {
     type: 'expense',
@@ -101,6 +101,9 @@ function initialValues(individuals: readonly IndividualOption[]): EntryFormValue
     installmentCount: '2',
     firstDueDate: '',
     accountId: '',
+    paid: false,
+    paymentAccountId: '',
+    paymentDate: today,
   };
 }
 
@@ -166,7 +169,7 @@ export function EntryForm({
   yesterday: string;
 }>) {
   const [state, action] = useActionState<EntryFormState, FormData>(createEntryAction, INITIAL_FORM_STATE);
-  const sent = state.values ?? initialValues(individuals);
+  const sent = state.values ?? initialValues(individuals, today);
   // As escolhas que mudam o resto do formulário ficam no estado, a partir do que foi enviado.
   const [type, setType] = useState<EntryType>(sent.type);
   const [entityId, setEntityId] = useState(sent.entityId);
@@ -178,6 +181,11 @@ export function EntryForm({
   const [occurredOn, setOccurredOn] = useState(sent.occurredOn);
   const [firstDueDate, setFirstDueDate] = useState(sent.firstDueDate);
   const [accountId, setAccountId] = useState(sent.accountId);
+  const [paid, setPaid] = useState(sent.paid);
+  // Ao marcar o "Já pago", a conta do pagamento começa pela das parcelas, e o usuário a troca.
+  const [paymentAccountId, setPaymentAccountId] = useState(sent.paymentAccountId);
+  const [paymentDate, setPaymentDate] = useState(sent.paymentDate);
+  const days: ShortcutDays = { today, yesterday };
   const fields = state.fields;
 
   const ownAccounts = accounts.filter((account) => account.entityId === entityId);
@@ -225,8 +233,9 @@ export function EntryForm({
             value={entityId}
             onChange={(event) => {
               setEntityId(event.target.value);
-              // A conta é da entidade escolhida.
+              // As contas são da entidade escolhida.
               setAccountId('');
+              setPaymentAccountId('');
             }}
             className={inputClass('app')}
             {...describedBy('new-entity', fields.entityId)}
@@ -280,25 +289,7 @@ export function EntryForm({
           value={occurredOn}
           onValueChange={setOccurredOn}
           error={fields.occurredOn}
-          after={
-            <span className="ml-3 flex flex-none items-center gap-3">
-              {[
-                { label: 'Hoje', date: today },
-                { label: 'Ontem', date: yesterday },
-              ].map((shortcut) => (
-                <button
-                  key={shortcut.label}
-                  type="button"
-                  onClick={() => {
-                    setOccurredOn(shortcut.date);
-                  }}
-                  className={`rounded-sm text-label text-link hover:underline ${FOCUS_RING}`}
-                >
-                  {shortcut.label}
-                </button>
-              ))}
-            </span>
-          }
+          after={<DateShortcuts days={days} onPick={setOccurredOn} />}
         />
         <ControlField
           id="new-category"
@@ -403,6 +394,61 @@ export function EntryForm({
           </ControlField>
         </div>
         {preview.length > 0 && totalDecimal !== null && <Preview installments={preview} total={totalDecimal} />}
+      </div>
+      <div className="flex flex-col gap-4 border-t border-hairline pt-6">
+        <label className={CHOICE}>
+          <input
+            type="checkbox"
+            name="paid"
+            checked={paid}
+            onChange={(event) => {
+              setPaid(event.target.checked);
+              if (event.target.checked && !paymentAccountId) setPaymentAccountId(accountId);
+            }}
+            className={CHOICE_CONTROL}
+          />
+          <span className="flex flex-col gap-1">
+            <span className="text-label text-ink">{installments ? 'Primeira parcela já paga' : 'Já pago'}</span>
+            <span className="text-body-sm text-body">
+              Registra o pagamento como movimentação da conta e marca a parcela como liquidada.
+            </span>
+          </span>
+        </label>
+        {paid && (
+          <div className="grid gap-6 md:grid-cols-2">
+            <ControlField id="new-payment-account" label="Conta do pagamento" error={fields.paymentAccountId}>
+              <select
+                id="new-payment-account"
+                name="paymentAccountId"
+                value={paymentAccountId}
+                onChange={(event) => {
+                  setPaymentAccountId(event.target.value);
+                }}
+                className={inputClass('app')}
+                {...describedBy('new-payment-account', fields.paymentAccountId)}
+              >
+                <option value="">Selecione</option>
+                {ownAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            </ControlField>
+            <DateField
+              id="new-payment-date"
+              name="paymentDate"
+              label="Data do pagamento"
+              autoComplete="off"
+              size="app"
+              required={false}
+              value={paymentDate}
+              onValueChange={setPaymentDate}
+              error={fields.paymentDate}
+              after={<DateShortcuts days={days} onPick={setPaymentDate} />}
+            />
+          </div>
+        )}
       </div>
       {/* No celular, as ações ficam fixas no rodapé, acima da área segura (design-system.md, seção 6). */}
       <div className="sticky bottom-0 -mx-4 grid grid-cols-2 gap-2 border-t border-hairline bg-surface px-4 pt-3 pb-safe md:static md:mx-0 md:flex md:flex-wrap md:justify-end md:px-0 md:pt-4 md:pb-0">

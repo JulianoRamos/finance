@@ -2,13 +2,8 @@ import { expect, test } from '@playwright/test';
 
 import { createTestAccount, daysAgo } from './support/accounts';
 import { createTestIndividual, postAsUser, uniqueName } from './support/entities';
+import { shown } from './support/entries';
 import { createTestUser, signIn, uniqueOrigin } from './support/users';
-
-/** Uma data `AAAA-MM-DD` como a tela a mostra, `dd/mm/aaaa`. */
-function shown(date: string): string {
-  const [year = '', month = '', day = ''] = date.split('-');
-  return `${day}/${month}/${year}`;
-}
 
 /** A data `AAAA-MM-DD` `months` meses depois, no mesmo dia, ou no último dia do mês que não o tem. */
 function monthsAfter(date: string, months: number): string {
@@ -54,7 +49,7 @@ test(
     await form.getByRole('radio', { name: 'Parcelado' }).check();
     await form.getByLabel('Número de parcelas').fill('3');
     await form.getByLabel('Primeiro vencimento').fill(today);
-    await form.getByLabel('Conta').selectOption({ label: account.name });
+    await form.getByLabel('Conta', { exact: true }).selectOption({ label: account.name });
 
     const preview = form.getByRole('list', { name: 'Prévia das parcelas' });
     await expect(preview.getByRole('listitem')).toHaveText([

@@ -45,13 +45,27 @@ export function planInstallments(total: Decimal, count: number, firstDueDate: Da
   }));
 }
 
-/** A situação da parcela, calculada na leitura (regra 6.6). A liquidada e a cancelada entram depois. */
-export const InstallmentStatus = { expected: 'expected', overdue: 'overdue' } as const;
+/**
+ * A situação da parcela, calculada na leitura (regra 6.6). A parcial entra com a importação, e a cancelada,
+ * com o cancelamento.
+ */
+export const InstallmentStatus = { expected: 'expected', overdue: 'overdue', settled: 'settled' } as const;
 export type InstallmentStatus = (typeof InstallmentStatus)[keyof typeof InstallmentStatus];
 
-/** Vencida quando o vencimento é anterior a hoje, e prevista a partir de hoje (regra 6.6). */
-export function installmentStatus(dueDate: Date, today: Date): InstallmentStatus {
-  return dueDate < today ? 'overdue' : 'expected';
+/** O que a situação lê da parcela: o valor, a soma conciliada e o vencimento. */
+interface InstallmentState {
+  readonly amount: Decimal;
+  readonly reconciledAmount: Decimal;
+  readonly dueDate: Date;
+}
+
+/**
+ * Liquidada quando a soma conciliada é o valor; em aberto, vencida quando o vencimento é anterior a hoje,
+ * e prevista a partir de hoje (regra 6.6).
+ */
+export function installmentStatus(installment: InstallmentState, today: Date): InstallmentStatus {
+  if (installment.reconciledAmount.equals(installment.amount)) return 'settled';
+  return installment.dueDate < today ? 'overdue' : 'expected';
 }
 
 /** A condição da parcela, pela coluna do vencimento dada, que vence no mês. */
