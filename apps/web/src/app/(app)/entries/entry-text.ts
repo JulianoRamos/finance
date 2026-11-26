@@ -26,7 +26,11 @@ export function dueDateLabel(type: EntryType, installments: boolean): string {
 export const PURPOSE_NAMES: Readonly<Record<EntryPurpose, string>> = { personal: 'Pessoal', household: 'Familiar' };
 
 /** O nome de cada situação, como o selo a escreve. */
-export const STATUS_NAMES: Readonly<Record<InstallmentStatus, string>> = { expected: 'Prevista', overdue: 'Vencida' };
+export const STATUS_NAMES: Readonly<Record<InstallmentStatus, string>> = {
+  expected: 'Prevista',
+  overdue: 'Vencida',
+  settled: 'Liquidada',
+};
 
 /** O estado da lista do mês, que fica no endereço: o filtro da lista da api. */
 export type EntryParams = EntryListQuery;
@@ -60,4 +64,9 @@ export function entriesQuery(params: EntryParams, currentMonth: string): string 
   if (params.page > 1) query.set('page', String(params.page));
   const text = query.toString();
   return text === '' ? '' : `?${text}`;
+}
+
+/** O número da parcela entre todas: "3 de 10". */
+export function numberText(number: number, count: number): string {
+  return `${String(number)} de ${String(count)}`;
 }

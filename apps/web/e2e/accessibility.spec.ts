@@ -56,6 +56,25 @@ async function openSeededCategory(page: Page, baseURL: string) {
   return actions;
 }
 
+/**
+ * Abre, numa tela larga, o detalhe de uma despesa de teste em 3 parcelas, com a tabela das parcelas e o
+ * menu de cada uma, e paga a parcela 1 pelo menu, quando pedido.
+ */
+async function openEntryWithMenu(page: Page, baseURL: string, { paid }: { paid: boolean }) {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  const { entry } = await openTestEntry(page, baseURL);
+  const menu = page.getByRole('button', { name: 'Ações da parcela 1' });
+  if (paid) {
+    await menu.click();
+    await page.getByRole('menuitem', { name: 'Marcar como paga' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Marcar a parcela 1 como paga' });
+    await dialog.getByRole('button', { name: 'Marcar como paga' }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('region', { name: entry.description })).toContainText('Pago em');
+  }
+  return menu;
+}
+
 const SCREENS: readonly Screen[] = [
   {
     name: 'a página inicial',
@@ -320,7 +339,7 @@ const SCREENS: readonly Screen[] = [
       await form.getByRole('radio', { name: 'Parcelado' }).check();
       await form.getByLabel('Número de parcelas').fill('18');
       await form.getByLabel('Primeiro vencimento').fill('2026-12-10');
-      await form.getByLabel('Conta').selectOption({ label: account.name });
+      await form.getByLabel('Conta', { exact: true }).selectOption({ label: account.name });
       await expect(form.getByRole('list', { name: 'Prévia das parcelas' }).getByRole('listitem')).toHaveCount(5);
     },
   },
@@ -341,6 +360,38 @@ const SCREENS: readonly Screen[] = [
           .getByRole('region', { name: 'Lista de lançamentos' })
           .getByRole('link', { name: new RegExp(entry.description) }),
       ).toBeVisible();
+    },
+  },
+  {
+    name: 'o novo lançamento com o já pago',
+    open: async (page, baseURL) => {
+      await openTestEntry(page, baseURL, '/entries/new');
+      const form = page.getByRole('form', { name: 'Novo lançamento' });
+      await form.getByRole('checkbox', { name: /Já pago/ }).check();
+      await expect(form.getByLabel('Data do pagamento')).toBeVisible();
+    },
+  },
+  {
+    name: 'o diálogo de pagar uma parcela',
+    open: async (page, baseURL) => {
+      await (await openEntryWithMenu(page, baseURL, { paid: false })).click();
+      await page.getByRole('menuitem', { name: 'Marcar como paga' }).click();
+      await expect(page.getByRole('dialog', { name: 'Marcar a parcela 1 como paga' })).toBeVisible();
+    },
+  },
+  {
+    name: 'o menu de uma parcela paga',
+    open: async (page, baseURL) => {
+      await (await openEntryWithMenu(page, baseURL, { paid: true })).click();
+      await expect(page.getByRole('menuitem', { name: 'Desfazer pagamento' })).toBeVisible();
+    },
+  },
+  {
+    name: 'a confirmação de desfazer o pagamento',
+    open: async (page, baseURL) => {
+      await (await openEntryWithMenu(page, baseURL, { paid: true })).click();
+      await page.getByRole('menuitem', { name: 'Desfazer pagamento' }).click();
+      await expect(page.getByRole('alertdialog', { name: 'Desfazer o pagamento da parcela 1?' })).toBeVisible();
     },
   },
   {

@@ -1,9 +1,13 @@
 import { type InstallmentStatus, STATUS_NAMES } from './entry-text';
 
-/** A cor de cada situação (design-system.md, seção 4.4): a prevista é neutra, e a vencida, negativa. */
+/**
+ * A cor de cada situação (design-system.md, seção 4.4): a prevista é neutra, a vencida, negativa, e a
+ * liquidada, positiva.
+ */
 const STATUS_STYLES: Readonly<Record<InstallmentStatus, string>> = {
   expected: 'bg-surface-subtle text-body',
   overdue: 'bg-negative-soft text-negative',
+  settled: 'bg-positive-soft text-positive',
 };
 
 /** O selo da situação da parcela, com o texto dela: a cor só acompanha (design-system.md, seção 7). */

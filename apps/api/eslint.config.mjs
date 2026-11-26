@@ -24,6 +24,7 @@ const calls = {
   search: ['entities', 'identity', 'accounts', 'entries'],
   accounts: ['entities', 'audit'],
   entries: ['accounts', 'entities', 'audit'],
+  reconciliation: ['accounts', 'entries', 'audit'],
   identity: ['entities', 'audit'],
   entities: ['audit'],
   audit: [],

@@ -80,6 +80,13 @@ export interface AccountSummary {
   readonly active: boolean;
 }
 
+/** O que outro módulo lê de uma movimentação que ele ligou a um registro dele (LLD, seção 3). */
+export interface MovementSummary {
+  readonly accountId: string;
+  /** O dia, `AAAA-MM-DD`. */
+  readonly date: string;
+}
+
 /**
  * A ordem da lista das movimentações: da mais recente para a mais antiga pela data e, no mesmo dia, pela
  * ordem do registro, a última primeiro (o uuidv7 do id cresce com o registro).
@@ -394,6 +401,43 @@ export class AccountsService {
         direction: input.direction,
         description: input.description.trim(),
         source: 'manual',
+      });
+    });
+  }
+
+  /**
+   * A conta e o dia de cada movimentação dos ids, para outro módulo, como a data de um pagamento (LLD,
+   * seção 3).
+   */
+  async movementSummariesOf(ids: readonly string[]): Promise<ReadonlyMap<string, MovementSummary>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.transactions.client.movement.findMany({
+      where: { id: { in: [...ids] } },
+      select: { id: true, accountId: true, date: true },
+    });
+    return new Map(rows.map((row) => [row.id, { accountId: row.accountId, date: formatCalendarDate(row.date) }]));
+  }
+
+  /**
+   * Exclui a movimentação manual de outro módulo, como a do pagamento de uma parcela desfeito, com a
+   * auditoria, quando o usuário tem `operate` na entidade dona da conta. A trava da conta segura o ajuste,
+   * que calcula o saldo, até a exclusão ser gravada.
+   */
+  deleteManualMovement(id: string): Promise<void> {
+    return this.transactions.run(async () => {
+      const client = this.transactions.client;
+      const before = await client.movement.findUnique({ where: { id } });
+      if (before?.source !== 'manual') throw new Error('A movimentação a excluir não é uma manual que existe.');
+      await client.$queryRaw`SELECT 1 FROM account WHERE id = ${before.accountId}::uuid FOR UPDATE`;
+      const account = await this.readWithLevel(before.accountId, 'operate');
+      await client.movement.delete({ where: { id } });
+      await this.audit.record({
+        action: 'delete',
+        tableName: 'movement',
+        recordId: id,
+        entityId: account.entityId,
+        before,
+        after: null,
       });
     });
   }

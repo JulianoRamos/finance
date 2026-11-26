@@ -14,7 +14,7 @@ import { EntriesService } from './entries.service.js';
   imports: [AccountsModule, AuditModule, EntitiesModule],
   controllers: [CategoriesController, EntriesController],
   providers: [CategoriesService, EntriesService],
-  // A Pesquisa procura as categorias (regra 6.22).
-  exports: [CategoriesService],
+  // A Pesquisa procura as categorias (regra 6.22), e a Conciliação cria e paga os lançamentos (LLD, seção 3).
+  exports: [CategoriesService, EntriesService],
 })
 export class EntriesModule {}

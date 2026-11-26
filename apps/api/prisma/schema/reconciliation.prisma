@@ -1,0 +1,41 @@
+// O módulo Conciliação (LLD, seção 4.8, e regra 6.5): por enquanto, só o pagamento de uma parcela, a
+// movimentação manual ligada a ela, no cadastro (o "já pago") ou depois. A conciliação automática, a
+// importada que substitui a manual e o recebível entram com a importação e com os recebimentos.
+
+/// A ligação entre uma movimentação e a parcela que ela liquida, pelo valor dado (GLOSSARY.md,
+/// Conciliação). Por enquanto, sempre manual: a do pagamento de uma parcela, com a movimentação manual
+/// que o pagamento criou, pelo valor em aberto da parcela. Desfazer o pagamento a exclui, com a
+/// movimentação (regra 6.5).
+/// Chave estrangeira escrita à mão na migração (reconciliation_movement_id_fkey): movement_id referencia
+/// movement(id), com RESTRICT, sem relação no Prisma, porque a tabela movement é do módulo Contas (LLD,
+/// seção 3).
+/// Chave estrangeira escrita à mão na migração (reconciliation_installment_id_fkey): installment_id
+/// referencia installment(id), com RESTRICT, pelo mesmo motivo: a tabela é do módulo Lançamentos.
+/// Chave estrangeira escrita à mão na migração (reconciliation_created_by_id_fkey): created_by_id
+/// referencia "user"(id), com RESTRICT, pelo mesmo motivo: a tabela é do módulo Identidade.
+/// CHECK escrito à mão na migração (reconciliation_amount_check): o valor é maior que zero.
+model Reconciliation {
+  /// uuidv7, gerado pelo banco.
+  id            String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  /// A movimentação que liquida a parcela, do módulo Contas.
+  movementId    String   @map("movement_id") @db.Uuid
+  /// A parcela liquidada, do módulo Lançamentos. O recebível, a outra ponta possível, entra com os
+  /// recebimentos, com o CHECK de exatamente uma das duas.
+  installmentId String   @map("installment_id") @db.Uuid
+  /// O valor conciliado, maior que zero. A soma por movimentação não passa do valor dela, nem a soma por
+  /// parcela, do valor da parcela (regra 6.5).
+  amount        Decimal  @db.Decimal(15, 2)
+  /// Falso na conciliação feita pelo usuário, como o pagamento de uma parcela; a automática entra com a
+  /// importação.
+  isAutomatic   Boolean  @default(false) @map("is_automatic")
+  /// O usuário que registrou o pagamento, da Identidade.
+  createdById   String   @map("created_by_id") @db.Uuid
+  createdAt     DateTime @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @map("updated_at") @db.Timestamptz
+
+  /// Os pagamentos de uma parcela.
+  @@index([installmentId], map: "reconciliation_installment_id_idx")
+  /// As conciliações de uma movimentação.
+  @@index([movementId], map: "reconciliation_movement_id_idx")
+  @@map("reconciliation")
+}

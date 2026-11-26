@@ -63,6 +63,11 @@ A ligação entre uma movimentação e o lançamento que ela liquida, confirmand
 _Avoid_: Casamento, baixa (que é de estoque)
 **Em código:** `reconciliation`
 
+**Pagamento**:
+A liquidação de uma parcela por uma movimentação manual da conta, registrada no cadastro do lançamento ("já pago") ou depois, parcela a parcela, e ligada à parcela pela conciliação. Pode ser desfeito, e a parcela volta a ficar em aberto. Na receita, é o recebimento.
+_Avoid_: Baixa, quitação
+**Em código:** `payment` (o da parcela é o `installment_payment`)
+
 **Transferência**:
 A passagem de dinheiro entre duas contas da mesma entidade. Não é receita nem despesa.
 _Avoid_: Repasse, movimentação interna
